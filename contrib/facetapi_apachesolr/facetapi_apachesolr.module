@@ -1,0 +1,77 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * The Apache Solr Search Integration module's implementation of the the Facet
+ * API.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function facetapi_apachesolr_menu() {
+  $items = array();
+
+  $items['admin/settings/apachesolr/facets'] = array(
+    'title' => 'Facets',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_admin_settings_form', 'apachesolr_search'),
+    'access arguments' => array('administer search'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'facetapi.admin.inc',
+    'file path' => drupal_get_path('module', 'facetapi'),
+    'weight' => 10,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_facetapi_adapters().
+ */
+function facetapi_apachesolr_facetapi_adapters() {
+  return array(
+    'apachesolr_search' => array(
+      'class' => 'FacetapiApachesolrAdapter',
+      'type' => 'node',
+      'file' => 'facetapi_apachesolr.adapter.inc',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_apachesolr_prepare_query().
+ */
+function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller) {
+  facetapi_query_type_hooks_invoke('apachesolr_search', $params, $query);
+}
+
+/**
+ * Implementation of hook_facetapi_query_TYPE_process().
+ */
+function facetapi_apachesolr_facetapi_query_term_process($searcher, array $facet, &$params, $query) {
+
+  // Adds the operator parameter.
+  $operator = facetapi_setting_get('operator', $searcher, '', $facet['name']);
+  $ex = (FACETAPI_OPERATOR_OR != $operator) ? "{!ex={$facet['field']}}" : '';
+  $params['facet.field'][] = $ex . $facet['field'];
+
+  // Adds "hard limit" parameter to prevent too many return values.
+  $limit = facetapi_setting_get('hard_limit', $searcher, '', $facet['name']);
+  $params['f.'. $facet['field'] .'.facet.limit'] = ($limit !== NULL) ? (int)$limit : 20;
+}
+
+/**
+ * Implementation of hook_facetapi_query_TYPE_process().
+ */
+function facetapi_apachesolr_facetapi_query_range_process($searcher, array $facet, &$params, $query) {
+  module_load_include('inc', 'facetapi', 'facetapi.date');
+  list($start, $end, $gap) = facetapi_date_range($query, $facet['field']);
+
+  $params['facet.date'][] = $facet['field'];
+  $params['f.'. $facet['field'] .'.facet.date.start'] = $start;
+  $params['f.'. $facet['field'] .'.facet.date.end'] = $end;
+  $params['f.'. $facet['field'] .'.facet.date.gap'] = $gap;
+}
+
