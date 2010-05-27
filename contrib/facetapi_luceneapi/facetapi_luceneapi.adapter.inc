@@ -202,7 +202,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     $this->_filters = array();
     $string = isset($_GET['filters']) ? (string)$_GET['filters'] : '';
     foreach ($facets as $facet) {
-      $field = preg_quote($facet['field'], '/');
+      $field = preg_quote($facet['field alias'], '/');
 
       // Patterns that pull queries from filter string.
       $patterns = array(
@@ -285,10 +285,10 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     // Adds or removes filters from the array.
     foreach ($values as $value) {
       if (!$active) {
-        $filters[$facet['field']][$value] = $facet['field'] .':'. $value;
+        $filters[$facet['field alias']][$value] = $facet['field alias'] .':'. $value;
       }
       else {
-        unset($filters[$facet['field']][$value]);
+        unset($filters[$facet['field alias']][$value]);
       }
     }
 

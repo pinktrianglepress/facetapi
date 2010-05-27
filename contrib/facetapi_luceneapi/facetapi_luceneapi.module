@@ -56,13 +56,14 @@ function facetapi_luceneapi_form_facetapi_admin_settings_form(&$form, &$form_sta
 function facetapi_luceneapi_facetapi_facets_alter(array &$facets, $searcher, $type) {
   if ('luceneapi_node' == $searcher) {
     foreach ($facets as &$facet) {
-      if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $match)) {
-        $facet['field'] = 'category_'. $match[1];
+      if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $matches)) {
+        $facet['field'] = 'category_'. $matches[1];;
+        $facet['field alias'] = 'category';
       }
     }
+    unset($facet);
   }
 }
-
 /**
  * Implementation of hook_facetapi_adapters().
  */
@@ -474,6 +475,35 @@ function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapte
   }
   catch (Exception $e) {
     luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');
+  }
+}
+
+/**
+ * Implementation of hook_luceneapi_document_alter().
+ */
+function facetapi_luceneapi_luceneapi_document_alter($doc, $node, $module, $type = NULL) {
+  if ('luceneapi_node' == $module) {
+    // Maintains taxonomy ancestry for hierarchical browsing. Parent term counts
+    // should also include child terms counts.
+    $terms = array();
+    if (isset($node->taxonomy) && is_array($node->taxonomy)) {
+      foreach ($node->taxonomy as $term) {
+        $ancestors = taxonomy_get_parents_all($term->tid);
+        foreach ($ancestors as $ancestor) {
+          $terms[$ancestor->vid][$ancestor->tid] = $ancestor->tid;
+        }
+      }
+    }
+
+    // Changes the field definition for categories, rebuilds the field's value
+    // with all parent and child terms.
+    foreach ($terms as $vid => $tids) {
+      $field = $doc->getField('category_'. $vid);
+      $field->isStored = FALSE;
+      $field->isIndexed = TRUE;
+      $field->isTokenized = TRUE;
+      $field->value = join(' ', $tids);
+    }
   }
 }
 
