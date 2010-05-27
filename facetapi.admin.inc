@@ -230,20 +230,65 @@ function facetapi_admin_settings_form_submit(&$form, &$form_state) {
 function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
 
-  $form['description']['#value'] = t(
-    'Configuration settings for the %facet facet in the %realm realm that apply to %searcher searches.',
-    array(
-      '%facet' => $facet['title'],
-      '%realm' => $realm['title'],
-      '%searcher' => $adapter->getSearcher(),
-    )
+  $form['global'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Global settings'),
+    '#description' => t(
+      'Configuration settings for the %facet facet across <em>all</em> realms that apply to %searcher searches.',
+      array(
+        '%facet' => $facet['title'],
+        '%searcher' => $adapter->getSearcher(),
+      )
+    ),
+    '#collapsible' => TRUE,
+  );
+
+  $operator_var = sprintf(
+    'facetapi:operator:%s::%s',
+    $adapter->getSearcher(), $facet['name']
+  );
+  $form['global'][$operator_var] = array(
+    '#type' => 'radios',
+    '#title' => t('Operator'),
+    '#default_value' => variable_get($operator_var, FACETAPI_OPERATOR_AND),
+    '#options' => array(
+      FACETAPI_OPERATOR_AND => t('AND'),
+      FACETAPI_OPERATOR_OR => t('OR'),
+    ),
+    '#description' => t('AND filters are exclusive. OR filters are inclusive. Selecting more AND filters narrows the result set. Selecting more OR filters widens the result set.')
+  );
+
+  $hlimit_var = sprintf(
+    'facetapi:hard_limit:%s::%s',
+    $adapter->getSearcher(), $facet['name']
+  );
+  $form['global'][$hlimit_var] = array(
+    '#type' => 'select',
+    '#title' => t('Hard limit'),
+    '#default_value' => variable_get($hlimit_var, 20),
+    '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
+    '#description' => t('Display no more than this number of facets.')
+  );
+
+  $form['realm'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('@realm realm settings', array('@realm' => $realm['title'])),
+    '#description' => t(
+      'Configuration settings for the %facet facet in the %realm realm that apply to %searcher searches.',
+      array(
+        '%facet' => $facet['title'],
+        '%realm' => $realm['title'],
+        '%searcher' => $adapter->getSearcher(),
+      )
+    ),
+    '#collapsible' => TRUE,
   );
 
   $sort_var = sprintf(
     'facetapi:sort:%s:%s:%s',
     $adapter->getSearcher(), $realm['name'], $facet['name']
   );
-  $form[$sort_var] = array(
+  $form['realm'][$sort_var] = array(
     '#type' => 'radios',
     '#title' => t('Sort order'),
     '#default_value' => variable_get($sort_var, 0),
@@ -257,43 +302,16 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Alphanumeric</em> will sort alphabetically, either ascending or descending. <em>Key</em> sorts by the raw value indexed in the search engine, usually a machine readable ID.')
   );
 
-  $operator_var = sprintf(
-    'facetapi:operator:%s:%s:%s',
-    $adapter->getSearcher(), $realm['name'], $facet['name']
-  );
-  $form[$operator_var] = array(
-    '#type' => 'radios',
-    '#title' => t('Operator'),
-    '#default_value' => variable_get($operator_var, FACETAPI_OPERATOR_AND),
-    '#options' => array(
-      FACETAPI_OPERATOR_AND => t('AND'),
-      FACETAPI_OPERATOR_OR => t('OR'),
-    ),
-    '#description' => t('AND filters are exclusive. OR filters are inclusive. Selecting more AND filters narrows the result set. Selecting more OR filters widens the result set.')
-  );
-
   $slimit_var = sprintf(
     'facetapi:soft_limit:%s:%s:%s',
     $adapter->getSearcher(), $realm['name'], $facet['name']
   );
-  $form[$slimit_var] = array(
+  $form['realm'][$slimit_var] = array(
     '#type' => 'select',
     '#title' => t('Soft limit'),
     '#default_value' => variable_get($slimit_var, 10),
     '#options' => drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Limits the number of displayed facets via jQuery.')
-  );
-
-  $hlimit_var = sprintf(
-    'facetapi:hard_limit:%s:%s:%s',
-    $adapter->getSearcher(), $realm['name'], $facet['name']
-  );
-  $form[$hlimit_var] = array(
-    '#type' => 'select',
-    '#title' => t('Hard limit'),
-    '#default_value' => variable_get($hlimit_var, 20),
-    '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
-    '#description' => t('Display no more than this number of facets.')
   );
 
   return system_settings_form($form);

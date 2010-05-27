@@ -404,11 +404,14 @@ function facetapi_facets_get($searcher, $type) {
         // Machine readable name of the facet.
         'name' => $facet_name,
         // Human readable name of the facet, i.e. label.
-        'title' => $facet['element'],
+        'title' => $facet_name,
         // The facet's description.
         'description' => '',
         // The search field containing the facet data.
         'field' => $facet_name,
+        // The alias for the field, also uses as the form element name when
+        // facets are rendered as form elements.
+        'field alias' => $facet_name,
         // The type of query executed when the facet is active.  Valid values
         // are term, range, and wildcard.  Each adapter module must implement
         // hook_facetapi_query_TYPE_process() in order for the facet data to
@@ -416,11 +419,8 @@ function facetapi_facets_get($searcher, $type) {
         'query type' => 'term',
         // Determines how the facet data is retrieved. This value determines
         // which one of the adapter's fetch*() methods is used. A value of
-        // FALSE will use the fetchDefault() method.
+        // FALSE will use the adapter's fetchDefault() method.
         'fetch type' => FALSE,
-        // The for element element / query string variable the facet value is
-        // passed through.
-        'element' => $facet_name,
         // The form element type.
         'form type' => 'checkboxes',
         // The default weight of the facet when rendered.
@@ -657,7 +657,7 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
       if (module_hook($adapter->getModule(), $hook)) {
         $function = $adapter->getModule() .'_'. $hook;
         $args = func_get_args();
-        $params = array_merge(array($searcher, $facet, &$data), array_slice($args, 2));
+        $params = array_merge(array($adapter, $facet, &$data), array_slice($args, 2));
         call_user_func_array($function, $params);
       }
     }
@@ -677,6 +677,11 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
  */
 function facetapi_realm_render($searcher, $realm_name) {
   $rendered = '';
+
+  // @todo REMOVE!!
+  $peak_start = memory_get_peak_usage();
+  $mem_start = memory_get_usage();
+  $time_start = microtime(TRUE);
 
   // Gets all defined realms, makes sure the passed realm is valid.
   $realms = facetapi_realms_get();
@@ -700,6 +705,19 @@ function facetapi_realm_render($searcher, $realm_name) {
       }
     }
   }
+
+  // @todo REMOVE!!
+  $time_end = microtime(TRUE);
+  $peak_end = memory_get_peak_usage();
+  $mem_end = ($peak_start == $peak_end) ? memory_get_usage() : $peak_end;
+  drupal_set_message(t(
+    '%realm realm rendered in %seconds seconds: (%size)',
+    array(
+      '%realm' => $realms[$realm_name]['title'],
+      '%seconds' => round($time_end - $time_start, 5),
+      '%size' => format_size($mem_end - $mem_start),
+    )
+  ));
 
   // Returns the rendered facet realm.
   return $rendered;
@@ -756,24 +774,34 @@ function facetapi_sort_weight(array $a, array $b) {
 }
 
 /**
+ * Sorts by whether or not a facet is "active", usually used in conjunction
+ * with the other usort() callbacks.
+ */
+function facetapi_sort_active(array $a, array $b) {
+  $a_active = (isset($a['active'])) ? $a['active'] : 0;
+  $b_active = (isset($b['active'])) ? $b['active'] : 0;
+  if ($a_active == $b_active) {
+    return 0;
+  }
+  return ($a_active > $b_active) ? -1 : 1;
+}
+
+/**
  * Useful as a uasort() callback to sort structured arrays by count.  If the
  * weights are equal, sorts by text.
  *
  * @see facetapi_sort_text()
  */
 function facetapi_sort_count(array $a, array $b) {
-  $a_count = (isset($a['count'])) ? $a['count'] : 0;
-  $b_count = (isset($b['count'])) ? $b['count'] : 0;
-
-  if ($a['active'] != $b['active']) {
-    return ($a['active'] > $b['active']) ? -1 : 1;
+  if ($active_sort = facetapi_sort_active($a, $b)) {
+    return $active_sort;
   }
 
-  // If counts are equal, sorts by "text".
+  $a_count = (isset($a['count'])) ? $a['count'] : 0;
+  $b_count = (isset($b['count'])) ? $b['count'] : 0;
   if ($a_count == $b_count) {
     return facetapi_sort_text($a, $b);
   }
-
   // NOTE: Sorts in reverse order, starting with highest count.
   return ($a_count > $b_count) ? -1 : 1;
 }
@@ -782,6 +810,10 @@ function facetapi_sort_count(array $a, array $b) {
  * Useful as a uasort() callback to sort structured arrays by text.
  */
 function facetapi_sort_text(array $a, array $b) {
+  if ($active_sort = facetapi_sort_active($a, $b)) {
+    return $active_sort;
+  }
+
   $a_count = (isset($a['text'])) ? $a['text'] : '';
   $b_count = (isset($b['text'])) ? $b['text'] : '';
   return strcasecmp($a['text'], $b['text']);
@@ -789,8 +821,6 @@ function facetapi_sort_text(array $a, array $b) {
 
 /**
  * Useful as a uasort() callback to reverse sort structured arrays by title.
- *
- * @see facetapi_sort_text()
  */
 function facetapi_rsort_text(array $a, array $b) {
   return -1 * facetapi_sort_text($a, $b);
@@ -939,34 +969,34 @@ function facetapi_facetapi_facets($searcher, $type) {
 
     $facets['type'] = array(
       'title' => t('Content type'),
-      'form type' => 'checkboxes',
       'description' => t('Filter by content type.'),
+      'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_type_map',
       'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['author'] = array(
       'title' => t('Author'),
-      'element' => 'uid',
+      'description' => t('Filter by author.'),
       'field' => 'uid',
+      'field alias' => 'uid',
       'form type' => 'textfield',
       'map callback' => 'facetapi_node_uid_map',
-      'description' => t('Filter by author.'),
       'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['language'] = array(
       'title' => t('Language'),
-      'form type' => 'checkboxes',
       'description' => t('Filter by language.'),
+      'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_language_map',
       'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['created'] = array(
       'title' => t('Post date'),
-      'form type' => 'checkboxes',
       'description' => t('Filter by the date the node was posted.'),
+      'form type' => 'checkboxes',
       'query type' => 'range',
       'fetch type' => 'date',
       'map callback' => 'facetapi_date_range_map',
@@ -975,8 +1005,8 @@ function facetapi_facetapi_facets($searcher, $type) {
 
     $facets['changed'] = array(
       'title' => t('Updated date'),
-      'form type' => 'checkboxes',
       'description' => t('Filter by the date the node was last modified.'),
+      'form type' => 'checkboxes',
       'query type' => 'range',
       'fetch type' => 'date',
       'map callback' => 'facetapi_date_range_map',
@@ -986,23 +1016,22 @@ function facetapi_facetapi_facets($searcher, $type) {
     // Adds taxonomy facets, breaks up into separate vocabularies.
     if (module_exists('taxonomy')) {
       foreach (taxonomy_get_vocabularies() as $voc) {
-
-        $facets['vocabulary_'. $voc->vid] = array(
+        $facet_name = 'vocabulary_'. $voc->vid;
+        $facets[$facet_name] = array(
           'title' => $voc->name,
-          'element' => 'im_vid_'. $voc->vid,
-          'field' => 'im_vid_'. $voc->vid,
-          'form type' => 'select',
-          'map callback' => 'facetapi_taxonomy_term_map',
           'description' => t(
             'Filter by terms in the %vocabulary vocabulary.',
             array('%vocabulary' => $voc->name)
           ),
+          'field' => 'category',
+          'form type' => 'select',
+          'map callback' => 'facetapi_taxonomy_term_map',
           'file' => 'facetapi.facetapi.inc',
         );
 
         // Adds hierarchy callback to get parent information.
         if (facetapi_vocabulary_hierarchical($voc->vid)) {
-          $facets['vocabulary_'. $voc->vid]['hierarchy callback'] = 'facetapi_taxonomy_hierarchy_callback';
+          $facets[$facet_name]['hierarchy callback'] = 'facetapi_taxonomy_hierarchy_callback';
         }
       }
     }

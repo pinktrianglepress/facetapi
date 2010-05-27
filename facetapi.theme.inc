@@ -19,7 +19,8 @@
  */
 function theme_facetapi_block($items) {
   $links = facetapi_links_get($items);
-  return theme('item_list', $links, check_plain($item['title']));
+  // @todo Do we need a title?
+  return theme('item_list', $links);
 }
 
 /**

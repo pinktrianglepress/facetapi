@@ -36,7 +36,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Fetches data from facets that filter results by term.
+   * Fetches data from facets that filter results by date ranges.
    */
   public function fetchDate(array $facet) {
     $facet_items = array();
@@ -61,7 +61,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;
-    foreach ($query->get_filters($facet['field']) as $filter) {
+    foreach ($this->getActiveFacets($facet['field']) as $filter) {
 
       // Builds the raw facet "value", the count for selected items will be the
       // total number of rows returned in the query.
@@ -80,7 +80,12 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     }
 
     // Gets raw facet data from the Solr server.
-    $raw_data = (array)$this->_response->facet_counts->facet_dates->{$facet['field']};
+    if (isset($this->_response->facet_counts->facet_dates)) {
+      $raw_data = (array)$this->_response->facet_counts->facet_dates->{$facet['field']};
+    }
+    else {
+      $raw_data = array();
+    }
 
     $end = (!empty($raw_data['end'])) ? $raw_data['end'] : '';
     $gap = (!empty($raw_data['gap'])) ? $raw_data['gap'] : '';
@@ -98,7 +103,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
       }
       $previous = $value;
     }
-    $range_end[$previous] = $raw_data['end'];
+    $range_end[$previous] = $end;
 
     // Builds facet counts object used by the server.
     foreach ($raw_data as $value => $count) {
@@ -120,69 +125,12 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
    * Returns an array of facet counts.
    */
   public function getFacetData(array $facets) {
-
-    // Gets the response and query objects.
-    if (!$this->_response = apachesolr_static_response_cache()) {
+    if ($this->_response = apachesolr_static_response_cache()) {
+      return parent::getFacetData($facets);
+    }
+    else {
       return array();
     }
-
-    // Builds $data array.
-    $data = $facets;
-    foreach ($data as &$facet_data) {
-
-      // Gets facet "counts".
-      if (NULL !== $facet_data['field']) {
-        $facet_data['items'] = $this->fetch($facets[$facet_data['name']]);
-      }
-      else {
-        $facet_data['items'] = array();
-      }
-
-      // Adds items to the $data array.
-      foreach ($facet_data['items'] as $value => &$item) {
-        if ('markup' != $facet_data['type']) {
-
-          // Tests if the facet is "active", in other words selected.
-          if (!$active = $this->facetActive($facet_data['field'], $value)) {
-            $theme_hook = 'facetapi_link';
-            $options = array();
-          }
-          else {
-            $theme_hook = 'facetapi_link_active';
-            $options['attributes']['class'] = 'active';
-          }
-
-          // Gets default for this row.
-          $defaults = array(
-            'theme hook' => $theme_hook,
-            'text' => $value,
-            'count' => 0,
-            'options' => $options,
-            'active' => $active,
-            'parents' => array(),
-            'children' => array(),
-          );
-
-          // Merges $item into the default arrays.
-          $item = array_merge($this->_item_defaults, $defaults, $item);
-
-        }
-        else {
-          $facet_data['items'][0] = array(
-            'theme hook' => 'facetapi_link',
-            'text' => '',
-            'options' => array(),
-            'count' => 0,
-            'active' => 0,
-            'parents' => array(),
-            'children' => array(),
-          );
-        }
-      }
-      unset($item);
-    }
-    // Returns the $data array.
-    return $data;
   }
 
   /**
@@ -202,9 +150,15 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
       // @todo Ask Robert or Peter about the $exclude variable.
       // NOTE: The remove_filter method doesn't have a third param, so we can
       // pass FALSE with no problems.
-      $new_query->$method($facet['element'], $value, FALSE);
+      $new_query->$method($facet['field alias'], $value, FALSE);
     }
-    return $new_query->get_url_queryvalues();
+
+    // Builds and returns query string.
+    $qstring = $_GET;
+    unset($qstring['filters']);
+    return drupal_query_string_encode(
+      array_merge($qstring, $new_query->get_url_queryvalues()), array('q', 'page')
+    );
   }
 
   /**
@@ -216,7 +170,10 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
    *   An array of values.
    */
   public function getActiveFacets($field) {
-
+    if ($query = apachesolr_current_query()) {
+      return $query->get_filters($field);
+    }
+    return array();
   }
 
   /**

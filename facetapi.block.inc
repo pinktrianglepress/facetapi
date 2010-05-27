@@ -57,6 +57,7 @@ function facetapi_block_view($delta = '') {
   // rendered blocks by group (searcher - realm name), because we cannot
   // render facets individually, only the realm as a whole.
   list($searcher, $realm_name, $facet_name) = explode(':', $map[$delta]);
+
   $group = $searcher .':'. $realm_name;
   if (!isset($blocks[$group])) {
 
@@ -217,23 +218,24 @@ function facetapi_paths_set(array &$facet_items, FacetapiAdapter $adapter, $real
     // If there are active children, builds links for decendents.
     if (!empty($item['children']) && $item['active']) {
       facetapi_paths_set($item['children'], $adapter, $realm_name, $facet);
-
       // Make sure unclicking the parent deactivates the children as well.
       $values = array_merge(facetapi_child_values_get($item['children']), $values);
     }
 
     // Formats query string dependent on whether the facet is active.
-    $item['options']['query'] = drupal_query_string_encode(
-      $adapter->getFacetQueryString($facet, $values, $item['active']), array('q', 'page')
-    );
+    $item['options']['query'] = $adapter->getFacetQueryString($facet, $values, $item['active']);
   }
   unset($item);
 
-  // Gets the facet's sort settings.
+  // Gets the facet's sort settings, parses into an array.
   // @todo statically cache the settings for performance?
-  list($sort, $flow) = explode(':', facetapi_setting_get(
+  $sort_array = array_filter(explode(':', facetapi_setting_get(
     'sort', $adapter->getSearcher(), $realm_name, $facet['name']
-  ));
+  )));
+
+  // This logic prevetns an "undefined index" notice when NULL is returned as
+  // the setting value (in other words it hasn't bee set yet).
+  list($sort, $flow) = (2 == count($sort_array)) ? $sort_array : array(0, 0);
 
   // Sorts the facets by text or key, calls adapters sortDefault() hook if
   // no sorting parameters are defined.

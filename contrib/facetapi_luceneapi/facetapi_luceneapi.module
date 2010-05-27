@@ -30,6 +30,40 @@ function facetapi_luceneapi_menu() {
 }
 
 /**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function facetapi_luceneapi_form_facetapi_admin_settings_form_alter($form, $form_state) {
+  if ('luceneapi_node' == $form['storage']['#value']['searcher']) {
+    $form['#submit'][] = 'facetapi_luceneapi_form_facetapi_admin_settings_form';
+  }
+}
+
+/**
+ * Processes facetapi_admin_settings_form form submissions.
+ */
+function facetapi_luceneapi_form_facetapi_admin_settings_form(&$form, &$form_state) {
+  $variable = 'facetapi:termfreqs_cached:'. $form['storage']['#value']['searcher'] .':%%';
+  if ($result = db_query("SELECT name FROM {variable} WHERE name LIKE '$variable'")) {
+    while ($record = db_fetch_object($result)) {
+      variable_del($record->name);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_facetapi_facets_alter().
+ */
+function facetapi_luceneapi_facetapi_facets_alter(array &$facets, $searcher, $type) {
+  if ('luceneapi_node' == $searcher) {
+    foreach ($facets as &$facet) {
+      if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $match)) {
+        $facet['field'] = 'category_'. $match[1];
+      }
+    }
+  }
+}
+
+/**
  * Implementation of hook_facetapi_adapters().
  */
 function facetapi_luceneapi_facetapi_adapters() {
@@ -48,32 +82,377 @@ function facetapi_luceneapi_facetapi_adapters() {
 }
 
 /**
- * Implementation of hook_facetapi_facets_alter().
+ * Helper function to get the wildcard prefix.
+ *
+ * @param $text
+ *   A string containing the text prefix is being extracted from.
+ * @return
+ *   A string containing the prefix.
  */
-function facetapi_luceneapi_facetapi_facets_alter(&$facets, $searcher, $type) {
-  // Adds "delimiter" directive to facets.
-
+function facetapi_luceneapi_prefix_get($text) {
+  $q_pos = strpos($text, '?');
+  $a_pos = strpos($text, '*');
+  if ($q_pos !== false) {
+    if ($a_pos !== false) {
+      return substr($text, 0, min($q_pos, $a_pos));
+    }
+    return substr($text, 0, $q_pos);
+  }
+  elseif ($a_pos !== false) {
+    return substr($text, 0, $a_pos);
+  }
+  return $text;
 }
 
 /**
- * Implementation of hook_facetapi_postrender_alter().
+ * Reads termfrequencies from the lookup table to avoid having to calculate it
+ * all over again.
+ *
+ * @param $searcher
+ *
+ * @param $term
+ *
+ * @return
+ *   An array keyed by Lucene document ID to term frequency.
  */
-function facetapi_facetapi_postrender_alter(&$rendered, $searcher, $type, $realm_name) {
-  if ('luceneapi_node' == $searcher && isset($rendered['created'])) {
-    $items = &$rendered['created']['items'];
+function facetapi_luceneapi_termfreqs_get($searcher, $term) {
+  static $cache = array();
 
-    // Gets values, finds minimum and maximum.
-    $values = array_keys($items);
-    $gap = facetapi_timestamp_gap_get(min($values), max($values));
-    foreach ($values as $value) {
-      $items[$value]['text'] = facetapi_timestamp_format($value, $gap);
+  // If cache is not populated for the field, reads the field's cached data.
+  if (!isset($cache[$searcher][$term->field])) {
+
+    $variable = 'facetapi:termfreqs_cached:'. $searcher .':::'. $term->field;
+    if (!variable_get($variable, FALSE)) {
+      facetapi_luceneapi_termfreqs_populate($searcher, $term->field);
+      variable_set($variable, TRUE);
     }
 
+    // Reads term frequencies from the database.
+    $cache[$searcher][$term->field] = array();
+    $table = '{'. $searcher .'_termfreqs}';
+    $sql = "SELECT term, field, termfreqs FROM $table";
+    if ($result = db_query($sql)) {
+      while ($record = db_fetch_object($result)) {
+        $cache[$searcher][$term->field][$record->term] = array(
+          'termfreqs' => $record->termfreqs,
+          'unserialized' => FALSE,
+        );
+      }
+    }
+  }
+
+  // Returns array of termfreqs, unserializes if necessary.
+  if (isset($cache[$searcher][$term->field][$term->text])) {
+    $data = &$cache[$searcher][$term->field][$term->text];
+    if (empty($data['unserialized'])) {
+      $data['termfreqs'] = unserialize($data['termfreqs']);
+      $data['unserialized'] = TRUE;
+    }
+    return $data['termfreqs'];
+  }
+  else {
+    return array();
   }
 }
 
+/**
+ * Gets the filter counts for an array of terms.
+ *
+ * @param $index
+ *   A LuceneAPI_Search_Lucene_Proxy object, such as the one returned by the
+ *   luceneapi_index_open() function.
+ * @param $docs
+ *   An array of documents keyed by docuent ID to score.
+ * @param $terms
+ *   An array of Zend_Search_Lucene_Index_Term objects.
+ */
+function facetapi_luceneapi_terms_count(Zend_Search_Lucene_Proxy $index, array $docs, array $terms) {
+  $freqs = array();
+
+  // Reading from a termFreqs cache table is MUCH more efficient than
+  // calculating them on the fly for every search.
+  foreach ($terms as $term) {
+    $freqs += facetapi_luceneapi_termfreqs_get('luceneapi_node', $term);
+  }
+
+  // NOTE: This is surprisingly efficient.
+  return count(array_intersect_key($docs, $freqs));
+}
 
 /**
- * Implementation of hook_luceneapi_query_alter().
+ * Rewrites a wildcard query into primitive terms.
+ *
+ * @param $index
+ *   A Zend_Search_Lucene_Interface object, such as the one returned by the
+ *   luceneapi_index_open() function.
+ * @param $text
+ *   A string containing the text being parsed.
+ * @param $fields
+ *   An array of fields the terms are matched against.
+ * @return
+ *   An array of Zend_Search_Lucene_Index_Term objects.
  */
+function facetapi_luceneapi_wildcard_matches_get(Zend_Search_Lucene_Interface $index, $text, array $fields = array('contents')) {
+
+  // Prevents too many terms from being extracted.
+  $max_terms = Zend_Search_Lucene::getTermsPerQueryLimit();
+
+  // Gets the word prefix.
+  $prefix = facetapi_luceneapi_prefix_get($text);
+  $prefix_len = strlen($prefix);
+  $pattern = '/^'. str_replace(array('\\?', '\\*'), array('.', '.*'), preg_quote($text, '/')) .'$/';
+
+  // Caclulates matches.
+  $matches = array();
+  foreach ($fields as $field) {
+    $index->resetTermsStream();
+    $index->skipTo(new Zend_Search_Lucene_Index_Term($prefix, $field));
+    while ($index->currentTerm() !== NULL && $index->currentTerm()->field == $field) {
+      if ($prefix != '' && substr($index->currentTerm()->text, 0, $prefix_len) != $prefix) {
+        break;
+      }
+      if (preg_match($pattern, $index->currentTerm()->text) === 1) {
+        $matches[] = $index->currentTerm();
+        // Terms per query limit reached.
+        if ($max_terms != 0 && count($matches) > $max_terms) {
+          throw new Zend_Search_Lucene_Exception('Terms per query limit is reached.');
+        }
+      }
+      $index->nextTerm();
+    }
+    $index->closeTermsStream();
+  }
+
+  return $matches;
+}
+
+/**
+ * Rewrites a range query into primitive terms.
+ *
+ * @param $index
+ *   A Zend_Search_Lucene_Interface object, such as the one returned by the
+ *   luceneapi_index_open() function.
+ * @param $lower
+ *   A string containing the lower boundary.
+ * @param $upper
+ *   A string containing the upper boundary.
+ * @param $inclusive
+ *   A boolean flagging whether to include the upper term in the result set.
+ * @param $fields
+ *   An array of fields the terms are matched against.
+ * @return
+ *   An array of Zend_Search_Lucene_Index_Term objects.
+ */
+function facetapi_luceneapi_range_matches_get(Zend_Search_Lucene_Interface $index, $lower, $upper, $inclusive = FALSE, array $fields = array('contents')) {
+
+  // Prevents too many terms from being extracted.
+  $max_terms = Zend_Search_Lucene::getTermsPerQueryLimit();
+
+  $matches = array();
+  foreach ($fields as $field) {
+    $index->resetTermsStream();
+
+    if ($lower !== NULL) {
+      $lower_term = new Zend_Search_Lucene_Index_Term($lower, $field);
+      $index->skipTo($lower_term);
+
+      if (!$inclusive && $index->currentTerm() == $lower_term) {
+        $index->nextTerm();
+      }
+    }
+    else {
+      $index->skipTo(new Zend_Search_Lucene_Index_Term('', $field));
+    }
+
+    if ($upper !== NULL) {
+      // Walk up to the upper term
+      $upper_term = new Zend_Search_Lucene_Index_Term($upper, $field);
+
+      while (
+        $index->currentTerm() !== NULL &&
+        $index->currentTerm()->field == $field &&
+        $index->currentTerm()->text < $upper_term->text
+      ) {
+
+        $matches[] = $index->currentTerm();
+        if ($max_terms != 0 && count($matches) > $max_terms) {
+          throw new Zend_Search_Lucene_Exception('Terms per query limit is reached.');
+        }
+        $index->nextTerm();
+      }
+
+      if ($inclusive && $index->currentTerm() == $upper_term) {
+        // Include upper term into result
+        $matches[] = $upper_term;
+      }
+    }
+    else {
+      // Walk up to the end of field data
+      while ($index->currentTerm() !== NULL && $index->currentTerm()->field == $field) {
+        $matches[] = $index->currentTerm();
+        if ($max_terms != 0 && count($matches) > $max_terms) {
+          throw new Zend_Search_Lucene_Exception('Terms per query limit is reached.');
+        }
+        $index->nextTerm();
+      }
+    }
+
+    $index->closeTermsStream();
+  }
+
+  return $matches;
+}
+
+/**
+ * Populates the termfreqs() database.
+ */
+function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
+
+  // @todo REMOVE!!
+  $time_start = microtime(TRUE);
+  $mem_start = memory_get_usage();
+
+  if (!$index = luceneapi_index_open($searcher)) {
+    return;
+  }
+
+  if (NULL === $fields) {
+    $fields = array();
+    foreach (facetapi_enabled_facets_get('luceneapi_node') as $facet) {
+      $fields[$facet['field']] = $facet['field'];
+    }
+  }
+  else {
+    $fields = drupal_map_assoc((array)$fields);
+  }
+
+  $terms = array();
+  foreach ($index->terms() as $term) {
+    if (isset($fields[$term->field])) {
+      $terms[$term->field][$term->text] = $index->termFreqs($term);
+    }
+  }
+
+  $table = '{'. $searcher .'_termfreqs}';
+  foreach ($terms as $field => $field_terms) {
+    foreach ($field_terms as $term => $termfreqs) {
+
+      $sql = "
+       DELETE
+       FROM $table
+       WHERE term = '%s' AND field = '%s'
+      ";
+      db_query($sql, array($term, $field));
+
+      $sql = "
+        INSERT
+        INTO $table
+        (term, field, termfreqs)
+        VALUES
+        ('%s', '%s', '%s')
+      ";
+      db_query($sql, array($term, $field, serialize($termfreqs)));
+    }
+  }
+
+  // @todo REMOVE!!
+  $mem_end = memory_get_usage();
+  $time_end = microtime(TRUE);
+  drupal_set_message(format_plural(
+    count($fields),
+    'TermFreqs table %table populated in %seconds seconds for the %field field: (%size)',
+    'TermFreqs table %table populated in %seconds seconds for the %field fields: (%size)',
+    array(
+      '%table' => $table,
+      '%seconds' => round($time_end - $time_start, 5),
+      '%size' => format_size($mem_end - $mem_start),
+      '%field' => join(', ', $fields),
+    )
+  ));
+}
+
+/**
+ * Converts all timestamps in an array to dates in ISO 8601 format.
+ *
+ * @param &$value
+ *   An integer containing the timestamp.
+ * @param $key
+ *   An integer containing the array key.
+ * @param $format
+ *   A string containing the date string.
+ * @return
+ * NULL
+ */
+function facetapi_luceneapi_timestamp_convert(&$value, $key, $format) {
+  $value = gmdate($format, $value);
+}
+
+/**
+ * Executes a match query, returns array keyed by document IDs.  This method
+ * skips sorting, so it more efficient than calling luceneapi_find.
+ *
+ * @param $index
+ *   A Zend_Search_Lucene_Interface object.
+ * @param $query
+ *  A Zend_Search_Lucene_Search_Query object.
+ * @return
+ *   An array keyed by document IDs.
+ */
+function facetapi_luceneapi_match_query(Zend_Search_Lucene_Interface $index, Zend_Search_Lucene_Search_Query $query) {
+  $query = $query->rewrite($index)->optimize($index);
+  $query->execute($index);
+  return $query->matchedDocs();
+}
+
+/**
+ * Implementation of hook_apachesolr_prepare_query().
+ */
+function facetapi_luceneapi_luceneapi_query_alter($query, $module, $type = NULL) {
+  facetapi_query_type_hooks_invoke($module, $query);
+}
+
+/**
+ * Implementation of hook_facetapi_query_TYPE_process().
+ */
+function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, &$query) {
+
+}
+
+/**
+ * Implementation of hook_facetapi_query_TYPE_process().
+ */
+function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, $query) {
+  module_load_include('inc', 'facetapi', 'facetapi.date');
+  $values = $adapter->getActiveFacets($facet['field']);
+  if (empty($values)) {
+    return;
+  }
+
+  try {
+    // Gets the facet's operator.
+    if (!$boolean = luceneapi_query_get('boolean')) {
+      throw new Exception(t('Error instantiating boolean query.'));
+    }
+    foreach ($values as $value) {
+      // Strips field from range value, splits range.
+      $value = preg_replace('/^'. preg_quote($facet['field alias'], '/') .':/', '', $value);
+      $range = explode(' TO ', trim($value, '{[]}'));
+      // Adds subquery if ranges were extracted.
+      if (2 == count($range)) {
+        $range = array_map('strtotime', $range);
+        if ($subquery = luceneapi_query_get('range', $range[0], $range[1], FALSE, $facet['field'])) {
+          luceneapi_subquery_add($boolean, $subquery, TRUE);
+        }
+      }
+    }
+    luceneapi_subquery_add($query, $boolean, TRUE);
+
+  }
+  catch (Exception $e) {
+
+  }
+
+  //$limit = facetapi_setting_get('hard_limit', $adapter->getSearcher(), '', $facet['name']);
+
+}
 

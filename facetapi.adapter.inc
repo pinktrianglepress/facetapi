@@ -57,15 +57,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns a boolean flagging whether $this->_searcher executed a search.
-   *
-   * @return
-   *   A boolean flagging whether $this->_searcher executed a search.
-   * @todo Generic search API should provide consistent functionality.
-   */
-  abstract public function searchExecuted();
-
-  /**
    * Returns a normalized array with facet counts included.
    *
    * @param $facets
@@ -74,7 +65,93 @@ abstract class FacetapiAdapter {
    *   An array with facet count values appended.
    * @todo Define how the array is structured in this docblock.
    */
-  abstract public function getFacetData(array $facets);
+  public function getFacetData(array $facets) {
+    $data = $facets;
+    foreach ($data as &$facet_data) {
+
+      // Gets facet "counts".
+      if (NULL !== $facet_data['field']) {
+        $facet_data['items'] = $this->fetch($facets[$facet_data['name']]);
+      }
+      else {
+        $facet_data['items'] = array();
+      }
+
+      // Adds items to the $data array.
+      foreach ($facet_data['items'] as $value => &$item) {
+        if ('markup' != $facet_data['form type']) {
+
+          // Tests if the facet is "active", in other words selected.
+          if (!$active = $this->facetActive($facet_data['field'], $value)) {
+            $theme_hook = 'facetapi_link';
+            $options = array();
+          }
+          else {
+            $theme_hook = 'facetapi_link_active';
+            $options['attributes']['class'] = 'active';
+          }
+
+          // Gets default for this row.
+          $defaults = array(
+            'theme hook' => $theme_hook,
+            'text' => $value,
+            'count' => 0,
+            'options' => $options,
+            'active' => $active,
+            'parents' => array(),
+            'children' => array(),
+          );
+
+          // Merges $item into the default arrays.
+          $item = array_merge($this->_item_defaults, $defaults, $item);
+
+        }
+        else {
+          $facet_data['items'][0] = array(
+            'theme hook' => 'facetapi_link',
+            'text' => '',
+            'options' => array(),
+            'count' => 0,
+            'active' => 0,
+            'parents' => array(),
+            'children' => array(),
+          );
+        }
+      }
+      unset($item);
+    }
+
+    return $data;
+  }
+
+  /**
+   * Fetches facet data via the appropriate fetch*() method.
+   *
+   * @param $facet
+   *   An array containing the full facet definition.
+   * @return
+   *   An array containing the facet data.
+   */
+  public function fetch(array $facet) {
+    if (!empty($facet['fetch type'])) {
+      // NOTE: ucfirst() is not required, but it is helpful for debugging to
+      // see the name of the method exactly as it is definted in the adapter.
+      $method = 'fetch'. ucfirst($facet['fetch type']);
+      if (method_exists($this, $method)) {
+        return $this->$method($facet);
+      }
+    }
+    return $this->fetchDefault($facet);
+  }
+
+  /**
+   * Returns a boolean flagging whether $this->_searcher executed a search.
+   *
+   * @return
+   *   A boolean flagging whether $this->_searcher executed a search.
+   * @todo Generic search API should provide consistent functionality.
+   */
+  abstract public function searchExecuted();
 
   /**
    * Returns a facet link's query string.
@@ -125,24 +202,6 @@ abstract class FacetapiAdapter {
    *   An array of facet data.
    */
   abstract public function fetchDefault(array $facet);
-
-  /**
-   * Fetches facet data via the appropriate fetch*() method.
-   *
-   * @param $facet
-   *   An array containing the full facet definition.
-   * @return
-   *   An array containing the facet data.
-   */
-  public function fetch(array $facet) {
-    if (!empty($facet['fetch type'])) {
-      $method = 'fetch'. ucfirst($facet['fetch type']);
-      if (method_exists($this, $method)) {
-        return $this->$method($facet);
-      }
-    }
-    return $this->fetchDefault($facet);
-  }
 
   /**
    * Applies the default sort to the facets. If facets are already sorted by

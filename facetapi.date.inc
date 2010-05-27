@@ -301,3 +301,48 @@ function facetapi_format_range($start_date, $end_date) {
   return facetapi_date_format($start_date, $gap);
 }
 
+/**
+ * Returns the next increment from the given ISO date and gap.
+ *
+ * @param $date
+ *   A string containing the date as an ISO date string.
+ * @param $gap
+ *   A string containing the gap, see FACETAPI_DATE_* constants for valid
+ *   values, defaults to YEAR.
+ * @return
+ *   A string containing the date, FALSE if the passed date could not be parsed.
+ */
+function facetapi_next_date_increment_get($date, $gap) {
+  $pattern = '@(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})@';
+  if (preg_match($pattern, $date, $match)) {
+
+    // Increments the timestamp.
+    switch ($gap) {
+      case FACETAPI_DATE_MONTH:
+        $match[2] += 1;
+        break;
+      case FACETAPI_DATE_DAY:
+        $match[3] += 1;
+        break;
+      case FACETAPI_DATE_HOUR:
+        $match[4] += 1;
+        break;
+      case FACETAPI_DATE_MINUTE:
+        $match[5] += 1;
+        break;
+      case FACETAPI_DATE_SECOND:
+        $match[6] += 1;
+        break;
+      default:
+        $match[1] += 1;
+        break;
+    }
+
+    // Gets the next incremenet.
+    return facetapi_isodate(
+      gmmktime($match[4], $match[5], $match[6], $match[2], $match[3], $match[1])
+    );
+  }
+  return FALSE;
+}
+

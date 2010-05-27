@@ -12,6 +12,11 @@
 class FacetapiLuceneapiAdapter extends FacetapiAdapter {
 
   /**
+   * Stores all active facets.
+   */
+  protected $_filters = array();
+
+  /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
    */
   public function searchExecuted() {
@@ -19,12 +24,199 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Returns an array of facet counts.
+   * The default method used to retrieve facet data.
+   */
+  public function fetchDefault(array $facet) {
+    $facet_items = array();
+
+    $sql = "
+      SELECT term
+      FROM {". $this->getSearcher() ."_termfreqs}
+      WHERE field = '%s'
+    ";
+
+    // Gets the cached term frequencies.
+    if ($result = db_query($sql, array($facet['field']))) {
+      while ($record = db_fetch_object($result)) {
+        $term = new Zend_Search_Lucene_Index_Term($record->term, $facet['field']);
+        if ($count = facetapi_luceneapi_terms_count($this->_index, $this->_docs, array($term))) {
+          $facet_items[$record->term] = array('count' => $count);
+        }
+      }
+    }
+
+    return $facet_items;
+  }
+
+  /**
+   * Fetches data from facets that filter results by date ranges.
+   */
+  public function fetchDate(array $facet) {
+
+    $sql = "
+      SELECT MIN(term) as minimum, MAX(term) as maximum
+      FROM {". $this->getSearcher() ."_termfreqs}
+      WHERE field = '%s'
+    ";
+
+    // Calculates the minimum and maximum values.
+    $range = array();
+    if ($result = db_query($sql, array($facet['field']))) {
+      if ($record = db_fetch_object($result)) {
+        $range = array($record->minimum, $record->maximum);
+      }
+    }
+
+    // Gets all values in the resultset.
+    $raw_values = array();
+    foreach (facetapi_luceneapi_range_matches_get($this->_index, $range[0], $range[1], TRUE, array($facet['field'])) as $key => $term) {
+      if ($count = facetapi_luceneapi_terms_count($this->_index, $this->_docs, array($term))) {
+        $raw_values[$term->text] = $count;
+      }
+    }
+
+    // Sorts by timestamp if there are values, otherwise return an empty array.
+    if (!empty($raw_values)) {
+      $facet_items = array();
+      ksort($raw_values);
+    }
+    else {
+      return array();
+    }
+
+    // Gets the active date facets, starts to builds the "parent - child"
+    // relationships.
+    $parent = NULL;
+    foreach ($this->getActiveFacets($facet['field']) as $filter) {
+      var_dump($filter);
+      //$facet_items[$filter] = array('count' => count($this->_docs));
+
+      // If there is a previous item, there is a parent, uses a reference so the
+      // arrays are populated when they are updated.
+      /*
+      if (NULL !== $parent) {
+        $facet_items[$parent]['children'][$value] = &$facet_items[$value];
+        $facet_items[$value]['parents'][$parent] = $parent;
+      }
+
+      // Stores the last value iterated over.
+      $parent = $value;
+      */
+    }
+
+    // Mind the gap! Calculates gap from min and max timestamps.
+    $timestamps = array_keys($raw_values);
+    $gap = facetapi_timestamp_gap_get(min($timestamps), max($timestamps));
+
+    switch ($gap) {
+      case FACETAPI_DATE_MONTH:
+        $format = 'Y-m-01\T00:00:00\Z';
+        break;
+      case FACETAPI_DATE_DAY:
+        $format =  'Y-m-d\T00:00:00\Z';
+        break;
+      case FACETAPI_DATE_HOUR:
+        $format =  'Y-m-d\TH:00:00\Z';
+        break;
+      case FACETAPI_DATE_MINUTE:
+        $format =  'Y-m-d\TH:i:00\Z';
+        break;
+      case FACETAPI_DATE_SECOND:
+        $format =  'Y-m-d\TH:i:s\Z';
+        break;
+      default:
+        $format =  'Y-m-d\TH:i:s\Z';
+        break;
+    }
+
+    // Converts all timestamps to dates in ISO 8601 format.
+    $dates = array_combine($timestamps, $timestamps);
+    array_walk($dates, 'facetapi_luceneapi_timestamp_convert', $format);
+
+    // Treat each date facet as a range start, and use the next date facet as
+    // range end.  At this point, the dates should.
+    $range_end = array();
+    $previous = NULL;
+    foreach (array_unique($dates) as $date) {
+      if (NULL !== $previous) {
+        $range_end[$previous] = $date;
+      }
+      $previous = $date;
+    }
+
+    // Calculates latest date, if dates are the same, increments so we have a
+    // valid range as opposed to having the same min / max value.
+    $range_end[$previous] = gmdate($format, $range[1]);
+    if ($previous == $range_end[$previous] && ($date = facetapi_next_date_increment_get($previous, $gap))) {
+      $range_end[$previous] = $date;
+    }
+
+    // Groups dates by the range they belong to, builds the $facet_items array
+    // with the facet counts and formatted range values.
+    $parent = NULL;
+    foreach ($raw_values as $value => $count) {
+      $new_value = '['. $dates[$value] .' TO '. $range_end[$dates[$value]] .']';
+      if (!isset($facet_items[$new_value])) {
+        $facet_items[$new_value] = array('count' => $count);
+      }
+      else {
+        $facet_items[$new_value]['count'] += $count;
+      }
+    }
+
+    // Returns the dates.
+    return $facet_items;
+  }
+
+  /**
+   * Overrides the fetch() function, prepopulates the termFreqs cache by calling
+   * the facetapi_luceneapi_termfreqs_get() function.
+   */
+  public function fetch(array $facet) {
+    $term = new Zend_Search_Lucene_Index_Term(NULL, $facet['field']);
+    facetapi_luceneapi_termfreqs_get($this->getSearcher(), $term);
+    return parent::fetch($facet);
+  }
+
+  /**
+   * Returns a normalized array with facet counts included.
    */
   public function getFacetData(array $facets) {
 
-    // @todo Error handling.
-    if (!$index = luceneapi_index_open($this->getSearcher(), $errstr)) {
+    // Gets the filter string from the query string, parses data for each field.
+    $this->_filters = array();
+    $string = isset($_GET['filters']) ? (string)$_GET['filters'] : '';
+    foreach ($facets as $facet) {
+      $field = preg_quote($facet['field'], '/');
+
+      // Patterns that pull queries from filter string.
+      $patterns = array(
+        // Range queries.  The "TO" is case-sensitive.
+        '/(^| |-)'. $field .':([\[\{](\S+) TO (\S+)[\]\}])/',
+        // Match quoted values.
+        '/(^| |-)'. $field .':"([^"]*)"/',
+        // Match unquoted values.
+        '/(^| |-)'. $field .':([^ ]*)/',
+      );
+
+      // Pulls data from the query string.
+      foreach ($patterns as $pattern) {
+        if (preg_match_all($pattern, $string, $matches, PREG_SET_ORDER)) {
+          foreach ($matches as $match) {
+            $value = trim($match[2]);
+            $this->_filters[$field][$value] = $match[0];
+
+            // Update the local copy of $filters by removing the match.  If we
+            // don't do this, part of the range queries will be matched as term
+            // queries.
+            $string = str_replace($match[0], '', $string);
+          }
+        }
+      }
+    }
+
+    // Opens the index, returns an empty index in it cannot be opened.
+    if (!$this->_index = luceneapi_index_open($this->getSearcher(), $errstr)) {
       luceneapi_throw_error($errstr);
       return array();
     }
@@ -43,141 +235,23 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       return array();
     }
 
-    // Adds user query to query container.
+    // Adds user query to query container, allows modules to alter the query.
     luceneapi_subquery_add($query, $user_query, 'required', TRUE);
-
-    // Gets the sort array from the query string, sanitized fields.
-    if (isset($_GET['lucenesort'])) {
-      $sort = luceneapi_sort_arguments_get($index, $_GET['lucenesort']);
-    }
-    drupal_alter('luceneapi_sort_arguments', $sort, $this->getSearcher(), $this->getType());
-
-    // Invokes hooks in the appropriate order and executes the query.
     module_invoke_all('luceneapi_query_alter', $query, $this->getSearcher(), $this->getType());
 
-    // initializes array of items
-    $data = $facets;
-    foreach ($data as $facet_name => &$facet_data) {
-      $facet_data['items'] = array();
-
-      // Gets list of "active" values from ones passed through the query string.
-      // Does NOT get items for markup facets.
-      if ('markup' != $facet_data['type']) {
-        if (isset($_GET[$facet_data['element']])) {
-          $active_values = (array)$_GET[$facet_data['element']];
-        }
-        else {
-          $active_values = array();
-        }
-        foreach ($active_values as $active_value) {
-          // @todo Port $value === '0' to Search Lucene API
-          if ($active_value || $active_value === '0') {
-            $facet_data['items'][$active_value]['active'] = 1;
-          }
-        }
-      }
-    }
-    unset($facet_data);
-
-    // Re-executes search query, we have to execute counts via PHP.
-    $hits = luceneapi_find($index, $query, array(), $positive_keys, TRUE);
-
-    // determines counts
+    // Re-executes search query, gets docuent IDs.
+    // NOTE: This is more efficient when caching is enabled.
+    /*
+    $this->_docs = array();
+    $hits = luceneapi_find($this->_index, $query, array(), $positive_keys, TRUE);
     foreach ($hits as $hit) {
-      try {
-        $document = $index->getDocument($hit->id);
-      }
-      catch (Exception $e) {
-        luceneapi_throw_error($e, WATCHDOG_ERROR, $index->getModule());
-        continue;
-      }
-      foreach ($data as $facet_name => &$facet_data) {
-        try {
-          if (NULL !== $facet_data['field']) {
-            $value = $document->getFieldValue($facet_data['field']);
-          }
-          else {
-            continue;
-          }
-        }
-        catch (Exception $e) {
-          continue;
-        }
-        // @todo Port $value === '0' to Search Lucene API
-        if ($value || $value === '0') {
-
-          // Normalizes values to an array.  Items that have multiple values in a
-          // field have a 'delimiter' in the facet definition.
-          if (isset($facet_data['delimiter'])) {
-            $values = explode($facet_data['delimiter'], $value);
-          }
-          else {
-            $values = array($value);
-          }
-
-          // increments count for values
-          foreach ($values as $value) {
-            if (isset($facet_data['items'][$value]['count'])) {
-              $facet_data['items'][$value]['count']++;
-            }
-            else {
-              $facet_data['items'][$value]['count'] = 1;
-            }
-          }
-        }
-      }
-      unset($facet_data);
+      $this->_docs[$hit->id] = $hit->score;
     }
+    //*/
 
-    foreach ($data as $facet_name => &$facet_data) {
-      $facet_data['items'] = array();
-
-      // Hides facet if it is not markup and there are no items, otherwise
-      // builds array so we can access it in hook_facetapi_postrender_alter().
-      if (empty($facet_data['count'])) {
-        if ('markup' != $facet_data['type']) {
-          unset($data[$facet_name]);
-        }
-        else {
-          $facet_data['items'][0] = array(
-            'theme hook' => 'facetapi_link',
-            'text' => '',
-            'options' => array(),
-            'active' => 0,
-            'count' => 0,
-            'parents' => array(),
-            'children' => array(),
-          );
-        }
-        continue;
-      }
-
-      // Adds facet counts, determines which theme function to use.
-      foreach ($facet_data['count'] as $value => $count) {
-        $options = array();
-        if (!isset($facet_data['active'][$value])) {
-          $theme_hook = 'facetapi_link';
-        }
-        else {
-          $options['attributes']['class'] = 'active';
-          $theme_hook = 'facetapi_link_active';
-        }
-
-        // Adds item to array with theme function, counts.
-        $facet_data['items'][$value] = array(
-          'theme hook' => $theme_hook,
-          'text' => $value,
-          'options' => $options,
-          'count' => $count,
-          'parents' => array(),
-          'children' => array(),
-        );
-      }
-    }
-    unset($facet_data);
-
-    // Returns the "rendered" items.
-    return $data;
+    // Gets documents matched in the query.
+    $this->_docs = facetapi_luceneapi_match_query($this->_index, $query);
+    return parent::getFacetData($facets);
   }
 
   /**
@@ -188,47 +262,54 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Returns query string variables for a facet link.
-   *
-   * @todo Make the code nicer.
+   * Returns query string for the facet.
    */
   public function getFacetQueryString(array $facet, array $values, $active) {
-    $qstring = $_GET;
-    if (!$active) {
-      foreach ($values as $value) {
-        if (empty($qstring[$facet['element']]) || is_array($qstring[$facet['element']])) {
-          $qstring[$facet['element']][$value] = $value;
-        }
-        else {
-          $qstring[$facet['element']] = array($value => $value);
-        }
-      }
-    }
-    else {
-      if (is_array($qstring[$facet['element']])) {
-        foreach ($values as $value) {
-          unset($qstring[$facet['element']][$value]);
-        }
+    $filters = $this->_filters;
+
+    // Adds or removes filters from the array.
+    foreach ($values as $value) {
+      if (!$active) {
+        $filters[$facet['field']][$value] = $facet['field'] .':'. $value;
       }
       else {
-        unset($qstring[$facet['element']]);
+        unset($filters[$facet['field']][$value]);
+
       }
     }
-    return $qstring;
+
+    // Builds the query string.
+    $active_filters = array();
+    foreach ($filters as $field => $field_filters) {
+      foreach ($field_filters as $value => $filter) {
+        $active_filters[] = $filter;
+      }
+    }
+
+    // Buids query string.
+    $qstring = $_GET;
+    $filter_string = join(' ', $active_filters);
+    if ($filter_string) {
+      $qstring['filters'] = $filter_string;
+    }
+    else {
+      unset($qstring['filters']);
+    }
+    return drupal_query_string_encode($qstring, array('q', 'page'));
   }
 
   /**
    * Returns an array of active facet values in a field.
    */
   public function getActiveFacets($field) {
-
+    return isset($this->_filters[$field]) ? $this->_filters[$field] : array();
   }
 
   /**
    * Returns an integer flagging whether the facet is active.
    */
   public function facetActive($field, $value) {
-
+    return isset($this->_filters[$field][$value]);
   }
 }
 

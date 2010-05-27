@@ -73,9 +73,10 @@ function facetapi_install() {
 function facetapi_uninstall() {
   drupal_uninstall_schema('facetapi');
 
-  // removes all variables that start with "facetapi:"
-  $result = db_query("SELECT name FROM {variable} WHERE name LIKE 'facetapi:%%'");
-  while ($row = db_fetch_object($result)) {
-    variable_del($row->name);
+  // Removes all variables that start with "facetapi:"
+  if ($result = db_query("SELECT name FROM {variable} WHERE name LIKE 'facetapi:%%'")) {
+    while ($row = db_fetch_object($result)) {
+      variable_del($row->name);
+    }
   }
 }
