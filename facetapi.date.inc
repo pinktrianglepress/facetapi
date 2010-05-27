@@ -196,8 +196,11 @@ function facetapi_timestamp_gap_get($start_time, $end_time) {
     case ($end_time - $start_time > 86400):
       return FACETAPI_DATE_DAY;
 
-    default:
+    case ($end_time - $start_time > 3600):
       return FACETAPI_DATE_HOUR;
+
+    default:
+      return FACETAPI_DATE_MINUTE;
   }
 }
 

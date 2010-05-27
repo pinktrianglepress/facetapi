@@ -82,7 +82,7 @@ abstract class FacetapiAdapter {
         if ('markup' != $facet_data['form type']) {
 
           // Tests if the facet is "active", in other words selected.
-          if (!$active = $this->facetActive($facet_data['field'], $value)) {
+          if (!$active = $this->facetActive($facet_data['field alias'], $value)) {
             $theme_hook = 'facetapi_link';
             $options = array();
           }

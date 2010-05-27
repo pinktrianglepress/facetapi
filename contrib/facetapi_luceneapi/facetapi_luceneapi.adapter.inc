@@ -87,13 +87,23 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;
+    $gap = NULL;
+
+    $pattern = '/^'. preg_quote($facet['field alias'], '/') .':/';
     foreach ($this->getActiveFacets($facet['field']) as $filter) {
-      var_dump($filter);
-      //$facet_items[$filter] = array('count' => count($this->_docs));
+
+      // Strips field from value, adds to $facet_items array.
+      $value = preg_replace($pattern, '', $filter);
+      $facet_items[$value] = array('count' => count($this->_docs));
+
+      // Gets next "gap".
+      $filter_range = explode(' TO ', trim($value, '{[]}'));
+      if (2 == count($filter_range)) {
+        $gap = facetapi_date_gap_get($filter_range[0], $filter_range[1]);
+      }
 
       // If there is a previous item, there is a parent, uses a reference so the
       // arrays are populated when they are updated.
-      /*
       if (NULL !== $parent) {
         $facet_items[$parent]['children'][$value] = &$facet_items[$value];
         $facet_items[$value]['parents'][$parent] = $parent;
@@ -101,12 +111,18 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
 
       // Stores the last value iterated over.
       $parent = $value;
-      */
     }
 
     // Mind the gap! Calculates gap from min and max timestamps.
     $timestamps = array_keys($raw_values);
-    $gap = facetapi_timestamp_gap_get(min($timestamps), max($timestamps));
+    if (NULL === $parent) {
+      if (count($raw_values) > 1) {
+        $gap = facetapi_timestamp_gap_get(min($timestamps), max($timestamps));
+      }
+      else {
+        $gap = FACETAPI_DATE_HOUR;
+      }
+    }
 
     switch ($gap) {
       case FACETAPI_DATE_MONTH:
@@ -139,21 +155,14 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     $previous = NULL;
     foreach (array_unique($dates) as $date) {
       if (NULL !== $previous) {
-        $range_end[$previous] = $date;
+        $range_end[$previous] = facetapi_next_date_increment_get($previous, $gap);
       }
       $previous = $date;
     }
-
-    // Calculates latest date, if dates are the same, increments so we have a
-    // valid range as opposed to having the same min / max value.
-    $range_end[$previous] = gmdate($format, $range[1]);
-    if ($previous == $range_end[$previous] && ($date = facetapi_next_date_increment_get($previous, $gap))) {
-      $range_end[$previous] = $date;
-    }
+    $range_end[$previous] = facetapi_next_date_increment_get($previous, $gap);
 
     // Groups dates by the range they belong to, builds the $facet_items array
     // with the facet counts and formatted range values.
-    $parent = NULL;
     foreach ($raw_values as $value => $count) {
       $new_value = '['. $dates[$value] .' TO '. $range_end[$dates[$value]] .']';
       if (!isset($facet_items[$new_value])) {
@@ -161,6 +170,12 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       }
       else {
         $facet_items[$new_value]['count'] += $count;
+      }
+
+      // Adds parent information if not already set.
+      if (NULL !== $parent && !isset($facet_items[$new_value]['parents'])) {
+        $facet_items[$parent]['children'][$new_value] = &$facet_items[$new_value];
+        $facet_items[$new_value]['parents'][$parent] = $parent;
       }
     }
 
@@ -204,7 +219,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
         if (preg_match_all($pattern, $string, $matches, PREG_SET_ORDER)) {
           foreach ($matches as $match) {
             $value = trim($match[2]);
-            $this->_filters[$field][$value] = $match[0];
+            $this->_filters[$field][$value] = trim($match[0]);
 
             // Update the local copy of $filters by removing the match.  If we
             // don't do this, part of the range queries will be matched as term
@@ -274,7 +289,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       }
       else {
         unset($filters[$facet['field']][$value]);
-
       }
     }
 

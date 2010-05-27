@@ -41,6 +41,21 @@ function facetapi_apachesolr_facetapi_adapters() {
 }
 
 /**
+ * Implementation of hook_facetapi_facets_alter().
+ */
+function facetapi_apachesolr_facetapi_facets_alter(array &$facets, $searcher, $type) {
+  if ('apachesolr_search' == $searcher) {
+    foreach ($facets as &$facet) {
+      if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $matches)) {
+        $facet['field'] = 'im_vid_'. $matches[1];;
+        $facet['field alias'] = 'tid';
+      }
+    }
+    unset($facet);
+  }
+}
+
+/**
  * Implementation of hook_apachesolr_prepare_query().
  */
 function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller) {

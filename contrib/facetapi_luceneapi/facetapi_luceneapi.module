@@ -415,7 +415,31 @@ function facetapi_luceneapi_luceneapi_query_alter($query, $module, $type = NULL)
  * Implementation of hook_facetapi_query_TYPE_process().
  */
 function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, &$query) {
+  $values = $adapter->getActiveFacets($facet['field']);
+  if (empty($values)) {
+    return;
+  }
 
+  try {
+    if (!$multiterm = luceneapi_query_get('multiterm')) {
+      throw new LuceneAPI_Exception(t(
+        'Error instantiating multiterm query.'
+      ));
+    }
+    foreach ($values as $value => $filter_string) {
+      $term = luceneapi_term_get($value, $facet['field'], TRUE);
+      luceneapi_term_add($multiterm, $term, TRUE, TRUE);
+    }
+
+    // If there are terms, appends subquery.
+    if (count($multiterm->getTerms())) {
+      $multiterm->setBoost(LUCENEAPI_IRRELEVANT);
+      luceneapi_subquery_add($query, $multiterm, TRUE, TRUE);
+    }
+  }
+  catch (LuceneAPI_Exception $e) {
+    luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');
+  }
 }
 
 /**
@@ -433,26 +457,23 @@ function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapte
     if (!$boolean = luceneapi_query_get('boolean')) {
       throw new Exception(t('Error instantiating boolean query.'));
     }
-    foreach ($values as $value) {
-      // Strips field from range value, splits range.
-      $value = preg_replace('/^'. preg_quote($facet['field alias'], '/') .':/', '', $value);
+    foreach ($values as $value => $filter_string) {
       $range = explode(' TO ', trim($value, '{[]}'));
       // Adds subquery if ranges were extracted.
       if (2 == count($range)) {
         $range = array_map('strtotime', $range);
         if ($subquery = luceneapi_query_get('range', $range[0], $range[1], FALSE, $facet['field'])) {
-          luceneapi_subquery_add($boolean, $subquery, TRUE);
+          luceneapi_subquery_add($boolean, $subquery, TRUE, TRUE);
         }
       }
     }
-    luceneapi_subquery_add($query, $boolean, TRUE);
 
+    // Makes query irrelevant in scoring, appends subquery.
+    $boolean->setBoost(LUCENEAPI_IRRELEVANT);
+    luceneapi_subquery_add($query, $boolean, TRUE);
   }
   catch (Exception $e) {
-
+    luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');
   }
-
-  //$limit = facetapi_setting_get('hard_limit', $adapter->getSearcher(), '', $facet['name']);
-
 }
 
