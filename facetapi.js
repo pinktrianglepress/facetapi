@@ -13,11 +13,11 @@ Drupal.behaviors.facetapi = function(context) {
           
           // Hides all items that are past the "soft limit".
           limit=settings.limit - 1;
-          $('div#block-facetapi-'+searcher+'-'+realm_name+'-'+facet_name+' ul').find('li:gt('+limit+')').hide();
+          $('div#block-facetapi-'+searcher+'-'+realm_name+'-'+facet_name+' ul:first').find('li:gt('+limit+')').hide();
           
           // Finds all items that have more values than our soft limit allows
           // for, adds the show more/less links as appropriate.
-          $('div#block-facetapi-'+searcher+'-'+realm_name+'-'+facet_name+' ul').filter(function() {
+          $('div#block-facetapi-'+searcher+'-'+realm_name+'-'+facet_name+' ul:first').filter(function() {
             return $(this).find('li').length > settings.limit;
           }).each(function() {
             $('<a href="#" class="facetapi-hide-link"></a>').text(Drupal.t('Show more')).click(function() {

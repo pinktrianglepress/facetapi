@@ -921,17 +921,6 @@ function facetapi_child_rendered_filter(array $item) {
 function facetapi_facetapi_realms() {
   $realms = array();
 
-  // Displays facets in a single block.
-  /*
-  $realms['block'] = array(
-    'title' => t('Block'),
-    'description' => t(
-      'The <em>Block</em> realm displays facets as a list of links in the <em>Faceted search</em> <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Faceted Search module\'s <em>Guided search</em> block.',
-      array('@block-page' => url('admin/build/block/list'))
-    ),
-  );
-  */
-
   // Displays each facet in a separate block.
   $realms['multiblock'] = array(
     'title' => t('Multiple blocks'),
