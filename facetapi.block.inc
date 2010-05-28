@@ -53,18 +53,8 @@ function facetapi_block_view($delta = '') {
     return array();
   }
 
-  // Adds the javascript file and variables.
+  // Adds the javascript file.
   if (NULL === $blocks) {
-
-    // adds module settings as javascript variables
-    $settings = array('luceneapi_facet' => array());
-    foreach (luceneapi_searchable_module_list() as $module => $name) {
-      $settings['luceneapi_facet'][$module] = array(
-        'limit' => variable_get(sprintf('luceneapi_facet:%s:limit', $module), 5),
-      );
-    }
-
-    // adds CSS file, javascript file, javascript variables to page
     $path = drupal_get_path('module', 'facetapi');
     //drupal_add_css($path .'/luceneapi_facet.css');
     drupal_add_js($path .'/facetapi.js');
@@ -74,24 +64,38 @@ function facetapi_block_view($delta = '') {
   // rendered blocks by group (searcher - realm name), because we cannot
   // render facets individually, only the realm as a whole.
   list($searcher, $realm_name, $facet_name) = explode(':', $map[$delta]);
-
   $group = $searcher .':'. $realm_name;
   if (!isset($blocks[$group])) {
+    $settings = array('facetapi' => array());
 
     // @todo We shouldn't have to load the adapter.  There needs to be a
     // generic API function that flags which searches were executed.
     if (facetapi_adapter_load($searcher)->searchExecuted()) {
 
-      // Renders the facet.
+      // Renders the facet via facetapi_realm_render().
       $data = facetapi_realm_render($searcher, $realm_name);
       foreach ($data as $facet_data) {
         if (!empty($facet_data['items'])) {
+
+          // Builds the block data.
           $blocks[$group][$facet_data['name']] = array(
             'subject' => $facet_data['title'],
             'content' => theme('facetapi_block', $facet_data['items']),
           );
+
+          // Gets the facet's soft limit, adds to javascript variables.
+          $limit = facetapi_setting_get('soft_limit', $searcher, $realm_name, $facet_data['name']);
+          if (NULL === $limit) {
+            $limit = 10;
+          }
+          $settings['facetapi'][$searcher][$realm_name][$facet_data['name']] = array(
+            'limit' => $limit,
+          );
         }
       }
+
+      // Adds settings as javascript variables.
+      drupal_add_js($settings, 'setting');
     }
     else {
       $blocks[$group] = array();
@@ -105,7 +109,9 @@ function facetapi_block_view($delta = '') {
 /**
  * Returns a "delta map", because sometimes our deltas are longer than 32 chars
  * and need to be passed to md5(). Due to the block table's schema, deltas
- * cannot be longer than 32 characters.
+ * cannot be longer than 32 characters.  However, md5 hashes are nasty as CSS
+ * IDs, so we can use the map to convert the md5 back to a nicer value in
+ * facetapi_preprocess_block().
  *
  * @param $reset
  *   A boolean flagging whether the static should be reset.
@@ -444,7 +450,7 @@ function facetapi_date_range_map(array $ranges) {
  * @return
  *   NULL
  */
-function facetapi_taxonomy_hierarchy_callback(&$facet_items, $searcher, $realm_name, $facet_name) {
+function facetapi_taxonomy_hierarchy_callback(array &$facet_items, $searcher, $realm_name, $facet_name) {
   $tids = array_keys($facet_items);
   if (!empty($tids)) {
     $placeholders = db_placeholders($tids);
