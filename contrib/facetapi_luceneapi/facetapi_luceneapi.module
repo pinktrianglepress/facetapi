@@ -32,8 +32,9 @@ function facetapi_luceneapi_menu() {
 /**
  * Implementation of hook_form_FORM_ID_alter().
  */
-function facetapi_luceneapi_form_facetapi_admin_settings_form_alter($form, $form_state) {
+function facetapi_luceneapi_form_facetapi_admin_settings_form_alter(&$form, $form_state) {
   if ('luceneapi_node' == $form['storage']['#value']['searcher']) {
+    $form['storage']['#value']['enabled'] = facetapi_enabled_facets_get($form['storage']['#value']['searcher']);
     $form['#submit'][] = 'facetapi_luceneapi_form_facetapi_admin_settings_form';
   }
 }
@@ -42,11 +43,36 @@ function facetapi_luceneapi_form_facetapi_admin_settings_form_alter($form, $form
  * Processes facetapi_admin_settings_form form submissions.
  */
 function facetapi_luceneapi_form_facetapi_admin_settings_form(&$form, &$form_state) {
-  $variable = 'facetapi:termfreqs_cached:'. $form['storage']['#value']['searcher'] .':%%';
-  if ($result = db_query("SELECT name FROM {variable} WHERE name LIKE '$variable'")) {
-    while ($record = db_fetch_object($result)) {
-      variable_del($record->name);
+  $searcher = $form['storage']['#value']['searcher'];
+
+  // Gets the newly enabled facets.
+  $enabled_facets = array_diff_key(
+    facetapi_enabled_facets_get($searcher, NULL, TRUE),
+    $form['storage']['#value']['enabled']
+  );
+
+  // If facets have been enabled, re-populates termFreqs cache.
+  if (!empty($enabled_facets)) {
+    $batch = array(
+      'operations' => array(),
+      'title' => t('Rebuilding termFreqs cache'),
+      'init_message' => t('Populating ...'),
+      'progress_message' => t('Batch @current out of @total'),
+      'error_message' => t('An error occurred populating the cache.'),
+    );
+
+    // Iterates over facets, adds batch process to populate termFreqs cache.
+    foreach ($enabled_facets as $facet) {
+      $variable = 'facetapi:termfreqs_cached:'. $searcher .':::'. $facet['field'];
+      variable_set($variable, TRUE);
+      $batch['operations'][] = array('facetapi_luceneapi_termfreqs_populate', array(
+        $searcher, $facet['field']
+      ));
     }
+
+    // Let the batch begin!
+    batch_set($batch);
+    drupal_set_message(t('The termFreqs cache has been rebuilt.'));
   }
 }
 
@@ -305,20 +331,18 @@ function facetapi_luceneapi_range_matches_get(Zend_Search_Lucene_Interface $inde
 }
 
 /**
- *
- */
-
-/**
- * Populates the termfreqs() database.
+ * Populates the termfreqs() database for the specified fields.
  *
  * @param $searcher
- *
+ *   A string containing the machine readable name of the searcher module.
  * @param $fields
- *
+ *   An array containing the fields the termFreqs cache is being populated for.
+ * @param &$context
+ *   An optional array
  * @return
  *   NULL
  */
-function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
+function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL, &$context = NULL) {
   if (!$index = luceneapi_index_open($searcher)) {
     return;
   }
@@ -332,6 +356,16 @@ function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
   }
   else {
     $fields = drupal_map_assoc((array)$fields);
+  }
+
+  // Sets message if this is a batch process.
+  if (NULL !== $context) {
+    $context['message'] = format_plural(
+      count($fields),
+      'Populating termFreqs cache for the %fields field',
+      'Populating termFreqs cache for the %fields fields',
+      array('%fields' => join(', ', $fields))
+    );
   }
 
   // Gets terms from index.
@@ -360,6 +394,7 @@ function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
       $sql = "DELETE FROM $table WHERE field = '%s'";
       db_query($sql, array($field));
 
+      // @todo Batch in groups of 100? 1000?  OK as is?
       $sql = "INSERT INTO $table (term, field, termfreqs) VALUES ". join(',', $placeholders);
       db_query($sql, $values);
     }

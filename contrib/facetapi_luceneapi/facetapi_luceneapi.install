@@ -18,6 +18,14 @@ function facetapi_luceneapi_install() {
  */
 function facetapi_luceneapi_uninstall() {
   drupal_uninstall_schema('facetapi_luceneapi');
+
+  // Removed "termfreqs_cached" variable for all fields.
+  $variable = 'facetapi:termfreqs_cached:'. $form['storage']['#value']['searcher'] .':%%';
+  if ($result = db_query("SELECT name FROM {variable} WHERE name LIKE '$variable'")) {
+    while ($record = db_fetch_object($result)) {
+      variable_del($record->name);
+    }
+  }
 }
 
 /**
