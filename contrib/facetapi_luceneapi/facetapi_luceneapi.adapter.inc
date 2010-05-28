@@ -14,7 +14,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * Stores all active facets.
    */
-  protected $_filters = array();
+  protected $_filters;
 
   /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
@@ -198,38 +198,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    */
   public function getFacetData(array $facets) {
 
-    // Gets the filter string from the query string, parses data for each field.
-    $this->_filters = array();
-    $string = isset($_GET['filters']) ? (string)$_GET['filters'] : '';
-    foreach ($facets as $facet) {
-      $field = preg_quote($facet['field alias'], '/');
-
-      // Patterns that pull queries from filter string.
-      $patterns = array(
-        // Range queries.  The "TO" is case-sensitive.
-        '/(^| |-)'. $field .':([\[\{](\S+) TO (\S+)[\]\}])/',
-        // Match quoted values.
-        '/(^| |-)'. $field .':"([^"]*)"/',
-        // Match unquoted values.
-        '/(^| |-)'. $field .':([^ ]*)/',
-      );
-
-      // Pulls data from the query string.
-      foreach ($patterns as $pattern) {
-        if (preg_match_all($pattern, $string, $matches, PREG_SET_ORDER)) {
-          foreach ($matches as $match) {
-            $value = trim($match[2]);
-            $this->_filters[$field][$value] = trim($match[0]);
-
-            // Update the local copy of $filters by removing the match.  If we
-            // don't do this, part of the range queries will be matched as term
-            // queries.
-            $string = str_replace($match[0], '', $string);
-          }
-        }
-      }
-    }
-
     // Opens the index, returns an empty index in it cannot be opened.
     if (!$this->_index = luceneapi_index_open($this->getSearcher(), $errstr)) {
       luceneapi_throw_error($errstr);
@@ -316,6 +284,9 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    * Returns an array of active facet values in a field.
    */
   public function getActiveFacets($field) {
+    if (NULL === $this->_filters) {
+      $this->_populateActiveFilters();
+    }
     return isset($this->_filters[$field]) ? $this->_filters[$field] : array();
   }
 
@@ -323,7 +294,46 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    * Returns an integer flagging whether the facet is active.
    */
   public function facetActive($field, $value) {
+    if (NULL === $this->_filters) {
+      $this->_populateActiveFilters();
+    }
     return isset($this->_filters[$field][$value]);
+  }
+
+  /**
+   * Populates filters.
+   */
+  protected function _populateActiveFilters() {
+    $this->_filters = array();
+    $string = isset($_GET['filters']) ? (string)$_GET['filters'] : '';
+    foreach (facetapi_enabled_facets_get($this->getSearcher()) as $facet) {
+      $field = preg_quote($facet['field alias'], '/');
+
+      // Patterns that pull queries from filter string.
+      $patterns = array(
+        // Range queries.  The "TO" is case-sensitive.
+        '/(^| |-)'. $field .':([\[\{](\S+) TO (\S+)[\]\}])/',
+        // Match quoted values.
+        '/(^| |-)'. $field .':"([^"]*)"/',
+        // Match unquoted values.
+        '/(^| |-)'. $field .':([^ ]*)/',
+      );
+
+      // Pulls data from the query string.
+      foreach ($patterns as $pattern) {
+        if (preg_match_all($pattern, $string, $matches, PREG_SET_ORDER)) {
+          foreach ($matches as $match) {
+            $value = trim($match[2]);
+            $this->_filters[$field][$value] = trim($match[0]);
+
+            // Update the local copy of $filters by removing the match.  If we
+            // don't do this, part of the range queries will be matched as term
+            // queries.
+            $string = str_replace($match[0], '', $string);
+          }
+        }
+      }
+    }
   }
 }
 

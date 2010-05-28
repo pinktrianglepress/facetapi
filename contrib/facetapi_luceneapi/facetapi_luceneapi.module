@@ -131,8 +131,8 @@ function facetapi_luceneapi_termfreqs_get($searcher, $term) {
     // Reads term frequencies from the database.
     $cache[$searcher][$term->field] = array();
     $table = '{'. $searcher .'_termfreqs}';
-    $sql = "SELECT term, field, termfreqs FROM $table";
-    if ($result = db_query($sql)) {
+    $sql = "SELECT term, termfreqs FROM $table WHERE field = '%s'";
+    if ($result = db_query($sql, array($term->field))) {
       while ($record = db_fetch_object($result)) {
         $cache[$searcher][$term->field][$record->term] = array(
           'termfreqs' => $record->termfreqs,
@@ -305,18 +305,25 @@ function facetapi_luceneapi_range_matches_get(Zend_Search_Lucene_Interface $inde
 }
 
 /**
+ *
+ */
+
+/**
  * Populates the termfreqs() database.
+ *
+ * @param $searcher
+ *
+ * @param $fields
+ *
+ * @return
+ *   NULL
  */
 function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
-
-  // @todo REMOVE!!
-  $time_start = microtime(TRUE);
-  $mem_start = memory_get_usage();
-
   if (!$index = luceneapi_index_open($searcher)) {
     return;
   }
 
+  // Gets fields, defaults to all enabled facets.
   if (NULL === $fields) {
     $fields = array();
     foreach (facetapi_enabled_facets_get('luceneapi_node') as $facet) {
@@ -327,6 +334,7 @@ function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
     $fields = drupal_map_assoc((array)$fields);
   }
 
+  // Gets terms from index.
   $terms = array();
   foreach ($index->terms() as $term) {
     if (isset($fields[$term->field])) {
@@ -334,42 +342,28 @@ function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL) {
     }
   }
 
+  // Populates termfreqs cache for all passed fields.
   $table = '{'. $searcher .'_termfreqs}';
   foreach ($terms as $field => $field_terms) {
+
+    // Builds placeholders and values.
+    $values = $placeholders = array();
     foreach ($field_terms as $term => $termfreqs) {
+      $placeholders[] = "('%s', '%s', '%s')";
+      $values[] = $term;
+      $values[] = $field;
+      $values[] = serialize($termfreqs);
+    }
 
-      $sql = "
-       DELETE
-       FROM $table
-       WHERE term = '%s' AND field = '%s'
-      ";
-      db_query($sql, array($term, $field));
+    // If there are values, inserts data.
+    if (!empty($values)) {
+      $sql = "DELETE FROM $table WHERE field = '%s'";
+      db_query($sql, array($field));
 
-      $sql = "
-        INSERT
-        INTO $table
-        (term, field, termfreqs)
-        VALUES
-        ('%s', '%s', '%s')
-      ";
-      db_query($sql, array($term, $field, serialize($termfreqs)));
+      $sql = "INSERT INTO $table (term, field, termfreqs) VALUES ". join(',', $placeholders);
+      db_query($sql, $values);
     }
   }
-
-  // @todo REMOVE!!
-  $mem_end = memory_get_usage();
-  $time_end = microtime(TRUE);
-  drupal_set_message(format_plural(
-    count($fields),
-    'TermFreqs table %table populated in %seconds seconds for the %field field: (%size)',
-    'TermFreqs table %table populated in %seconds seconds for the %field fields: (%size)',
-    array(
-      '%table' => $table,
-      '%seconds' => round($time_end - $time_start, 5),
-      '%size' => format_size($mem_end - $mem_start),
-      '%field' => join(', ', $fields),
-    )
-  ));
 }
 
 /**
@@ -415,8 +409,8 @@ function facetapi_luceneapi_luceneapi_query_alter($query, $module, $type = NULL)
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, &$query) {
-  $values = $adapter->getActiveFacets($facet['field']);
+function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, $query) {
+  $values = $adapter->getActiveFacets($facet['field alias']);
   if (empty($values)) {
     return;
   }
@@ -427,15 +421,16 @@ function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter
         'Error instantiating multiterm query.'
       ));
     }
+
     foreach ($values as $value => $filter_string) {
-      $term = luceneapi_term_get($value, $facet['field'], TRUE);
-      luceneapi_term_add($multiterm, $term, TRUE, TRUE);
+      $term = luceneapi_term_get((string)$value, $facet['field'], TRUE);
+      luceneapi_term_add($multiterm, $term, 'required', TRUE);
     }
 
     // If there are terms, appends subquery.
     if (count($multiterm->getTerms())) {
       $multiterm->setBoost(LUCENEAPI_IRRELEVANT);
-      luceneapi_subquery_add($query, $multiterm, TRUE, TRUE);
+      luceneapi_subquery_add($query, $multiterm, 'required', TRUE);
     }
   }
   catch (LuceneAPI_Exception $e) {
@@ -446,7 +441,7 @@ function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, $query) {
+function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, &$query) {
   module_load_include('inc', 'facetapi', 'facetapi.date');
   $values = $adapter->getActiveFacets($facet['field']);
   if (empty($values)) {
@@ -464,14 +459,14 @@ function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapte
       if (2 == count($range)) {
         $range = array_map('strtotime', $range);
         if ($subquery = luceneapi_query_get('range', $range[0], $range[1], FALSE, $facet['field'])) {
-          luceneapi_subquery_add($boolean, $subquery, TRUE, TRUE);
+          luceneapi_subquery_add($boolean, $subquery, 'required', TRUE);
         }
       }
     }
 
     // Makes query irrelevant in scoring, appends subquery.
     $boolean->setBoost(LUCENEAPI_IRRELEVANT);
-    luceneapi_subquery_add($query, $boolean, TRUE);
+    luceneapi_subquery_add($query, $boolean, 'required');
   }
   catch (Exception $e) {
     luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');

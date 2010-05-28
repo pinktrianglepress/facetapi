@@ -188,6 +188,20 @@ function facetapi_theme() {
 }
 
 /**
+ * Process variables for block.tpl.php.
+ *
+ * Converts the md5() hash back to something human readable.
+ */
+function facetapi_preprocess_block(&$vars) {
+  if ('facetapi' == $vars['block']->module) {
+    $map = facetapi_delta_map_get();
+    if (isset($map[$vars['block']->delta])) {
+      $vars['block']->delta = str_replace(':', '-', $map[$vars['block']->delta]);
+    }
+  }
+}
+
+/**
  * Helper function to execute a map query. A map query is useful for converting
  * unique identifiers to human readable values, for example a uid to username.
  *
@@ -708,16 +722,15 @@ function facetapi_realm_render($searcher, $realm_name) {
 
   // @todo REMOVE!!
   $time_end = microtime(TRUE);
-  $peak_end = memory_get_peak_usage();
-  $mem_end = ($peak_start == $peak_end) ? memory_get_usage() : $peak_end;
+  /*
   drupal_set_message(t(
-    '%realm realm rendered in %seconds seconds: (%size)',
+    '%realm realm rendered in %seconds seconds.',
     array(
       '%realm' => $realms[$realm_name]['title'],
       '%seconds' => round($time_end - $time_start, 5),
-      '%size' => format_size($mem_end - $mem_start),
     )
   ));
+  */
 
   // Returns the rendered facet realm.
   return $rendered;

@@ -53,6 +53,23 @@ function facetapi_block_view($delta = '') {
     return array();
   }
 
+  // Adds the javascript file and variables.
+  if (NULL === $blocks) {
+
+    // adds module settings as javascript variables
+    $settings = array('luceneapi_facet' => array());
+    foreach (luceneapi_searchable_module_list() as $module => $name) {
+      $settings['luceneapi_facet'][$module] = array(
+        'limit' => variable_get(sprintf('luceneapi_facet:%s:limit', $module), 5),
+      );
+    }
+
+    // adds CSS file, javascript file, javascript variables to page
+    $path = drupal_get_path('module', 'facetapi');
+    //drupal_add_css($path .'/luceneapi_facet.css');
+    drupal_add_js($path .'/facetapi.js');
+  }
+
   // Extracts the searcher, realm name, and facet name from $delta. Caches
   // rendered blocks by group (searcher - realm name), because we cannot
   // render facets individually, only the realm as a whole.
@@ -64,6 +81,8 @@ function facetapi_block_view($delta = '') {
     // @todo We shouldn't have to load the adapter.  There needs to be a
     // generic API function that flags which searches were executed.
     if (facetapi_adapter_load($searcher)->searchExecuted()) {
+
+      // Renders the facet.
       $data = facetapi_realm_render($searcher, $realm_name);
       foreach ($data as $facet_data) {
         if (!empty($facet_data['items'])) {
