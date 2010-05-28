@@ -22,7 +22,7 @@ define('FACETAPI_OPERATOR_AND', 'and');
 define('FACETAPI_OPERATOR_OR', 'or');
 
 // Calls date functions.
-// @todo Separate file is for organization, merge back in.
+// @todo Separate file is for organization, merge back in at some point.
 module_load_include('inc', 'facetapi', 'facetapi.date');
 
 /**
@@ -165,7 +165,7 @@ function facetapi_theme() {
       'file' => 'facetapi.admin.inc',
     ),
     'facetapi_block' => array(
-      'arguments' => array('items' => NULL),
+      'arguments' => array('links' => NULL),
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_count' => array(
@@ -177,6 +177,10 @@ function facetapi_theme() {
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_link_active' => array(
+      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => NULL),
+      'file' => 'facetapi.theme.inc',
+    ),
+    'facetapi_checkbox_link_active' => array(
       'arguments' => array('text' => NULL, 'path' => NULL, 'options' => NULL),
       'file' => 'facetapi.theme.inc',
     ),
@@ -626,7 +630,7 @@ function facetapi_facet_status_set($searcher, $realm_name, $facet_name, $enabled
  */
 function facetapi_setting_get($setting) {
   $args = func_get_args();
-  $variable = join(':', array_filter(array_merge(array('facetapi'), $args)));
+  $variable = join(':', array_merge(array('facetapi'), $args));
   return variable_get($variable, NULL);
 }
 
@@ -647,7 +651,7 @@ function facetapi_setting_get($setting) {
 function facetapi_setting_set($setting, $value) {
   $args = func_get_args();
   unset($args[1]);
-  $variable = join(':', array_filter(array_merge(array('facetapi'), $args)));
+  $variable = join(':', array_merge(array('facetapi'), $args));
   variable_set($variable, $value);
 }
 
@@ -660,6 +664,8 @@ function facetapi_setting_set($setting, $value) {
  *   A string containing the machine readable name of the searcher module.
  * @param &$data
  *   A mixed value containing any data that needs to be altered.
+ * @param ...
+ *   Any additional parameters passed to the hook.
  * @return
  *   NULL
  */
@@ -922,10 +928,10 @@ function facetapi_facetapi_realms() {
   $realms = array();
 
   // Displays each facet in a separate block.
-  $realms['multiblock'] = array(
-    'title' => t('Multiple blocks'),
+  $realms['block'] = array(
+    'title' => t('Blocks'),
     'description' => t(
-      'The <em>Multiple blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
+      'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
       array('@block-page' => url('admin/build/block/list'))
     ),
     'weight' => -10,
@@ -1038,3 +1044,20 @@ function facetapi_facetapi_facets($searcher, $type) {
   return $facets;
 }
 
+/**
+ * Implementation of hook_facetapi_widget().
+ */
+function facetapi_facetapi_widget() {
+  return array(
+    'facetapi_links' => array(
+      'title' => t('Links'),
+      'callback' => 'facetapi_links_widget_callback',
+      'weight' => -10,
+    ),
+    'facetapi_checkboxes' => array(
+      'title' => t('Links with checkboxes'),
+      'callback' => 'facetapi_checkboxes_widget_callback',
+      'weight' => -5,
+    ),
+  );
+}

@@ -284,6 +284,28 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#collapsible' => TRUE,
   );
 
+
+  // Gets widgets, sorts.
+  $widgets = module_invoke_all('facetapi_widget');
+  uasort($widgets, 'facetapi_sort_weight');
+
+  // Builds options.
+  $options = array();
+  foreach ($widgets as $widget_name => $definition) {
+    $options[$widget_name] = $definition['title'];
+  }
+
+  $widget_var = sprintf(
+    'facetapi:widget:%s:%s:%s',
+    $adapter->getSearcher(), $realm['name'], $facet['name']
+  );
+  $form['realm'][$widget_var] = array(
+    '#type' => 'radios',
+    '#title' => t('Display widget'),
+    '#default_value' => variable_get($widget_var, 'facetapi_links'),
+    '#options' => $options,
+  );
+
   $sort_var = sprintf(
     'facetapi:sort:%s:%s:%s',
     $adapter->getSearcher(), $realm['name'], $facet['name']

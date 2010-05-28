@@ -2,10 +2,73 @@
 // $Id$
 
 /**
- * @file
- * Facet callbacks and realm rendering functions for the "block" and
- * "multiblock" realms.
+ * Renders facets as links.
+ *
+ * @param $facet_items
+ *   An array containing the facet items.
+ * @param $searcher
+ *   A string containing the machine readable name of the searcher module.
+ * @param $realm_name
+ *   A string containing the machine readable name of the realm.
+ * @param $facet_name
+ *   A string containing the machine readable name of the facet.
+ * @param $widget
+ *   An optional string containig the widget name. This is useful for other
+ *   widgets that render the facets through this function, such as the
+ *   "facetapi_checkboxes" widget.
+ * @return
+ *   A string containig the themed facet.
  */
+function facetapi_links_widget_callback(array $facet_items, $searcher, $realm_name, $facet_name, $widget = NULL) {
+  // Gets the facet's soft limit, adds to javascript variables.
+  $limit = facetapi_setting_get('soft_limit', $searcher, $realm_name, $facet_name);
+  if (NULL === $limit) {
+    $limit = 10;
+  }
+  $settings['facetapi'][$searcher][$realm_name][$facet_name] = array(
+    'limit' => $limit,
+    'widget' => (NULL === $widget) ? 'facetapi_links' : $widget,
+  );
+
+  // Adds settings as javascript variables.
+  drupal_add_js($settings, 'setting');
+
+  // Builds links, themes links as an item list.
+  $links = facetapi_links_get($facet_items);
+  return theme('facetapi_block', $links);
+}
+
+/**
+ * Renders facets as links with checkboxes, useful for facets using the OR
+ * operator.
+ *
+ * @param $facet_items
+ *   An array containing the facet items.
+ * @param $searcher
+ *   A string containing the machine readable name of the searcher module.
+ * @param $realm_name
+ *   A string containing the machine readable name of the realm.
+ * @param $facet_name
+ *   A string containing the machine readable name of the facet.
+ * @return
+ *   A string containig the themed facet.
+ */
+function facetapi_checkboxes_widget_callback(array $facet_items, $searcher, $realm_name, $facet_name) {
+  array_walk($facet_items, 'facetapi_active_checkbox_links_replace');
+  return facetapi_links_widget_callback(
+    $facet_items, $searcher, $realm_name, $facet_name, 'facetapi_checkboxes'
+  );
+}
+
+/**
+ * Replaces active links when being displayed via the "facetapi_checkboxes"
+ * widget.  Useful as an array_walk() callback.
+ */
+function facetapi_active_checkbox_links_replace(&$item, $key) {
+  if ('facetapi_link_active' == $item['theme hook']) {
+    $item['theme hook'] = 'facetapi_checkbox_link_active';
+  }
+}
 
 /**
  * Returns data for the "list" operation of hook_block().
@@ -16,11 +79,11 @@ function facetapi_block_info() {
   // Gets "delta map", iterates over available searcher modules.
   $map = facetapi_delta_map_get();
   foreach (facetapi_adapter_definitions_get() as $searcher => $definition) {
-    $facets = facetapi_enabled_facets_get($searcher, 'multiblock');
+    $facets = facetapi_enabled_facets_get($searcher, 'block');
     foreach ($facets as $facet_name => $facet) {
 
       // Gets the delta from the delta map.
-      $string = $searcher .':multiblock:'. $facet_name;
+      $string = $searcher .':block:'. $facet_name;
       $delta = array_search($string, $map);
 
       // Defines the block.
@@ -77,25 +140,23 @@ function facetapi_block_view($delta = '') {
       foreach ($data as $facet_data) {
         if (!empty($facet_data['items'])) {
 
-          // Builds the block data.
+          // Determines which widget will render the realm.
+          $widgets = module_invoke_all('facetapi_widget');
+          $widget = facetapi_setting_get('widget', $searcher, $realm_name, $facet_data['name']);
+          if (NULL !== $widget && isset($widgets[$widget])) {
+            $callback = $widgets[$widget]['callback'];
+          }
+          else {
+            $callback = 'facetapi_links_widget_callback';
+          }
+
+          // Builds the facet links, passes to the widget callback
           $blocks[$group][$facet_data['name']] = array(
             'subject' => $facet_data['title'],
-            'content' => theme('facetapi_block', $facet_data['items']),
-          );
-
-          // Gets the facet's soft limit, adds to javascript variables.
-          $limit = facetapi_setting_get('soft_limit', $searcher, $realm_name, $facet_data['name']);
-          if (NULL === $limit) {
-            $limit = 10;
-          }
-          $settings['facetapi'][$searcher][$realm_name][$facet_data['name']] = array(
-            'limit' => $limit,
+            'content' => $callback($facet_data['items'], $searcher, $realm_name, $facet_data['name'])
           );
         }
       }
-
-      // Adds settings as javascript variables.
-      drupal_add_js($settings, 'setting');
     }
     else {
       $blocks[$group] = array();
@@ -149,7 +210,7 @@ function facetapi_delta_map_get($reset = FALSE) {
 }
 
 /**
- * Renders facets in the multiblock realm.
+ * Renders facets in the block realm.
  *
  * @param $adapter
  *   A FacetapiAdapter object extended by the searcher module.
@@ -160,7 +221,7 @@ function facetapi_delta_map_get($reset = FALSE) {
  * @return
  *   A structured array that can be passed to a theming function.
  */
-function facetapi_realm_multiblock_render(FacetapiAdapter $adapter, $realm_name, array $facets) {
+function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, array $facets) {
 
   // @todo Get cached data here???
   // cache_get();

@@ -82,6 +82,9 @@ function facetapi_apachesolr_facetapi_query_term_process($adapter, array $facet,
  * Implementation of hook_facetapi_query_TYPE_process().
  */
 function facetapi_apachesolr_facetapi_query_range_process($adapter, array $facet, &$params, $query) {
+  $searcher = $adapter->getSearcher();
+
+  // Loads date functions, gets the range information.
   module_load_include('inc', 'facetapi', 'facetapi.date');
   list($start, $end, $gap) = facetapi_date_range($query, $facet['field']);
 
@@ -89,5 +92,8 @@ function facetapi_apachesolr_facetapi_query_range_process($adapter, array $facet
   $params['f.'. $facet['field'] .'.facet.date.start'] = $start;
   $params['f.'. $facet['field'] .'.facet.date.end'] = $end;
   $params['f.'. $facet['field'] .'.facet.date.gap'] = $gap;
-}
 
+  // Adds "hard limit" parameter to prevent too many return values.
+  $limit = facetapi_setting_get('hard_limit', $searcher, '', $facet['name']);
+  $params['f.'. $facet['field'] .'.facet.limit'] = ($limit !== NULL) ? (int)$limit : 20;
+}
