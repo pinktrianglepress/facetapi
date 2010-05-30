@@ -437,14 +437,14 @@ function facetapi_luceneapi_match_query(Zend_Search_Lucene_Interface $index, Zen
 /**
  * Implementation of hook_apachesolr_prepare_query().
  */
-function facetapi_luceneapi_luceneapi_query_alter($query, $module, $type = NULL) {
+function facetapi_luceneapi_luceneapi_query_alter(Zend_Search_Lucene_Search_Query $query, $module, $type = NULL) {
   facetapi_query_type_hooks_invoke($module, $query);
 }
 
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, $query) {
+function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, Zend_Search_Lucene_Search_Query $query) {
   $values = $adapter->getActiveFacets($facet['field alias']);
   if (empty($values)) {
     return;
@@ -476,9 +476,9 @@ function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, &$query) {
+function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, Zend_Search_Lucene_Search_Query $query) {
   module_load_include('inc', 'facetapi', 'facetapi.date');
-  $values = $adapter->getActiveFacets($facet['field']);
+  $values = $adapter->getActiveFacets($facet['field alias']);
   if (empty($values)) {
     return;
   }
@@ -511,7 +511,7 @@ function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapte
 /**
  * Implementation of hook_luceneapi_document_alter().
  */
-function facetapi_luceneapi_luceneapi_document_alter($doc, $node, $module, $type = NULL) {
+function facetapi_luceneapi_luceneapi_document_alter(Zend_Search_Lucene_Document $doc, $node, $module, $type = NULL) {
   if ('luceneapi_node' == $module) {
     // Maintains taxonomy ancestry for hierarchical browsing. Parent term counts
     // should also include child terms counts.

@@ -335,5 +335,15 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       }
     }
   }
+
+  /**
+   * Returns the search keys.
+   */
+  public function getSearchKeys() {
+    if (NULL === $this->_keys) {
+      return search_get_keys();
+    }
+    return $this->_keys;
+  }
 }
 

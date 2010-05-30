@@ -1,7 +1,7 @@
 // $Id$
 
 Drupal.behaviors.facetapi = function(context) {
-  
+
   // Iterates over the settings array for each facet in each realm for each
   // searcher module.
   $.each(Drupal.settings.facetapi, function (searcher, realms) {
@@ -15,9 +15,6 @@ Drupal.behaviors.facetapi = function(context) {
           $('div#block-facetapi-'+searcher+'-'+realm_name+'-'+facet_name+' ul li a.active')
             .each(Drupal.facetapi.addActiveCheckbox)
         }
-        
-        
-        
         
         // A limit of 0 means no limit.
         if (settings.limit > 0) {

@@ -173,15 +173,15 @@ function facetapi_theme() {
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_link' => array(
-      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => NULL),
+      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
+      'file' => 'facetapi.theme.inc',
+    ),
+    'facetapi_link_inactive' => array(
+      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array(), 'count' => 0),
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_link_active' => array(
-      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => NULL),
-      'file' => 'facetapi.theme.inc',
-    ),
-    'facetapi_checkbox_link_active' => array(
-      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => NULL),
+      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_markup' => array(
@@ -698,11 +698,6 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
 function facetapi_realm_render($searcher, $realm_name) {
   $rendered = '';
 
-  // @todo REMOVE!!
-  $peak_start = memory_get_peak_usage();
-  $mem_start = memory_get_usage();
-  $time_start = microtime(TRUE);
-
   // Gets all defined realms, makes sure the passed realm is valid.
   $realms = facetapi_realms_get();
   if (isset($realms[$realm_name])) {
@@ -725,18 +720,6 @@ function facetapi_realm_render($searcher, $realm_name) {
       }
     }
   }
-
-  // @todo REMOVE!!
-  $time_end = microtime(TRUE);
-  /*
-  drupal_set_message(t(
-    '%realm realm rendered in %seconds seconds.',
-    array(
-      '%realm' => $realms[$realm_name]['title'],
-      '%seconds' => round($time_end - $time_start, 5),
-    )
-  ));
-  */
 
   // Returns the rendered facet realm.
   return $rendered;
@@ -882,8 +865,6 @@ function facetapi_vocabulary_hierarchical($vid) {
 function facetapi_hierarchy_process(array &$facet_items, $searcher, $realm_name, array $facet) {
   // Adds parent information to each facet if a hierarchy callback is defined.
   if (!empty($facet['hierarchy callback'])) {
-
-    // Adds the parent relationships via the facet's hierarchy callback.
     $facet['hierarchy callback']($facet_items, $searcher, $realm_name, $facet['name']);
   }
 
@@ -968,7 +949,6 @@ function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
  */
 function facetapi_facetapi_facets($searcher, $type) {
   $facets = array();
-
   if ('node' == $type) {
 
     $facets['type'] = array(

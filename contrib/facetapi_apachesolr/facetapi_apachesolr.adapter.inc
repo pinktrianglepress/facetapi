@@ -170,7 +170,11 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
    */
   public function getActiveFacets($field) {
     if ($query = apachesolr_current_query()) {
-      return $query->get_filters($field);
+      $active = array();
+      foreach ($query->get_filters($field) as $filter) {
+        $active[$filter['#value']] = $filter['#query'];
+      }
+      return $active;
     }
     return array();
   }
@@ -183,5 +187,20 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
       $query = FALSE;
     }
     return ($query) ? (int)$query->has_filter($field, $value) : 0;
+  }
+
+  /**
+   * Returns the search keys.
+   */
+  public function getSearchKeys() {
+    if (NULL === $this->_keys) {
+      if ($query = apachesolr_current_query()) {
+        return $query->get_query_basic();
+      }
+    }
+    else {
+      return $this->_keys;
+    }
+    return NULL;
   }
 }

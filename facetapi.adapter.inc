@@ -28,6 +28,11 @@ abstract class FacetapiAdapter {
   protected $_module;
 
   /**
+   * The search keys.
+   */
+  protected $_keys;
+
+  /**
    * An array of facet item defaults.
    */
   protected $_item_defaults = array(
@@ -83,7 +88,7 @@ abstract class FacetapiAdapter {
 
           // Tests if the facet is "active", in other words selected.
           if (!$active = $this->facetActive($facet_data['field alias'], $value)) {
-            $theme_hook = 'facetapi_link';
+            $theme_hook = 'facetapi_link_inactive';
             $options = array();
           }
           else {
@@ -282,5 +287,19 @@ abstract class FacetapiAdapter {
    */
   public function getModule() {
     return $this->_module;
+  }
+
+  /**
+   * Sets the search keys.
+   */
+  public function setSearchKeys($keys) {
+    $this->_keys = $keys;
+  }
+
+  /**
+   * Gets the search keys.
+   */
+  public function getSearchKeys() {
+    return $this->_keys;
   }
 }

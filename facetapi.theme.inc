@@ -19,6 +19,23 @@ function theme_facetapi_block($links) {
 }
 
 /**
+ * Themes a facet link for a value that is currently being searched.
+ *
+ * @param $text
+ *   A string containing the facet title.
+ * @param $path
+ *   A string containing the Drupal path being linked to, usually $_GET['q'].
+ * @param $options
+ *   An associative array of additional options.
+ * @return
+ *   A string containing the themed link.
+ * @see l()
+ */
+function theme_facetapi_link($text, $path, $options = array()) {
+  return facetapi_l($text, $path, $options);
+}
+
+/**
  * Themes a facet link with an optional count.
  *
  * @param $text
@@ -31,14 +48,13 @@ function theme_facetapi_block($links) {
  *   An optional integer containing the count of the facet item.
  * @return
  *   A string containing the themed link.
- * @see l()
+ * @see facetapi_l()
  */
-function theme_facetapi_link($text, $path, $options = array(), $count = 0) {
+function theme_facetapi_link_inactive($text, $path, $options = array(), $count = 0) {
   if ($count) {
     $text .= ' '. theme('facetapi_count', $count);
   }
-  $link = facetapi_l($text, $path, $options);
-  return $link;
+  return facetapi_l($text, $path, $options);
 }
 
 /**
@@ -69,21 +85,4 @@ function theme_facetapi_count($count) {
  */
 function theme_facetapi_link_active($text, $path, $options = array()) {
   return facetapi_l(sprintf('(-) %s', $text), $path, $options);
-}
-
-/**
- * Themes a facet link for a value that is currently being searched.
- *
- * @param $text
- *   A string containing the facet title.
- * @param $path
- *   A string containing the Drupal path being linked to, usually $_GET['q'].
- * @param $options
- *   An associative array of additional options.
- * @return
- *   A string containing the themed link.
- * @see l()
- */
-function theme_facetapi_checkbox_link_active($text, $path, $options = array()) {
-  return facetapi_l($text, $path, $options);
 }

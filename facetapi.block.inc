@@ -65,8 +65,13 @@ function facetapi_checkboxes_widget_callback(array $facet_items, $searcher, $rea
  * widget.  Useful as an array_walk() callback.
  */
 function facetapi_active_checkbox_links_replace(&$item, $key) {
+  // Overrides the default "active" link.
   if ('facetapi_link_active' == $item['theme hook']) {
-    $item['theme hook'] = 'facetapi_checkbox_link_active';
+    $item['theme hook'] = 'facetapi_link';
+  }
+  // Replaces links for children as well.
+  if (!empty($item['children'])) {
+    array_walk($item['children'], 'facetapi_active_checkbox_links_replace');
   }
 }
 
@@ -109,18 +114,12 @@ function facetapi_block_info() {
  */
 function facetapi_block_view($delta = '') {
   static $blocks;
+  $add_js = FALSE;
 
   // Bails if delta isn't mapped.
   $map = facetapi_delta_map_get();
   if (!isset($map[$delta])) {
     return array();
-  }
-
-  // Adds the javascript file.
-  if (NULL === $blocks) {
-    $path = drupal_get_path('module', 'facetapi');
-    //drupal_add_css($path .'/luceneapi_facet.css');
-    drupal_add_js($path .'/facetapi.js');
   }
 
   // Extracts the searcher, realm name, and facet name from $delta. Caches
@@ -139,6 +138,7 @@ function facetapi_block_view($delta = '') {
       $data = facetapi_realm_render($searcher, $realm_name);
       foreach ($data as $facet_data) {
         if (!empty($facet_data['items'])) {
+          $add_js = TRUE;
 
           // Determines which widget will render the realm.
           $widgets = module_invoke_all('facetapi_widget');
@@ -156,6 +156,11 @@ function facetapi_block_view($delta = '') {
             'content' => $callback($facet_data['items'], $searcher, $realm_name, $facet_data['name'])
           );
         }
+      }
+
+      // Adds javascript if at least one facet is rendered.
+      if ($add_js) {
+        drupal_add_js(drupal_get_path('module', 'facetapi') .'/facetapi.js');
       }
     }
     else {
@@ -226,6 +231,14 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   // @todo Get cached data here???
   // cache_get();
 
+  // Initializes breadcrumb trail.
+  /*
+  $breadcrumb = array();
+  if ($keys = $adapter->getSearchKeys()) {
+    $breadcrumb[] = l($keys, $_GET['q']);
+  }
+  */
+
   // Gets facet counts, iterates over collection.
   $data = $adapter->getFacetData($facets);
   foreach ($data as &$facet_data) {
@@ -236,12 +249,28 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
       array_walk($facet_data['items'], 'facetapi_ids_replace', $map);
     }
 
+    // Adds breadcrumb items.
+    /*
+    foreach ($adapter->getActiveFacets($facet_data['field alias']) as $value => $filter) {
+      $breadcrumb[] = l($facet_data['items'][$value]['text'], $_GET['q']);
+    }
+    */
+
     // Builds hierarchical relationships.
     facetapi_hierarchy_process(
       $facet_data['items'], $adapter->getSearcher(), $realm_name, $facets[$facet_data['name']]
     );
   }
   unset($facet_data);
+
+  // Finalizes breadcrumb trail and sets.
+  /*
+  if (!empty($breadcrumb)) {
+    $last = count($breadcrumb) - 1;
+    $breadcrumb[$last] = strip_tags($breadcrumb[$last]);
+    drupal_set_breadcrumb(array_merge(menu_get_active_breadcrumb(), $breadcrumb));
+  }
+  */
 
   // @todo Set cached data here??
   // cache_set();
@@ -302,10 +331,12 @@ function facetapi_paths_set(array &$facet_items, FacetapiAdapter $adapter, $real
     $item['path'] = $_GET['q'];
 
     // If there are active children, builds links for decendents.
-    if (!empty($item['children']) && $item['active']) {
-      facetapi_paths_set($item['children'], $adapter, $realm_name, $facet);
-      // Make sure unclicking the parent deactivates the children as well.
-      $values = array_merge(facetapi_child_values_get($item['children']), $values);
+    if ($item['active']) {
+      if (!empty($item['children'])) {
+        $active_children = facetapi_paths_set($item['children'], $adapter, $realm_name, $facet);
+        // Make sure unclicking the parent deactivates the children as well.
+        $values = array_merge(facetapi_child_values_get($item['children']), $values);
+      }
     }
 
     // Formats query string dependent on whether the facet is active.
