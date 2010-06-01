@@ -232,12 +232,10 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   // cache_get();
 
   // Initializes breadcrumb trail.
-  /*
   $breadcrumb = array();
   if ($keys = $adapter->getSearchKeys()) {
     $breadcrumb[] = l($keys, $_GET['q']);
   }
-  */
 
   // Gets facet counts, iterates over collection.
   $data = $adapter->getFacetData($facets);
@@ -250,11 +248,9 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
     }
 
     // Adds breadcrumb items.
-    /*
     foreach ($adapter->getActiveFacets($facet_data['field alias']) as $value => $filter) {
       $breadcrumb[] = l($facet_data['items'][$value]['text'], $_GET['q']);
     }
-    */
 
     // Builds hierarchical relationships.
     facetapi_hierarchy_process(
@@ -264,13 +260,11 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   unset($facet_data);
 
   // Finalizes breadcrumb trail and sets.
-  /*
   if (!empty($breadcrumb)) {
     $last = count($breadcrumb) - 1;
     $breadcrumb[$last] = strip_tags($breadcrumb[$last]);
     drupal_set_breadcrumb(array_merge(menu_get_active_breadcrumb(), $breadcrumb));
   }
-  */
 
   // @todo Set cached data here??
   // cache_set();

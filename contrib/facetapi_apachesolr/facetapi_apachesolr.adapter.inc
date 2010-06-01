@@ -61,7 +61,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;
-    foreach ($this->getActiveFacets($facet['field alias']) as $filter) {
+    foreach ($query->get_filters($facet['field alias']) as $filter) {
 
       // Builds the raw facet "value", the count for selected items will be the
       // total number of rows returned in the query.

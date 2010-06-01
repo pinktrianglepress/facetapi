@@ -90,6 +90,7 @@ function facetapi_luceneapi_facetapi_facets_alter(array &$facets, $searcher, $ty
     unset($facet);
   }
 }
+
 /**
  * Implementation of hook_facetapi_adapters().
  */
@@ -133,16 +134,16 @@ function facetapi_luceneapi_prefix_get($text) {
 
 /**
  * Reads termfrequencies from the lookup table to avoid having to calculate it
- * all over again.
+ * on the fly, which is very performance intensive.
  *
  * @param $searcher
- *
+ *   A string containing the machine readable name of the searcher module.
  * @param $term
- *
+ *   A Zend_Search_Lucene_Index_Term object.
  * @return
  *   An array keyed by Lucene document ID to term frequency.
  */
-function facetapi_luceneapi_termfreqs_get($searcher, $term) {
+function facetapi_luceneapi_termfreqs_get($searcher, Zend_Search_Lucene_Index_Term $term) {
   static $cache = array();
 
   // If cache is not populated for the field, reads the field's cached data.
@@ -338,7 +339,8 @@ function facetapi_luceneapi_range_matches_get(Zend_Search_Lucene_Interface $inde
  * @param $fields
  *   An array containing the fields the termFreqs cache is being populated for.
  * @param &$context
- *   An optional array
+ *   An optional array containing the batch context when using this function as
+ *   a batch operation.
  * @return
  *   NULL
  */
@@ -429,9 +431,16 @@ function facetapi_luceneapi_timestamp_convert(&$value, $key, $format) {
  *   An array keyed by document IDs.
  */
 function facetapi_luceneapi_match_query(Zend_Search_Lucene_Interface $index, Zend_Search_Lucene_Search_Query $query) {
-  $query = $query->rewrite($index)->optimize($index);
-  $query->execute($index);
-  return $query->matchedDocs();
+  $docs = array();
+  try {
+    $query = $query->rewrite($index)->optimize($index);
+    $query->execute($index);
+    $docs = $query->matchedDocs();
+  }
+  catch (Exception $e) {
+    luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');
+  }
+  return $docs;
 }
 
 /**
@@ -512,7 +521,9 @@ function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapte
  * Implementation of hook_luceneapi_document_alter().
  */
 function facetapi_luceneapi_luceneapi_document_alter(Zend_Search_Lucene_Document $doc, $node, $module, $type = NULL) {
+  static $fields;
   if ('luceneapi_node' == $module) {
+
     // Maintains taxonomy ancestry for hierarchical browsing. Parent term counts
     // should also include child terms counts.
     $terms = array();
@@ -528,11 +539,31 @@ function facetapi_luceneapi_luceneapi_document_alter(Zend_Search_Lucene_Document
     // Changes the field definition for categories, rebuilds the field's value
     // with all parent and child terms.
     foreach ($terms as $vid => $tids) {
-      $field = $doc->getField('category_'. $vid);
-      $field->isStored = FALSE;
-      $field->isIndexed = TRUE;
-      $field->isTokenized = TRUE;
-      $field->value = join(' ', $tids);
+      try {
+        $field = $doc->getField('category_'. $vid);
+        $field->isStored = FALSE;
+        $field->isIndexed = TRUE;
+        $field->isTokenized = TRUE;
+        $field->value = join(' ', $tids);
+      }
+      catch (Exception $e) {
+        luceneapi_throw_error($e, WATCHDOG_ERROR, 'facetapi_luceneapi');
+      }
+    }
+
+    // @todo This is nasty. We need a better way to do this.  Unfortunately, we
+    // have to wait until this functionality is integrated into the core Search
+    // Lucene API module.
+    if (NULL === $fields) {
+      $fields = array();
+      foreach (facetapi_enabled_facets_get($module) as $facet) {
+        $fields[] = $facet['field'];
+      }
+    }
+    foreach ($fields as $field) {
+      $variable = 'facetapi:termfreqs_cached:'. $module .':::'. $field;
+      variable_del($variable);
+      drupal_set_message($variable);
     }
   }
 }
