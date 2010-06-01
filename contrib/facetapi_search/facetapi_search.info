@@ -1,7 +1,0 @@
-; $Id$
-name = Search Facet Adapter
-description = "The core Search module's implementation of the the Facet API."
-dependencies[] = facetapi
-dependencies[] = search
-package = Search
-core = "6.x"
