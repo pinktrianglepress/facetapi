@@ -65,12 +65,12 @@ function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller)
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_apachesolr_facetapi_query_term_process($adapter, array $facet, &$params, $query) {
+function facetapi_apachesolr_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
   $searcher = $adapter->getSearcher();
 
   // Adds the operator parameter.
   $operator = facetapi_setting_get('operator', $searcher, '', $facet['name']);
-  $ex = (FACETAPI_OPERATOR_OR != $operator) ? "{!ex={$facet['field']}}" : '';
+  $ex = (FACETAPI_OPERATOR_OR != $operator) ? '' : "{!ex={$facet['field']}}";
   $params['facet.field'][] = $ex . $facet['field'];
 
   // Adds "hard limit" parameter to prevent too many return values.
@@ -81,7 +81,7 @@ function facetapi_apachesolr_facetapi_query_term_process($adapter, array $facet,
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_apachesolr_facetapi_query_range_process($adapter, array $facet, &$params, $query) {
+function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
   $searcher = $adapter->getSearcher();
 
   // Loads date functions, gets the range information.

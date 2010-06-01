@@ -525,19 +525,13 @@ function facetapi_date_range_map(array $ranges) {
 /**
  * Gets parent information for taxonomy terms.
  *
- * @param &$facet_items
- *   An array containing the facet items with facet counts.
- * @param $searcher
- *   A string containing the machine readable name of the searcher module.
- * @param $realm_name
- *   A string containing the machine readable name of the realm.
- * @param $facet_name
- *   A string containing the machine readable name of the facet.
+ * @param &$tids
+ *   An array containing the term ids.
  * @return
- *   NULL
+ *   An associative array keyed by term ID to parent ID.
  */
-function facetapi_taxonomy_hierarchy_callback(array &$facet_items, $searcher, $realm_name, $facet_name) {
-  $tids = array_keys($facet_items);
+function facetapi_taxonomy_hierarchy_callback(array $tids) {
+  $parents = array();
   if (!empty($tids)) {
     $placeholders = db_placeholders($tids);
 
@@ -550,16 +544,9 @@ function facetapi_taxonomy_hierarchy_callback(array &$facet_items, $searcher, $r
     // Executes query to get parent, relates the terms to one another.
     if ($result = db_query($sql, array_merge($tids, $tids))) {
       while ($record = db_fetch_object($result)) {
-        // Mark all terms that are parent for later CSS class. We assume data
-        // in the index is complete - potential for some breakage here.
-        if (isset($facet_items[$record->parent])) {
-          if (isset($facet_items[$record->tid])) {
-            // Use a reference so we see the updated data.
-            $facet_items[$record->parent]['children'][$record->tid] = &$facet_items[$record->tid];
-            $facet_items[$record->tid]['parents'][$record->parent] = $record->parent;
-          }
-        }
+        $parents[$record->tid][] = $record->parent;
       }
     }
   }
+  return $parents;
 }

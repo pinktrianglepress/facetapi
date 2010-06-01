@@ -102,7 +102,7 @@ function facetapi_luceneapi_facetapi_adapters() {
     $adapters[$searcher] = array(
       'class' => 'FacetapiLuceneapiAdapter',
       'type' => luceneapi_index_type_get($searcher),
-      'file' => '/facetapi_luceneapi.adapter.inc',
+      'file' => 'facetapi_luceneapi.adapter.inc',
     );
   }
 
@@ -466,9 +466,13 @@ function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter
       ));
     }
 
+    // Gets the operator.
+    $operator = facetapi_setting_get('operator', $adapter->getSearcher(), '', $facet['name']);
+    $sign = (FACETAPI_OPERATOR_OR != $operator) ? 'required' : 'neither';
+
     foreach ($values as $value => $filter_string) {
       $term = luceneapi_term_get((string)$value, $facet['field'], TRUE);
-      luceneapi_term_add($multiterm, $term, 'required', TRUE);
+      luceneapi_term_add($multiterm, $term, $sign, TRUE);
     }
 
     // If there are terms, appends subquery.
@@ -563,7 +567,6 @@ function facetapi_luceneapi_luceneapi_document_alter(Zend_Search_Lucene_Document
     foreach ($fields as $field) {
       $variable = 'facetapi:termfreqs_cached:'. $module .':::'. $field;
       variable_del($variable);
-      drupal_set_message($variable);
     }
   }
 }

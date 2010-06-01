@@ -57,6 +57,7 @@ function facetapi_menu() {
     'weight' => -40,
   );
 
+  /*
   // Import page for a facet.
   $items['admin/settings/%facetapi_adapter/facetapi/%facetapi_realm/%facetapi_facet/import'] = array(
     'title' => 'Import',
@@ -80,6 +81,7 @@ function facetapi_menu() {
     'file' => 'facetapi.export.inc',
     'weight' => -20,
   );
+  */
 
   return $items;
 }
@@ -863,9 +865,22 @@ function facetapi_vocabulary_hierarchical($vid) {
  *   NULL
  */
 function facetapi_hierarchy_process(array &$facet_items, $searcher, $realm_name, array $facet) {
-  // Adds parent information to each facet if a hierarchy callback is defined.
+
+  // Builds the hierarchy information if the hierarchy callback is defined.
   if (!empty($facet['hierarchy callback'])) {
-    $facet['hierarchy callback']($facet_items, $searcher, $realm_name, $facet['name']);
+    $ids = array_keys($facet_items);
+    $parents = $facet['hierarchy callback']($ids);
+    foreach ($parents as $value => $parents) {
+      foreach ($parents as $parent) {
+        if (isset($facet_items[$parent])) {
+          if (isset($facet_items[$value])) {
+            // Use a reference so we see the updated data.
+            $facet_items[$parent]['children'][$value] = &$facet_items[$value];
+            $facet_items[$value]['parents'][$parent] = $parent;
+          }
+        }
+      }
+    }
   }
 
   // Tests whether parents have an active child.
