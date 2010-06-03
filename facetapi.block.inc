@@ -531,21 +531,19 @@ function facetapi_date_range_map(array $ranges) {
  *   An associative array keyed by term ID to parent ID.
  */
 function facetapi_taxonomy_hierarchy_callback(array $tids) {
+  $placeholders = db_placeholders($tids);
+
+  $sql = "
+    SELECT tid, parent
+    FROM {term_hierarchy}
+    WHERE parent > 0 AND (tid IN ($placeholders) OR parent IN ($placeholders))
+  ";
+
+  // Executes query to get parents, relates the terms to one another.
   $parents = array();
-  if (!empty($tids)) {
-    $placeholders = db_placeholders($tids);
-
-    $sql = "
-      SELECT tid, parent
-      FROM {term_hierarchy}
-      WHERE parent > 0 AND (tid IN ($placeholders) OR parent IN ($placeholders))
-    ";
-
-    // Executes query to get parent, relates the terms to one another.
-    if ($result = db_query($sql, array_merge($tids, $tids))) {
-      while ($record = db_fetch_object($result)) {
-        $parents[$record->tid][] = $record->parent;
-      }
+  if ($result = db_query($sql, array_merge($tids, $tids))) {
+    while ($record = db_fetch_object($result)) {
+      $parents[$record->tid][] = $record->parent;
     }
   }
   return $parents;

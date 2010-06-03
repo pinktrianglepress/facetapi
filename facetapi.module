@@ -431,7 +431,7 @@ function facetapi_facets_get($searcher, $type) {
         'field' => $facet_name,
         // The alias for the field, also uses as the form element name when
         // facets are rendered as form elements.
-        'field alias' => $facet_name,
+        'field alias' => isset($facet['field']) ? $facet['field'] : $facet_name,
         // The type of query executed when the facet is active.  Valid values
         // are term, range, and wildcard.  Each adapter module must implement
         // hook_facetapi_query_TYPE_process() in order for the facet data to
@@ -867,9 +867,8 @@ function facetapi_vocabulary_hierarchical($vid) {
 function facetapi_hierarchy_process(array &$facet_items, $searcher, $realm_name, array $facet) {
 
   // Builds the hierarchy information if the hierarchy callback is defined.
-  if (!empty($facet['hierarchy callback'])) {
-    $ids = array_keys($facet_items);
-    $parents = $facet['hierarchy callback']($ids);
+  if (!empty($facet['hierarchy callback']) && !empty($facet_items)) {
+    $parents = $facet['hierarchy callback'](array_keys($facet_items));
     foreach ($parents as $value => $parents) {
       foreach ($parents as $parent) {
         if (isset($facet_items[$parent])) {
@@ -971,17 +970,14 @@ function facetapi_facetapi_facets($searcher, $type) {
       'description' => t('Filter by content type.'),
       'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_type_map',
-      'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['author'] = array(
       'title' => t('Author'),
       'description' => t('Filter by author.'),
       'field' => 'uid',
-      'field alias' => 'uid',
       'form type' => 'textfield',
       'map callback' => 'facetapi_node_uid_map',
-      'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['language'] = array(
@@ -989,7 +985,6 @@ function facetapi_facetapi_facets($searcher, $type) {
       'description' => t('Filter by language.'),
       'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_language_map',
-      'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['created'] = array(
@@ -999,7 +994,6 @@ function facetapi_facetapi_facets($searcher, $type) {
       'query type' => 'range',
       'fetch type' => 'date',
       'map callback' => 'facetapi_date_range_map',
-      'file' => 'facetapi.facetapi.inc',
     );
 
     $facets['changed'] = array(
@@ -1009,7 +1003,6 @@ function facetapi_facetapi_facets($searcher, $type) {
       'query type' => 'range',
       'fetch type' => 'date',
       'map callback' => 'facetapi_date_range_map',
-      'file' => 'facetapi.facetapi.inc',
     );
 
     // Adds taxonomy facets, breaks up into separate vocabularies.
@@ -1025,7 +1018,6 @@ function facetapi_facetapi_facets($searcher, $type) {
           'field' => 'category',
           'form type' => 'select',
           'map callback' => 'facetapi_taxonomy_term_map',
-          'file' => 'facetapi.facetapi.inc',
         );
 
         // Adds hierarchy callback to get parent information.
