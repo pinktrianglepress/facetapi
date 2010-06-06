@@ -85,6 +85,7 @@ function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapt
   $searcher = $adapter->getSearcher();
 
   // Loads date functions, gets the range information.
+  // @todo remove the assumption that ranges are dates.
   list($start, $end, $gap) = facetapi_apachesolr_date_range($query, $facet['field']);
 
   $params['facet.date'][] = $facet['field'];

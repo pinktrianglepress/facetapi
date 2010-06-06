@@ -64,19 +64,21 @@ abstract class FacetapiAdapter {
   /**
    * Returns a normalized array with facet counts included.
    *
+   * @param $realm_name
+   *   A string containing the machine readable name of the realm.
    * @param $facets
    *   An array of enabled facets.
    * @return
    *   An array with facet count values appended.
    * @todo Define how the array is structured in this docblock.
    */
-  public function getFacetData(array $facets) {
+  public function getFacetData($realm_name, array $facets) {
     $data = $facets;
     foreach ($data as &$facet_data) {
 
       // Gets facet "counts".
       if (NULL !== $facet_data['field']) {
-        $facet_data['items'] = $this->fetch($facets[$facet_data['name']]);
+        $facet_data['items'] = $this->fetch($realm_name, $facets[$facet_data['name']]);
       }
       else {
         $facet_data['items'] = array();
@@ -132,21 +134,23 @@ abstract class FacetapiAdapter {
   /**
    * Fetches facet data via the appropriate fetch*() method.
    *
+   * @param $realm_name
+   *   A string containing the machine readable name of the realm.
    * @param $facet
    *   An array containing the full facet definition.
    * @return
    *   An array containing the facet data.
    */
-  public function fetch(array $facet) {
+  public function fetch($realm_name, array $facet) {
     if (!empty($facet['fetch type'])) {
       // NOTE: ucfirst() is not required, but it is helpful for debugging to
       // see the name of the method exactly as it is definted in the adapter.
       $method = 'fetch'. ucfirst($facet['fetch type']);
       if (method_exists($this, $method)) {
-        return $this->$method($facet);
+        return $this->$method($realm_name, $facet);
       }
     }
-    return $this->fetchDefault($facet);
+    return $this->fetchDefault($realm_name, $facet);
   }
 
   /**
@@ -201,12 +205,14 @@ abstract class FacetapiAdapter {
   /**
    * The default method used to retrieve facet data.
    *
+   * @param $realm_name
+   *   A string containing the machine readable name of the realm.
    * @param $facet
    *   An array containing the full facet definition.
    * @return
    *   An array of facet data.
    */
-  abstract public function fetchDefault(array $facet);
+  abstract public function fetchDefault($realm_name, array $facet);
 
   /**
    * Applies the default sort to the facets. If facets are already sorted by

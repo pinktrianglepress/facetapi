@@ -26,7 +26,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * The default method used to retrieve facet data.
    */
-  public function fetchDefault(array $facet) {
+  public function fetchDefault($realm_name, array $facet) {
     $facet_items = array();
 
     $sql = "
@@ -51,7 +51,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * Fetches data from facets that filter results by date ranges.
    */
-  public function fetchDate(array $facet) {
+  public function fetchDate($realm_name, array $facet) {
 
     $sql = "
       SELECT MIN(term) as minimum, MAX(term) as maximum
@@ -187,16 +187,16 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    * Overrides the fetch() function, prepopulates the termFreqs cache by calling
    * the facetapi_luceneapi_termfreqs_get() function.
    */
-  public function fetch(array $facet) {
+  public function fetch($realm_name, array $facet) {
     $term = new Zend_Search_Lucene_Index_Term(NULL, $facet['field']);
     facetapi_luceneapi_termfreqs_get($this->getSearcher(), $term);
-    return parent::fetch($facet);
+    return parent::fetch($realm_name, $facet);
   }
 
   /**
    * Returns a normalized array with facet counts included.
    */
-  public function getFacetData(array $facets) {
+  public function getFacetData($realm_name, array $facets) {
 
     // Opens the index, returns an empty index in it cannot be opened.
     if (!$this->_index = luceneapi_index_open($this->getSearcher(), $errstr)) {
@@ -234,7 +234,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
 
     // Gets documents matched in the query.
     $this->_docs = facetapi_luceneapi_match_query($this->_index, $query);
-    return parent::getFacetData($facets);
+    return parent::getFacetData($realm_name, $facets);
   }
 
   /**

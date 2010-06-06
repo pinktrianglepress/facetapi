@@ -238,7 +238,7 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   }
 
   // Gets facet counts, iterates over collection.
-  $data = $adapter->getFacetData($facets);
+  $data = $adapter->getFacetData($realm_name, $facets);
   foreach ($data as &$facet_data) {
 
     // Maps the IDs to human readable values via the mapping callback.
