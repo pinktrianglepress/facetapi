@@ -658,14 +658,19 @@ function facetapi_setting_set($setting, $value) {
 }
 
 /**
- * Invokes query type callbacks for all facets. Query type hooks are generally
- * used to process facet data passed through the query string to apply the
- * necessary filters to the search query.
+ * Invokes query type callbacks for all facets.
+ *
+ * Query type hooks are generally used to process facet data and apply filters
+ * to the query for the selectd items. The query type is set in the facet
+ * definition, and the adapter module's hook_facetapi_query_TYPE_process()
+ * implementation is invoked for each facet being rendered by the adapter.
  *
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
  * @param &$data
- *   A mixed value containing any data that needs to be altered.
+ *   A mixed value containing any data that needs to be altered.  For example,
+ *   this may be the "params" array for Apache Solr or the query object for
+ *   Search Lucene API.
  * @param ...
  *   Any additional parameters passed to the hook.
  * @return
@@ -855,16 +860,12 @@ function facetapi_vocabulary_hierarchical($vid) {
  * @param &$facet_items
  *   An array containing the facet items being processed into a hierarchical
  *   structure.
- * @param $searcher
- *   A string containing the machine readable name of the searcher module.
- * @param $realm_name
- *   A string containing the machine readable name of the realm.
  * @param $facet
  *   An array containing the full facet definition.
  * @return
  *   NULL
  */
-function facetapi_hierarchy_process(array &$facet_items, $searcher, $realm_name, array $facet) {
+function facetapi_hierarchy_process(array &$facet_items, array $facet) {
 
   // Builds the hierarchy information if the hierarchy callback is defined.
   if (!empty($facet['hierarchy callback']) && !empty($facet_items)) {
@@ -904,8 +905,8 @@ function facetapi_hierarchy_process(array &$facet_items, $searcher, $realm_name,
 }
 
 /**
- * Callback for array_filter() that strips all children that will be rendered
- * via parents.
+ * Callback for array_filter() that strips out all children that will be
+ * rendered via their parents.
  *
  * @param $item
  *   An array containing the facet item.

@@ -85,8 +85,7 @@ function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapt
   $searcher = $adapter->getSearcher();
 
   // Loads date functions, gets the range information.
-  module_load_include('inc', 'facetapi', 'facetapi.date');
-  list($start, $end, $gap) = facetapi_date_range($query, $facet['field']);
+  list($start, $end, $gap) = facetapi_apachesolr_date_range($query, $facet['field']);
 
   $params['facet.date'][] = $facet['field'];
   $params['f.'. $facet['field'] .'.facet.date.start'] = $start;
@@ -96,4 +95,51 @@ function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapt
   // Adds "hard limit" parameter to prevent too many return values.
   $limit = facetapi_setting_get('hard_limit', $searcher, '', $facet['name']);
   $params['f.'. $facet['field'] .'.facet.limit'] = ($limit !== NULL) ? (int)$limit : 20;
+}
+
+/**
+ * Gets the range of dates we are using.
+ *
+ * @param $query
+ *   A Solr_Base_Query object.
+ * @param $facet_field
+ *   A string containing the name of the facet field.
+ * @return
+ *   An array containing the gap and range information.
+ */
+function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
+  foreach ($query->get_filters($facet_field) as $filter) {
+
+    // If we had an ISO date library we could use ISO dates directly. Instead,
+    // we convert to Unix timestamps for comparison. Only use dates if we are
+    // able to parse into timestamps.
+    $start = strtotime($filter['#start']);
+    $end = strtotime($filter['#end']);
+
+
+    if ($start && $end && ($start < $end)) {
+      $start_date = $filter['#start'];
+      $end_date = $filter['#end'];
+      // Determine the drilldown gap for this range.
+      $gap = facetapi_gap_drilldown(facetapi_query_gap_get($start_date, $end_date));
+    }
+  }
+
+  // If there is no $delta field in query object, get initial facet.date.*
+  // params from the DB and determine the best search gap to use. This callback
+  // assumes $delta is 'changed' or 'created'.
+  if (!isset($start_date)) {
+
+    // @todo Cache this, because it could be intensive.
+    $start_date = facetapi_isodate(db_result(db_query("SELECT MIN($facet_field) FROM {node} WHERE status = 1")));
+    // Subtract one second, so that this range's $end_date is not equal to the
+    // next range's $start_date.
+    $end_date = facetapi_isodate(db_result(db_query("SELECT MAX($facet_field) FROM {node} WHERE status = 1")) - 1);
+    $gap = facetapi_date_gap_get($start_date, $end_date);
+  }
+
+  // Return a query range from the beginning of a gap period to the beginning of
+  // the next gap period.  We ALWAYS generate query ranges of this form and the
+  // facetapi_*() helper functions require it.
+  return array("$start_date/$gap", "$end_date+1$gap/$gap", "+1$gap");
 }

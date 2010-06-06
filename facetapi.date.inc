@@ -42,49 +42,6 @@ define('FACETAPI_DATE_SECOND', 'SECOND');
 define('FACETAPI_DATE_ISO8601', 'Y-m-d\TH:i:s\Z');
 
 /**
- * Gets the range of dates we are using.
- *
- * @param unknown_type $query
- * @param unknown_type $facet_field
- */
-function facetapi_date_range($query, $facet_field) {
-  foreach ($query->get_filters($facet_field) as $filter) {
-
-    // If we had an ISO date library we could use ISO dates directly. Instead,
-    // we convert to Unix timestamps for comparison. Only use dates if we are
-    // able to parse into timestamps.
-    $start = strtotime($filter['#start']);
-    $end = strtotime($filter['#end']);
-
-
-    if ($start && $end && ($start < $end)) {
-        $start_date = $filter['#start'];
-        $end_date = $filter['#end'];
-      // Determine the drilldown gap for this range.
-      $gap = facetapi_gap_drilldown(facetapi_query_gap_get($start_date, $end_date));
-    }
-  }
-
-  // If there is no $delta field in query object, get initial facet.date.*
-  // params from the DB and determine the best search gap to use. This callback
-  // assumes $delta is 'changed' or 'created'.
-  if (!isset($start_date)) {
-
-    // @todo Cache this, because it could be intensive.
-    $start_date = facetapi_isodate(db_result(db_query("SELECT MIN($facet_field) FROM {node} WHERE status = 1")));
-    // Subtract one second, so that this range's $end_date is not equal to the
-    // next range's $start_date.
-    $end_date = facetapi_isodate(db_result(db_query("SELECT MAX($facet_field) FROM {node} WHERE status = 1")) - 1);
-    $gap = facetapi_date_gap_get($start_date, $end_date);
-  }
-
-  // Return a query range from the beginning of a gap period to the beginning of
-  // the next gap period.  We ALWAYS generate query ranges of this form and the
-  // facetapi_*() helper functions require it.
-  return array("$start_date/$gap", "$end_date+1$gap/$gap", "+1$gap");
-}
-
-/**
  * Helper function to convert dates from Unix timestamps into ISO 8601 format.
  *
  * @param $timestamp
@@ -186,7 +143,7 @@ function facetapi_query_gap_get($start_date, $end_date) {
  */
 function facetapi_timestamp_gap_get($start_time, $end_time) {
   switch (TRUE) {
-    // NOTE: 86400365 == 86400 * 365
+    // NOTE: 86400365 == 60 * 60 * 24 * 365
     case ($end_time - $start_time >= 86400365):
       return FACETAPI_DATE_YEAR;
 

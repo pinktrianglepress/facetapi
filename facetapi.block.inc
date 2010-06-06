@@ -253,9 +253,7 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
     }
 
     // Builds hierarchical relationships.
-    facetapi_hierarchy_process(
-      $facet_data['items'], $adapter->getSearcher(), $realm_name, $facets[$facet_data['name']]
-    );
+    facetapi_hierarchy_process($facet_data['items'], $facets[$facet_data['name']]);
   }
   unset($facet_data);
 
