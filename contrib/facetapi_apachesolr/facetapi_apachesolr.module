@@ -81,7 +81,7 @@ function facetapi_apachesolr_facetapi_query_term_process(FacetapiAdapter $adapte
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
+function facetapi_apachesolr_facetapi_query_date_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
   $searcher = $adapter->getSearcher();
 
   // Loads date functions, gets the range information.
@@ -107,6 +107,8 @@ function facetapi_apachesolr_facetapi_query_range_process(FacetapiAdapter $adapt
  *   A string containing the name of the facet field.
  * @return
  *   An array containing the gap and range information.
+ * @todo integrate this into facetapi_apachesolr_facetapi_date_range_process()
+ *       once we have a "range limit callback".
  */
 function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
   foreach ($query->get_filters($facet_field) as $filter) {

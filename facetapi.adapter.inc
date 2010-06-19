@@ -150,8 +150,20 @@ abstract class FacetapiAdapter {
         return $this->$method($realm_name, $facet);
       }
     }
-    return $this->fetchDefault($realm_name, $facet);
+    return $this->fetchTerm($realm_name, $facet);
   }
+
+  /**
+   * The default method used to retrieve facet data.
+   *
+   * @param $realm_name
+   *   A string containing the machine readable name of the realm.
+   * @param $facet
+   *   An array containing the full facet definition.
+   * @return
+   *   An array of facet data.
+   */
+  abstract public function fetchTerm($realm_name, array $facet);
 
   /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
@@ -201,18 +213,6 @@ abstract class FacetapiAdapter {
    *   An integer, 1 if the facet is active, 0 if the facet is not active.
    */
   abstract public function facetActive($field, $value);
-
-  /**
-   * The default method used to retrieve facet data.
-   *
-   * @param $realm_name
-   *   A string containing the machine readable name of the realm.
-   * @param $facet
-   *   An array containing the full facet definition.
-   * @return
-   *   An array of facet data.
-   */
-  abstract public function fetchDefault($realm_name, array $facet);
 
   /**
    * Applies the default sort to the facets. If facets are already sorted by

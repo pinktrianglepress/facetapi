@@ -321,16 +321,10 @@ function facetapi_adapter_definitions_get($reset = FALSE) {
 
           // Builds array of default values.
           $defaults = array(
-            // The module that defines the adapter.
             'module' => $module,
-            // The adapter class name.
             'class' => 'FacetapiAdapter',
-            // THe type of content $searcher indexes.
             'type' => 'node',
-            // File containing the callback function, defaults to an empty
-            // string meaning that no file will be loaded.
             'file' => '',
-            // The path to the directory "file" resides in.
             'file path' => drupal_get_path('module', $module),
           );
 
@@ -366,12 +360,10 @@ function facetapi_realms_get($reset = FALSE) {
       $realms = $data->data;
     }
     else {
+      $realms = array();
 
       // Gets realms from hooks and the modules they are defined in.
-      $realms = array();
       foreach (module_implements('facetapi_realms') as $module) {
-
-        // Gets the realm definitions, continues if realms are not an array.
         $module_realms = module_invoke($module, 'facetapi_realms');
         if (!is_array($module_realms)) {
           // @todo Call watchdog() or drupal_set_message()???
@@ -383,28 +375,15 @@ function facetapi_realms_get($reset = FALSE) {
 
           // Builds array of default values.
           $defaults = array(
-            // Machine readable name of the realm.
             'name' => $realm_name,
-            // Human readable name of the realm, i.e. label.
             'title' => $realm_name,
-            // The realm description.
             'description' => '',
-            // The default weight of the realm.
             'weight' => 0,
-            // Whether or not the facet weights can be set in the Facet API
-            // admin interfaces.
             'sortable' => TRUE,
-            // The module defining the realm.
             'module' => $module,
-            // Callback function that renders facets in the realm.
             'callback' => $module .'_realm_'. $realm_name .'_render',
-            // File containing the callback function, defaults to an empty
-            // string meaning that no file will be loaded.
             'file' => '',
-            // The path to the directory "file" resides in.
             'file path' => drupal_get_path('module', $module),
-            // Theme hook to pass rendered results to prior to being returned
-            // by facet_realm_render().
             'theme hook' => '',
           );
 
@@ -439,8 +418,6 @@ function facetapi_facets_get($searcher, $type) {
 
   // Gets facets from hooks and the modules the facets are defined in.
   foreach (module_implements('facetapi_facets') as $module) {
-
-    // Gets the facet definitions, continues if facets are not an array.
     $module_facets = module_invoke($module, 'facetapi_facets', $searcher, $type);
     if (!is_array($module_facets)) {
       // @todo Call watchdog() or drupal_set_message()???
@@ -452,39 +429,18 @@ function facetapi_facets_get($searcher, $type) {
 
       // Builds array of default values.
       $defaults = array(
-        // Machine readable name of the facet.
         'name' => $facet_name,
-        // Human readable name of the facet, i.e. label.
         'title' => $facet_name,
-        // The facet's description.
         'description' => '',
-        // The search field containing the facet data.
         'field' => $facet_name,
-        // The alias for the field, also uses as the form element name when
-        // facets are rendered as form elements.
         'field alias' => isset($facet['field']) ? $facet['field'] : $facet_name,
-        // The type of query executed when the facet is active.  Valid values
-        // are term, range, and wildcard.  Each adapter module must implement
-        // hook_facetapi_query_TYPE_process() in order for the facet data to
-        // filter the search results.
         'query type' => 'term',
-        // Determines how the facet data is retrieved. This value determines
-        // which one of the adapter's fetch*() methods is used. A value of
-        // FALSE will use the adapter's fetchDefault() method.
-        'fetch type' => FALSE,
-        // The form element type.
+        'fetch type' => isset($facet['query type']) ? $facet['query type'] : 'term',
         'form type' => 'checkboxes',
-        // The default weight of the facet when rendered.
         'weight' => 0,
-        // Function that maps IDs stored in the search field to human readable
-        // values.
         'map callback' => FALSE,
-        // Function that adds hierarchy structure to the facets.
         'hierarchy callback' => FALSE,
-        // File containing the facet callbacks, defaults to an empty string
-        // meaning that no file will be loaded.
         'file' => '',
-        // The path to the directory "file" resides in.
         'file path' => drupal_get_path('module', $module),
       );
 
@@ -1233,6 +1189,7 @@ function facetapi_facetapi_realms() {
   $realms['fieldset'] = array(
     'title' => t('Fieldset'),
     'description' => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
+    'file' => 'facetapi.fieldset.inc',
   );
 
   return $realms;
@@ -1250,6 +1207,36 @@ function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
     case 'view':
       module_load_include('inc', 'facetapi', 'facetapi.block');
       return facetapi_block_view($delta);
+  }
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function facetapi_form_search_form_alter(&$form, &$form_state) {
+  // Makes sure we are dealing with a search that has a FacetAPI adapter.
+  if (!$adapter = facetapi_adapter_load($form['module']['#value'])) {
+    return;
+  }
+
+  // Renders the facets as form elements.
+  $elements = facetapi_realm_render($form['module']['#value'], 'fieldset');
+  if (!empty($elements)) {
+    $form['facets'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Faceted search'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#attributes' => array('class' => 'search-advanced'),
+    );
+    $form['facets'] = array_merge($form['facets'], $elements);
+    $form['facets']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Search'),
+      '#prefix' => '<div class="action">',
+      '#suffix' => '</div>',
+      '#weight' => 100,
+    );
   }
 }
 
@@ -1286,8 +1273,7 @@ function facetapi_facetapi_facets($searcher, $type) {
       'title' => t('Post date'),
       'description' => t('Filter by the date the node was posted.'),
       'form type' => 'checkboxes',
-      'query type' => 'range',
-      'fetch type' => 'date',
+      'query type' => 'date',
       'map callback' => 'facetapi_date_range_map',
     );
 
@@ -1295,8 +1281,7 @@ function facetapi_facetapi_facets($searcher, $type) {
       'title' => t('Updated date'),
       'description' => t('Filter by the date the node was last modified.'),
       'form type' => 'checkboxes',
-      'query type' => 'range',
-      'fetch type' => 'date',
+      'query type' => 'date',
       'map callback' => 'facetapi_date_range_map',
     );
 

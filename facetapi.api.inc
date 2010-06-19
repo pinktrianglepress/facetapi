@@ -94,17 +94,20 @@ function hook_facetapi_realms_alter(array &$realms) {
  * @return
  *   An associative array containing:
  *   - name: The machine readable name of the realm.
- *     - title: Human readable name of the realm, i.e. label.
+ *     - title: Human readable name of the realm, i.e. label. Defaults to
+ *       "name".
  *     - description: The realm description.
- *     - field: The search field associated with the filter.
+ *     - field: The search field associated with the filter. Defaults to "name".
  *     - field alias: The variable name used in the query string as well as the
  *       name of the form element when the facet is rendered as a FAPI element.
+ *       Defaults to "name".
  *     - query type: The type of query used to filter the search results when
  *       the facet is active, i.e. "range" or "wildcard", defaults to "term".
  *       Each adapter must implement hook_facetapi_query_TYPE_process() to add
  *       the facet filter to the search uery.
  *     - fetch type: Determines which adapter's fetch*() method is used to
- *       retrieve the facet data from the search backend.  Defaults to "default"
+ *       retrieve the facet data from the search backend. Defaults to whatever
+ *       is passed in "query type".
  *       meaning that the detchDefault() method is used to retrieve the data.
  *     - form type: The form element type when rendering the facet as a for
  *       element i.e. "checkboxes", "select".

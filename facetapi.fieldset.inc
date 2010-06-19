@@ -7,6 +7,26 @@
  */
 
 /**
+ * Renders facets in the fieldset realm.
+ *
+ * @param $adapter
+ *   A FacetapiAdapter object extended by the searcher module.
+ * @param $realm_name
+ *   A string containing the machine readable name of the realm.
+ * @param $facets
+ *   An array containing the full facet definitions.
+ * @return
+ *   A FAPI array.
+ */
+function facetapi_realm_fieldset_render(FacetapiAdapter $adapter, $realm_name, array $facets) {
+  $form = array();
+  foreach ($facets as $facet) {
+    $form = array_merge_recursive($form, facetapi_facet_to_fapi($facet));
+  }
+  return $form;
+}
+drupal_set_breadcrumb();
+/**
  * Converts a facet to a FAPI array.
  *
  * @param $facet
@@ -14,7 +34,7 @@
  * @return
  *   A FAPI array.
  */
-function luceneapi_facet_to_fapi_convert(array $facet) {
+function facetapi_facet_to_fapi(array $facet) {
   $base_form = array(
     '#type' => $facet['form type'],
     '#title' => check_plain($facet['title']),

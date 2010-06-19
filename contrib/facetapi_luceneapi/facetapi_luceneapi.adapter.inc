@@ -26,7 +26,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * The default method used to retrieve facet data.
    */
-  public function fetchDefault($realm_name, array $facet) {
+  public function fetchTerm($realm_name, array $facet) {
     $facet_items = array();
 
     $sql = "

@@ -489,7 +489,7 @@ function facetapi_luceneapi_facetapi_query_term_process(FacetapiAdapter $adapter
 /**
  * Implementation of hook_facetapi_query_TYPE_process().
  */
-function facetapi_luceneapi_facetapi_query_range_process(FacetapiAdapter $adapter, array $facet, Zend_Search_Lucene_Search_Query $query) {
+function facetapi_luceneapi_facetapi_query_date_process(FacetapiAdapter $adapter, array $facet, Zend_Search_Lucene_Search_Query $query) {
   $values = $adapter->getActiveFacets($facet['field alias']);
   if (empty($values)) {
     return;

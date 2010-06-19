@@ -267,7 +267,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#title' => t('Hard limit'),
     '#default_value' => variable_get($hlimit_var, 20),
     '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
-    '#description' => t('Display no more than this number of facets.')
+    '#description' => t('Display no more than this number of facet items.')
   );
 
   $form['realm'] = array(

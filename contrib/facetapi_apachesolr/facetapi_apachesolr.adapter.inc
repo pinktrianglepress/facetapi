@@ -26,7 +26,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   /**
    * The default "fetch" method for facet data.
    */
-  public function fetchDefault($realm_name, array $facet) {
+  public function fetchTerm($realm_name, array $facet) {
     $facet_items = array();
     $raw_values = (array)$this->_response->facet_counts->facet_fields->{$facet['field']};
     foreach ($raw_values as $value => $count) {
