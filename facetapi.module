@@ -532,6 +532,29 @@ function facetapi_enabled_facets_get($searcher, $realm_name = NULL, $reset = FAL
 }
 
 /**
+ * Invokes hook_facetapi_widgets(), returns all defined widgets.
+ *
+ * @return
+ *   An associative array of widget definitions keyed by widget name.
+ */
+function facetapi_widgets_get() {
+  static $widgets;
+  if (NULL === $widgets) {
+    global $language;
+    $cid = 'facetapi:widgets:'. $language->language;
+    if ($data = cache_get($cid, 'cache')) {
+      $widgets = $data->data;
+    }
+    else {
+      $widgets = module_invoke_all('facetapi_widget');
+      drupal_alter('facetapi_widget', $widget);
+      cache_set($cid, $widgets, 'cache', CACHE_TEMPORARY);
+    }
+  }
+  return $widgets;
+}
+
+/**
  * Tests whether a single facet is enabled in a given realm.
  *
  * @param $searcher

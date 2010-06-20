@@ -143,6 +143,8 @@ function hook_facetapi_facets_alter(array &$facets, $searcher, $type) {
 }
 
 /**
+ * Allows modules to alter the rendered facets prior to being returned by
+ * facetapi_realm_render().
  *
  * @ingroup hooks
  */

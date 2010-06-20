@@ -133,6 +133,7 @@ function facetapi_block_view($delta = '') {
     // @todo We shouldn't have to load the adapter.  There needs to be a
     // generic API function that flags which searches were executed.
     if (facetapi_adapter_load($searcher)->searchExecuted()) {
+      $widgets = facetapi_widgets_get();
 
       // Renders the facet via facetapi_realm_render().
       $data = facetapi_realm_render($searcher, $realm_name);
@@ -141,7 +142,6 @@ function facetapi_block_view($delta = '') {
           $add_js = TRUE;
 
           // Determines which widget will render the realm.
-          $widgets = module_invoke_all('facetapi_widget');
           $widget = facetapi_setting_get('widget', $searcher, $realm_name, $facet_data['name']);
           if (NULL !== $widget && isset($widgets[$widget])) {
             $callback = $widgets[$widget]['callback'];
