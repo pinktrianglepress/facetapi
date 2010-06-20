@@ -910,13 +910,13 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
     }
   } while ($active);
 
-  // Strips children whose parent's aren't active.
+  // Strips children whose parents are inactive.
   $facet_items = array_filter($facet_items, 'facetapi_inactive_parent_filter');
 }
 
 /**
- * Callback for array_filter() that strips out all children that will be
- * rendered via their parents.
+ * Callback for array_filter() that strips out all children whose parents are
+ * inactive.
  *
  * @param $item
  *   An array containing the facet item.
