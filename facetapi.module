@@ -910,8 +910,8 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
     }
   } while ($active);
 
-  // Strips items that will be rendered via parent.
-  $facet_items = array_filter($facet_items, 'facetapi_child_rendered_filter');
+  // Strips children whose parent's aren't active.
+  $facet_items = array_filter($facet_items, 'facetapi_inactive_parent_filter');
 }
 
 /**
@@ -923,7 +923,7 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
  * @return
  *   A boolean flagging whether the value should remain in the array.
  */
-function facetapi_child_rendered_filter(array $item) {
+function facetapi_inactive_parent_filter(array $item) {
   return empty($item['parents']);
 }
 
