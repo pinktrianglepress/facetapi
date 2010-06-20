@@ -546,8 +546,8 @@ function facetapi_widgets_get() {
       $widgets = $data->data;
     }
     else {
-      $widgets = module_invoke_all('facetapi_widget');
-      drupal_alter('facetapi_widget', $widget);
+      $widgets = module_invoke_all('facetapi_widgets');
+      drupal_alter('facetapi_widgets', $widget);
       cache_set($cid, $widgets, 'cache', CACHE_TEMPORARY);
     }
   }
@@ -1335,7 +1335,7 @@ function facetapi_facetapi_facets($searcher, $type) {
 }
 
 /**
- * Implementation of hook_facetapi_widget().
+ * Implementation of hook_facetapi_widgets().
  */
 function facetapi_facetapi_widget() {
   return array(

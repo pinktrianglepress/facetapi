@@ -152,10 +152,29 @@ function hook_facetapi_postrender_alter(&$rendered, $searcher, $type, $realm_nam
 }
 
 /**
+ * Defines display widgets the block realm uses to theme facets.
+ *
+ * @return
+ *   An associative array containing:
+ *   - name: The machine readable name of the widget.
+ *     - title: Human readable name of the widget.
+ *     - callback: Callback function used to theme the facets.
+ *     - weight: The weight of the widget when displayed in forms.
  *
  * @ingroup hooks
  */
-function hook_facetapi_widget() {
+function hook_facetapi_widgets() {
+}
+
+/**
+ * Allows modules to alter the widget definitions.
+ *
+ * @param &$widgets
+ *   An associative array of widget definitions.
+ *
+ * @ingroup hooks
+ */
+function hook_facetapi_widgets_alter() {
 }
 
 /**
