@@ -124,6 +124,7 @@ function facetapi_menu() {
  *   A string containing the machine readable name of the searcher module.
  * @param $reset
  *   A boolean flagging whether the static should be reset.
+ *
  * @return
  *   A FacetapiAdapter object, FALSE on errors.
  */
@@ -440,6 +441,7 @@ function facetapi_facets_get($searcher, $type) {
         'weight' => 0,
         'map callback' => FALSE,
         'hierarchy callback' => FALSE,
+        'default range callback' => FALSE,
         'file' => '',
         'file path' => drupal_get_path('module', $module),
       );
@@ -547,7 +549,7 @@ function facetapi_widgets_get() {
     }
     else {
       $widgets = module_invoke_all('facetapi_widgets');
-      drupal_alter('facetapi_widgets', $widget);
+      drupal_alter('facetapi_widgets', $widgets);
       cache_set($cid, $widgets, 'cache', CACHE_TEMPORARY);
     }
   }
@@ -896,14 +898,14 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
   // Tests whether parents have an active child.
   // @todo: Can we make this more efficient?
   do {
-    $active = FALSE;
+    $active = 0;
     foreach ($facet_items as $value => $item) {
       if ($item['active'] && !empty($item['parents'])) {
         // @todo Can we render facets with multiple parents? Core taxonomy
         // form cannot, so we will need a check here.
         foreach ($item['parents'] as $parent) {
           if (!$facet_items[$parent]['active']) {
-            $active = $facet_items[$parent]['active'] = TRUE;
+            $active = $facet_items[$parent]['active'] = 1;
           }
         }
       }
@@ -932,78 +934,84 @@ function facetapi_inactive_parent_filter(array $item) {
  *
  * @param $timestamp
  *   An integer containing the Unix timestamp being converted.
+ * @param $gap
+ *   A string containing the gap, see FACETAPI_DATE_* constants for valid
+ *   values. Defaults to FACETAPI_DATE_SECOND.
+ *
  * @return
  *   A string containing the date in ISO 8601 format,
  */
-function facetapi_isodate($timestamp) {
-  return gmdate(FACETAPI_DATE_ISO8601, $timestamp);
+function facetapi_isodate($timestamp, $gap = FACETAPI_DATE_SECOND) {
+  switch ($gap) {
+    case FACETAPI_DATE_SECOND:
+      $format = FACETAPI_DATE_ISO8601;
+      break;
+
+    case FACETAPI_DATE_MINUTE:
+      $format = 'Y-m-d\TH:i:00\Z';
+      break;
+
+    case FACETAPI_DATE_HOUR:
+      $format = 'Y-m-d\TH:00:00\Z';
+      break;
+
+    case FACETAPI_DATE_DAY:
+      $format = 'Y-m-d\T00:00:00\Z';
+      break;
+
+    case FACETAPI_DATE_MONTH:
+      $format = 'Y-m-01\T00:00:00\Z';
+      break;
+
+    case FACETAPI_DATE_YEAR:
+      $format = 'Y-01-01\T00:00:00\Z';
+      break;
+
+    default:
+      $format = FACETAPI_DATE_ISO8601;
+      break;
+  }
+  return gmdate($format, $timestamp);
 }
 
 /**
- * Return the next smaller date gap.
+ * Return a date gap one increment smaller than the one passed.
  *
  * @param $gap
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values.
+ * @param $min_gap
+ *   A string containing the the minimum gap that can be returned, defaults to
+ *   FACETAPI_DATE_SECOND. This is useful for defining the smallest increment
+ *   that can be used in a date drilldown.
+ *
  * @return
  *   A string containing the smaller date gap, NULL if there is no smaller gap.
  *   See FACETAPI_DATE_* constants for valid values.
  */
-function facetapi_gap_drilldown($gap) {
-  $drilldown = array(
-    FACETAPI_DATE_YEAR => FACETAPI_DATE_MONTH,
-    FACETAPI_DATE_MONTH => FACETAPI_DATE_DAY,
-    FACETAPI_DATE_DAY => FACETAPI_DATE_HOUR,
-    FACETAPI_DATE_HOUR => FACETAPI_DATE_MINUTE,
-  );
-  return isset($drilldown[$gap]) ? $drilldown[$gap] : NULL;
-}
-
-/**
- * Determine the gap in a date range query filter that we generated.
- *
- * This function assumes that the start and end dates are the beginning and end
- * of a single period: 1 year, month, day, hour, minute, or second (all date
- * range query filters we generate meet this criteria).  So, if the seconds are
- * different, it is a second gap. If the seconds are the same (incidentally,
- * they will also be 0) but the minutes are different, it is a minute gap. If
- * the minutes are the same but hours are different, it's an hour gap. etc.
- *
- * @param $start_date
- *   A string containing the start date as an ISO date string.
- * @param $end_date
- *   A string containing the end date as an ISO date string.
- * @return
- *   A string containing the gap, see FACETAPI_DATE_* constants for valid
- *   values. Returns FALSE of either of the dates cannot be converted to a
- *   timestamp.
- */
-function facetapi_query_gap_get($start_date, $end_date) {
-  $pattern = '@(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})@';
-
-  // An array keyed by date gap constants to index position in $pattern.
-  // NOTE: Order is important so we can get the smallest matched gap first.
-  $gap_idx = array(
-    FACETAPI_DATE_SECOND => 6,
-    FACETAPI_DATE_MINUTE => 5,
-    FACETAPI_DATE_HOUR => 4,
-    FACETAPI_DATE_DAY => 3,
-    FACETAPI_DATE_MONTH => 2,
-    FACETAPI_DATE_YEAR => 1,
+function facetapi_next_date_gap_get($gap, $min_gap = FACETAPI_DATE_SECOND) {
+  // Array of numbers used to determine whether the next gap is smaller than
+  // the minimum gap allowed in the drilldown.
+  $gap_numbers = array(
+    FACETAPI_DATE_YEAR => 6,
+    FACETAPI_DATE_MONTH => 5,
+    FACETAPI_DATE_DAY => 4,
+    FACETAPI_DATE_HOUR => 3,
+    FACETAPI_DATE_MINUTE => 2,
+    FACETAPI_DATE_SECOND => 1,
   );
 
-  // Executes the preg_match, extracts pieces from the date string.
-  if (preg_match($pattern, $start_date, $start) && preg_match($pattern, $end_date, $end)) {
-    // Returns the gap constant on first match.
-    foreach ($gap_idx as $gap => $idx) {
-      if ($start[$idx] != $end[$idx]) {
-        return $gap;
-      }
-    }
+  // Gets gap numbers for both the gap and minimum gap, checks if the next gap
+  // is within the limit set by the $min_gap parameter.
+  $gap_num = isset($gap_numbers[$gap]) ? $gap_numbers[$gap] : 6;
+  $min_num = isset($gap_numbers[$min_gap]) ? $gap_numbers[$min_gap] : 1;
+
+  if ($gap_num > $min_num) {
+    return array_search($gap_num - 1, $gap_numbers);
   }
-
-  // If we can't tell, defaults to year.
-  return FACETAPI_DATE_YEAR;
+  else {
+    return $min_gap;
+  }
 }
 
 /**
@@ -1020,28 +1028,33 @@ function facetapi_query_gap_get($start_date, $end_date) {
  *   A string containing the start date as an ISO date string.
  * @param $end_date
  *   A string containing the end date as an ISO date string.
+ *
  * @return
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values. Returns FALSE of either of the dates cannot be converted to a
  *   timestamp.
  */
 function facetapi_timestamp_gap_get($start_time, $end_time) {
+  $time_diff = $end_time - $start_time;
   switch (TRUE) {
     // NOTE: 86400365 == 60 * 60 * 24 * 365
-    case ($end_time - $start_time >= 86400365):
+    case ($time_diff >= 86400365):
       return FACETAPI_DATE_YEAR;
 
     case (date('Ym', $start_time) != date('Ym', $end_time)):
       return FACETAPI_DATE_MONTH;
 
-    case ($end_time - $start_time > 86400):
+    case ($time_diff >= 86400):
       return FACETAPI_DATE_DAY;
 
-    case ($end_time - $start_time > 3600):
+    case ($time_diff >= 3600):
       return FACETAPI_DATE_HOUR;
 
-    default:
+    case ($time_diff >= 60):
       return FACETAPI_DATE_MINUTE;
+
+    default:
+      return FACETAPI_DATE_SECOND;
   }
 }
 
@@ -1053,20 +1066,19 @@ function facetapi_timestamp_gap_get($start_time, $end_time) {
  *   A string containing the start date as an ISO date string.
  * @param $end_date
  *   A string containing the end date as an ISO date string.
+ *
  * @return
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values. Returns FALSE of either of the dates cannot be converted to a
  *   timestamp.
+ *
+ * @see facetapi_timestamp_gap_get()
  */
 function facetapi_date_gap_get($start_date, $end_date) {
-
-  // Converts dates to Unix timestamps.
-  $start_time = strtotime($start_date);
-  $end_time = strtotime($end_date);
-
-  // NOTE: Previous to PHP 5.1.0, this strtotime returns -1 on failure.
-  if (FALSE !== $start_time && -1 != $start_time && FALSE !== $end_time && -1 != $end_time) {
-    return facetapi_timestamp_gap_get($start_time, $end_time);
+  $range = array(strtotime($start_date), strtotime($end_date));
+  // NOTE: Previous to PHP 5.1.0, this strtotime() returns -1 on failure.
+  if (!in_array(FALSE, $range, TRUE) && !in_array(-1, $range)) {
+    return facetapi_timestamp_gap_get($range[0], $range[1]);
   }
   return FALSE;
 }
@@ -1088,11 +1100,6 @@ function facetapi_date_gap_get($start_date, $end_date) {
  *   A gap-appropriate display date used in the facet link.
  */
 function facetapi_timestamp_format($timestamp, $gap = FACETAPI_DATE_YEAR) {
-  // TODO: If we assume that multiple search queries are formatted in order, we
-  // could store a static list of all gaps we've formatted. Then, if we format
-  // an HOUR, MINUTE, or SECOND without previously having formatted a DAY or
-  // later, we could include date information.  However, we'd need to do that
-  // per-field and I'm not our callers always have field information handy.
   switch ($gap) {
     case FACETAPI_DATE_MONTH:
       return format_date($timestamp, 'custom', 'F Y', 0);
@@ -1131,22 +1138,9 @@ function facetapi_date_format($date, $gap = FACETAPI_DATE_YEAR) {
 }
 
 /**
- * Format the beginning of a date range query filter that we generated.
- *
- * @param $start_date
- *   A string containing the start date as an ISO date string.
- * @param $end_date
- *   A string containing the end date as an ISO date string.
- * @return
- *   A gap-appropriate display date used in the facet link.
- */
-function facetapi_format_range($start_date, $end_date) {
-  $gap = facetapi_query_gap_get($start_date, $end_date);
-  return facetapi_date_format($start_date, $gap);
-}
-
-/**
- * Returns the next increment from the given ISO date and gap.
+ * Returns the next increment from the given ISO date and gap. This function is
+ * useful for getting the upper limit of a date range from the given start
+ * date.
  *
  * @param $date
  *   A string containing the date as an ISO date string.
@@ -1337,7 +1331,7 @@ function facetapi_facetapi_facets($searcher, $type) {
 /**
  * Implementation of hook_facetapi_widgets().
  */
-function facetapi_facetapi_widget() {
+function facetapi_facetapi_widgets() {
   return array(
     'facetapi_links' => array(
       'title' => t('Links'),

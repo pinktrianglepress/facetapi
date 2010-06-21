@@ -286,7 +286,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
 
 
   // Gets widgets, sorts.
-  $widgets = module_invoke_all('facetapi_widget');
+  $widgets = facetapi_widgets_get();
   uasort($widgets, 'facetapi_sort_weight');
 
   // Builds options.
@@ -300,7 +300,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     $adapter->getSearcher(), $realm['name'], $facet['name']
   );
   $form['realm'][$widget_var] = array(
-    '#type' => 'radios',
+    '#type' => 'select',
     '#title' => t('Display widget'),
     '#default_value' => variable_get($widget_var, 'facetapi_links'),
     '#options' => $options,

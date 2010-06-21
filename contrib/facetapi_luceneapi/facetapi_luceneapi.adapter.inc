@@ -96,10 +96,13 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       $value = preg_replace($pattern, '', $filter);
       $facet_items[$value] = array('count' => count($this->_docs));
 
-      // Gets next "gap".
+      // Gets next "gap" increment, mintue being the lowest be can go.
       $filter_range = explode(' TO ', trim($value, '{[]}'));
       if (2 == count($filter_range)) {
-        $gap = facetapi_date_gap_get($filter_range[0], $filter_range[1]);
+        $gap = facetapi_next_date_gap_get(
+          facetapi_date_gap_get($filter_range[0], $filter_range[1]),
+          FACETAPI_DATE_MINUTE
+        );
       }
 
       // If there is a previous item, there is a parent, uses a reference so the
@@ -124,33 +127,14 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       }
     }
 
-    switch ($gap) {
-      case FACETAPI_DATE_MONTH:
-        $format = 'Y-m-01\T00:00:00\Z';
-        break;
-      case FACETAPI_DATE_DAY:
-        $format =  'Y-m-d\T00:00:00\Z';
-        break;
-      case FACETAPI_DATE_HOUR:
-        $format =  'Y-m-d\TH:00:00\Z';
-        break;
-      case FACETAPI_DATE_MINUTE:
-        $format =  'Y-m-d\TH:i:00\Z';
-        break;
-      case FACETAPI_DATE_SECOND:
-        $format =  'Y-m-d\TH:i:s\Z';
-        break;
-      default:
-        $format =  'Y-m-d\TH:i:s\Z';
-        break;
-    }
+    // Gets the next gap in the gap drilldown.
+    $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
 
     // Converts all timestamps to dates in ISO 8601 format.
     $dates = array_combine($timestamps, $timestamps);
-    array_walk($dates, 'facetapi_luceneapi_timestamp_convert', $format);
+    array_walk($dates, 'facetapi_luceneapi_timestamp_convert', $gap);
 
-    // Treat each date facet as a range start, and use the next date facet as
-    // range end.  At this point, the dates should.
+    // Treat each date as the range start and next data as the range end.
     $range_end = array();
     $previous = NULL;
     foreach (array_unique($dates) as $date) {

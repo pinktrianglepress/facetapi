@@ -410,13 +410,12 @@ function facetapi_luceneapi_termfreqs_populate($searcher, $fields = NULL, &$cont
  *   An integer containing the timestamp.
  * @param $key
  *   An integer containing the array key.
- * @param $format
- *   A string containing the date string.
- * @return
- * NULL
+ * @param $gap
+ *   A string containing the gap, see FACETAPI_DATE_* constants for valid
+ *   values. Defaults to FACETAPI_DATE_SECOND.
  */
-function facetapi_luceneapi_timestamp_convert(&$value, $key, $format) {
-  $value = gmdate($format, $value);
+function facetapi_luceneapi_timestamp_convert(&$value, $key, $gap) {
+  $value = facetapi_isodate($value, $gap);
 }
 
 /**

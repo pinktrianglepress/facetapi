@@ -58,6 +58,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
       }
     }
 
+
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;

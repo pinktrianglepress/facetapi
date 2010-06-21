@@ -257,6 +257,7 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   }
   unset($facet_data);
 
+
   // Finalizes breadcrumb trail and sets.
   if (!empty($breadcrumb)) {
     $last = count($breadcrumb) - 1;
@@ -511,10 +512,10 @@ function facetapi_node_language_map(array $languages) {
 function facetapi_date_range_map(array $ranges) {
   $map = array();
   foreach ($ranges as $value) {
-    $range = explode(' TO ', $value);
+    $range = explode(' TO ', trim($value, '{[]}'));
     if (2 == count($range)) {
-      $gap = facetapi_query_gap_get($range[0], $range[1]);
-      $map[$value] = facetapi_date_format(ltrim($range[0], '['), $gap);
+      $gap = facetapi_date_gap_get($range[0], $range[1]);
+      $map[$value] = facetapi_date_format($range[0], $gap);
     }
   }
   return $map;
