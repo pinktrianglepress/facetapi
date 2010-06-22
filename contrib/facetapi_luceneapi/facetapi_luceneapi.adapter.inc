@@ -258,7 +258,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     else {
       unset($qstring['filters']);
     }
-    return drupal_query_string_encode($qstring, array('q', 'page'));
+    return $qstring;
   }
 
   /**

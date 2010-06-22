@@ -307,6 +307,20 @@ function facetapi_l($text, $path, array $options = array()) {
 }
 
 /**
+ * Encodes search keys before submit to prevent plus signs from being converted
+ * to spaces.
+ *
+ * @param $keys
+ *   A string containing the search keys.
+ *
+ * @return
+ *   A string with special characters encoded.
+ */
+function facetapi_keys_encode($keys) {
+  return str_replace('+', '%2B', $keys);
+}
+
+/**
  * Invokes hook_facetapi_adapters(), returns all adapter definitions.
  *
  * @param $reset
@@ -1253,6 +1267,8 @@ function facetapi_form_search_form_alter(&$form, &$form_state) {
   // Renders the facets as form elements.
   $elements = facetapi_realm_render($form['module']['#value'], 'fieldset');
   if (!empty($elements)) {
+
+    // Adds the fieldset realm to the search form.
     $form['facets'] = array(
       '#type' => 'fieldset',
       '#title' => t('Faceted search'),
@@ -1268,6 +1284,71 @@ function facetapi_form_search_form_alter(&$form, &$form_state) {
       '#suffix' => '</div>',
       '#weight' => 100,
     );
+
+    // Adds facet data container, validate and submit handlers.
+    $form['basic']['inline']['processed_facets'] = array('#type' => 'value', '#value' => '');
+    $form['#validate'][] = 'facetapi_search_form_validate';
+    $form['#submit'][] = 'facetapi_search_form_submit';
+  }
+}
+
+/**
+ * Validates search_form form submissions.
+ */
+function facetapi_search_form_validate($form, &$form_state) {
+
+  // Captures facet values passed through the form, appends the value to the
+  // facet definition so we have all the necessary information at hand.
+  $facets = array();
+  foreach (facetapi_enabled_facets_get($form['module']['#value']) as $facet) {
+    if (isset($form_state['values'][$facet['field alias']])) {
+      $value = $form_state['values'][$facet['field alias']];
+      if (is_array($value)) {
+        $value = array_filter($value);
+      }
+      if (!empty($value)) {
+        $facet['values'] = $value;
+        $facets[] = $facet;
+      }
+    }
+  }
+
+  // Stores facet definitions with passed values in the container.
+  form_set_value($form['basic']['inline']['processed_facets'], $facets, $form_state);
+}
+
+/**
+ * Processes search_form form submissions.
+ */
+function facetapi_search_form_submit($form, &$form_state) {
+  if ($adapter = facetapi_adapter_load($form['module']['#value'])) {
+    if (!empty($form_state['values']['processed_facets'])) {
+
+      // Builds array of query string varialbes ,merges not only the array, but
+      // the strings inside of an array.
+      // @todo This is a hack, and needs to be fixed with an adapter method.
+      $qstring = array();
+      foreach ($form_state['values']['processed_facets'] as $facet) {
+        if (!is_array($facet['values'])) {
+          $facet['values'] = drupal_map_assoc((array)$facet['values']);
+        }
+        foreach ($adapter->getFacetQueryString($facet, $facet['values'], FALSE) as $key => $value) {
+          if (!isset($qstring[$key])) {
+            $qstring[$key] = $value;
+          }
+          else {
+            $qstring[$key] .= ' '. $value;
+          }
+        }
+      }
+
+      // Redirects to appropriate search page with facet information in the
+      // query string.
+      $form_state['redirect'] = array(
+        sprintf('search/%s/%s', $form['module']['#value'], facetapi_keys_encode(search_get_keys())),
+        drupal_query_string_encode($qstring, array('q', 'page')),
+      );
+    }
   }
 }
 

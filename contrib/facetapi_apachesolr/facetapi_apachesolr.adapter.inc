@@ -156,9 +156,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     // Builds and returns query string.
     $qstring = $_GET;
     unset($qstring['filters']);
-    return drupal_query_string_encode(
-      array_merge($qstring, $new_query->get_url_queryvalues()), array('q', 'page')
-    );
+    return array_merge($qstring, $new_query->get_url_queryvalues());
   }
 
   /**

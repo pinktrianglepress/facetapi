@@ -37,45 +37,36 @@ function facetapi_realm_fieldset_render(FacetapiAdapter $adapter, $realm_name, a
  *   A FAPI array.
  */
 function facetapi_facet_to_fapi(array $facet, FacetapiAdapter $adapter) {
-  $base_form = array(
+
+  // Constructs base facet form element.
+  $form = array(
     '#type' => $facet['form type'],
     '#title' => check_plain($facet['title']),
     '#weight' => $facet['weight'],
     '#description' => filter_xss($facet['description']),
   );
-  switch ($facet['form type']) {
-    case 'checkbox':
-    case 'date':
-    case 'textarea':
-    case 'textfield':
-      $form[$facet['field alias']] = array_merge($base_form, array(
-        '#default_value' => '', // @todo get facet value passed through form.
-      ));
-      break;
 
-    case 'checkboxes':
-    case 'radios':
-    case 'select':
-      $form[$facet['field alias']] = array_merge($base_form, array(
-        '#default_value' => '', // @todo get facet value passed through form.
-      ));
-      if (!empty($facet['values callback'])) {
-        $form[$facet['field alias']] = array_merge($base_form, array(
-          '#options' => $facet['values callback']($facet),
-        ));
-      }
-      break;
-
-    case 'markup':
-      $form[$facet['field alias']] = array_merge($base_form, array(
-        '#value' => $base_form['#title']
-      ));
-      break;
-    default:
-      $form = array();
-      break;
+  // Adds options if "values callback" is defined.
+  if (!empty($facet['values callback'])) {
+    $form = array_merge($form, array(
+      '#options' => $facet['values callback']($facet),
+    ));
   }
-  return $form;
+
+  // Adds default value, if one was passed.
+  $default_value = $adapter->getActiveFacets($facet['field']);
+  if (!empty($default_value)) {
+    if (isset($form['#options'])) {
+      $default_value = drupal_map_assoc(array_keys($default_value));
+    }
+    else {
+      $default_value = join(' ', $default_value);
+    }
+    $form = array_merge($form, array('#default_value' => $default_value));
+  }
+
+  // Returns form element.
+  return array($facet['field alias'] => $form);
 }
 
 /**
@@ -118,7 +109,7 @@ function facetapi_values_taxonomy(array $facet) {
  *   An array of values passed as options to the form element.
  */
 function facetapi_values_language(array $facet) {
-  $options = array(0 => t('Language neutral'));
+  $options = array('und' => t('Language neutral'));
   foreach (language_list() as $code => $language) {
     $options[$code] = check_plain($language->name);
   }
@@ -137,5 +128,3 @@ function facetapi_values_language(array $facet) {
 function facetapi_values_type(array $facet) {
   return array_map('check_plain', node_get_types('names'));
 }
-
-

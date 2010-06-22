@@ -347,7 +347,10 @@ function facetapi_paths_set(array &$facet_items, FacetapiAdapter $adapter, $real
     }
 
     // Formats query string dependent on whether the facet is active.
-    $item['options']['query'] = $adapter->getFacetQueryString($facet, $values, $item['active']);
+    $item['options']['query'] = drupal_query_string_encode(
+      $adapter->getFacetQueryString($facet, $values, $item['active']),
+      array('q', 'page')
+    );
   }
   unset($item);
 

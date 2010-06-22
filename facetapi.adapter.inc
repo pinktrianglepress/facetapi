@@ -180,7 +180,7 @@ abstract class FacetapiAdapter {
   abstract public function searchExecuted();
 
   /**
-   * Returns a facet link's query string.
+   * Returns an array containing the query string variables for a facet.
    *
    * @param $facet
    *   An array containing the full facet definition.
@@ -190,7 +190,7 @@ abstract class FacetapiAdapter {
    *   An integer, 1 if the facet is active, 0 if the facet is not active.
    *
    * @reutrn
-   *   An array containing the query strng variables.
+   *   An array containing the query string variables.
    */
   abstract public function getFacetQueryString(array $facet, array $values, $active);
 
