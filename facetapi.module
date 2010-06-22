@@ -159,6 +159,7 @@ function facetapi_adapter_load($searcher, $reset = FALSE) {
  *
  * @param $realm_name
  *   A string contaiing the machine readable name of the realm.
+ *
  * @return
  *   An array containing the realm definition, FALSE if $realm_name is not
  *   valid.
@@ -175,6 +176,7 @@ function facetapi_realm_load($realm_name) {
  *   A string containing the machine readable name of the realm.
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
+ *
  * @return
  *   An array containing the facet definition, FALSE if $facet_name or $searcher
  *   is not valid.
@@ -250,6 +252,7 @@ function facetapi_preprocess_block(&$vars) {
  *   An array containing the IDs being mapped.
  * @param $type
  *   The Schema API type of the ID field (e.g. 'int', 'text', or 'varchar').
+ *
  * @return
  *   An array of mapped IDs.
  */
@@ -280,8 +283,10 @@ function facetapi_map_query($sql, array $ids, $type = 'int') {
  *   internal URL.
  * @param $options
  *   An associative array of additional options.
+ *
  * @return
  *   A string containing the anchor link.
+ *
  * @see l()
  */
 function facetapi_l($text, $path, array $options = array()) {
@@ -306,6 +311,7 @@ function facetapi_l($text, $path, array $options = array()) {
  *
  * @param $reset
  *   A boolean flagging whether the static should be reset.
+ *
  * @return
  *   An array of adapter definitions.
  */
@@ -346,6 +352,7 @@ function facetapi_adapter_definitions_get($reset = FALSE) {
  *
  * @param $reset
  *   A boolean flagging whether the static should be reset.
+ *
  * @return
  *   An array of realm definitions.
  */
@@ -411,6 +418,7 @@ function facetapi_realms_get($reset = FALSE) {
  *   A string containing the machine readable name of the searcher module.
  * @param $type
  *   A string containing the type of content $searcher indexes.
+ *
  * @return
  *   An array containing the facet arrays, FALSE on errors.
  */
@@ -425,7 +433,7 @@ function facetapi_facets_get($searcher, $type) {
       continue;
     }
 
-    // Sets facet defaults.
+    // Sets facet definition defaults.
     foreach ($module_facets as $facet_name => $facet) {
 
       // Builds array of default values.
@@ -441,6 +449,7 @@ function facetapi_facets_get($searcher, $type) {
         'weight' => 0,
         'map callback' => FALSE,
         'hierarchy callback' => FALSE,
+        'values callback' => FALSE,
         'default range callback' => FALSE,
         'file' => '',
         'file path' => drupal_get_path('module', $module),
@@ -470,6 +479,7 @@ function facetapi_facets_get($searcher, $type) {
  *   return the facet if it is enabled in at least one realm.
  * @param $reset
  *   A boolean flagging whether the static should be reset.
+ *
  * @return
  *   An array of facets.
  */
@@ -565,6 +575,7 @@ function facetapi_widgets_get() {
  *   A string containing the machine readable name of the realm.
  * @param $facet_name
  *   A string containing the machine readable name of the facet.
+ *
  * @return
  *   A boolean flagging whether the facet is enabled in the passed realm.
  */
@@ -582,8 +593,6 @@ function facetapi_facet_enabled($searcher, $realm_name, $facet_name) {
  *   A string containing the machine readable name of the realm. Passing NULL
  *   will enable the facet in all realms.
  * @param $facet_name
- *   A string containing the machine readable name of the facet.
- * @return NULL
  */
 function facetapi_facet_enable($searcher, $realm_name, $facet_name) {
   facetapi_facet_status_set($searcher, $realm_name, $facet_name, TRUE);
@@ -599,7 +608,6 @@ function facetapi_facet_enable($searcher, $realm_name, $facet_name) {
  *   will disable the facet in all realms.
  * @param $facet_name
  *   A string containing the machine readable name of the facet.
- * @return NULL
  */
 function facetapi_facet_disable($searcher, $realm_name, $facet_name) {
   facetapi_facet_status_set($searcher, $realm_name, $facet_name, FALSE);
@@ -619,7 +627,6 @@ function facetapi_facet_disable($searcher, $realm_name, $facet_name) {
  *   A string containing the machine readable name of the facet.
  * @param $enabled
  *   A boolean flagging whether the facet is enabled.
- * @return NULL
  */
 function facetapi_facet_status_set($searcher, $realm_name, $facet_name, $enabled) {
   $realm_names = (NULL === $realm_name) ? array_keys(facetapi_realms_get()) : array($realm_name);
@@ -639,6 +646,7 @@ function facetapi_facet_status_set($searcher, $realm_name, $facet_name, $enabled
  *   Additional arguments that define what the setting applies to. For example,
  *   optionally pass the machine readable name of the searcher, realm, and facet
  *   in that order to add granularity the setting applies to.
+ *
  * @reutrn
  *   A mixed value containing the setting.
  */
@@ -659,6 +667,7 @@ function facetapi_setting_get($setting) {
  *   Additional arguments that define which item the setting applies to. For
  *   example, optionally pass the machine readable name of the searcher, realm,
  *   and facet in that order to add granularity the setting applies to.
+ *
  * @reutrn
  *   NULL
  */
@@ -685,8 +694,6 @@ function facetapi_setting_set($setting, $value) {
  *   Search Lucene API.
  * @param ...
  *   Any additional parameters passed to the hook.
- * @return
- *   NULL
  */
 function facetapi_query_type_hooks_invoke($searcher, &$data) {
   if ($adapter = facetapi_adapter_load($searcher)) {
@@ -711,6 +718,7 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
  *   A string containing the machine readable name of the searcher module.
  * @param $realm_name
  *   A string containing the machine readable name of the realm.
+ *
  * @return
  *   A mixed value containing rendered facets.
  */
@@ -749,6 +757,7 @@ function facetapi_realm_render($searcher, $realm_name) {
  *
  * @param $definition
  *   An array containing the full facet / realm definitions.
+ *
  * @return
  *   A boolean, returns FALSE only when the specified file fails to load.
  */
@@ -772,7 +781,6 @@ function facetapi_file_include(array $definition) {
  *   A string containing the machine readable name of the searcher module.
  * @param $realm_name
  *   A string containing the machine readable name of the realm.
- * @return NULL
  */
 function facetapi_facets_sort(array &$facets, $searcher, $realm_name) {
   foreach ($facets as $facet_name => &$facet) {
@@ -848,6 +856,7 @@ function facetapi_rsort_text(array $a, array $b) {
  *
  * @param $vid
  *   An integer containing the vocabulary ID.
+ *
  * @return
  *   A boolean flagging whether the vocabulary is hierarchical.
  */
@@ -874,6 +883,7 @@ function facetapi_vocabulary_hierarchical($vid) {
  *   structure.
  * @param $facet
  *   An array containing the full facet definition.
+ *
  * @return
  *   NULL
  */
@@ -922,6 +932,7 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
  *
  * @param $item
  *   An array containing the facet item.
+ *
  * @return
  *   A boolean flagging whether the value should remain in the array.
  */
@@ -1096,6 +1107,7 @@ function facetapi_date_gap_get($start_date, $end_date) {
  * @param $gap
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values, defaults to YEAR.
+ *
  * @return
  *   A gap-appropriate display date used in the facet link.
  */
@@ -1129,6 +1141,7 @@ function facetapi_timestamp_format($timestamp, $gap = FACETAPI_DATE_YEAR) {
  * @param $gap
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values, defaults to YEAR.
+ *
  * @return
  *   A gap-appropriate display date used in the facet link.
  */
@@ -1147,6 +1160,7 @@ function facetapi_date_format($date, $gap = FACETAPI_DATE_YEAR) {
  * @param $gap
  *   A string containing the gap, see FACETAPI_DATE_* constants for valid
  *   values, defaults to YEAR.
+ *
  * @return
  *   A string containing the date, FALSE if the passed date could not be parsed.
  */
@@ -1269,6 +1283,7 @@ function facetapi_facetapi_facets($searcher, $type) {
       'description' => t('Filter by content type.'),
       'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_type_map',
+      'values callback' => 'facetapi_values_type',
     );
 
     $facets['author'] = array(
@@ -1284,12 +1299,13 @@ function facetapi_facetapi_facets($searcher, $type) {
       'description' => t('Filter by language.'),
       'form type' => 'checkboxes',
       'map callback' => 'facetapi_node_language_map',
+      'values callback' => 'facetapi_values_language',
     );
 
     $facets['created'] = array(
       'title' => t('Post date'),
       'description' => t('Filter by the date the node was posted.'),
-      'form type' => 'checkboxes',
+      'form type' => 'textfield',
       'query type' => 'date',
       'map callback' => 'facetapi_date_range_map',
     );
@@ -1297,7 +1313,7 @@ function facetapi_facetapi_facets($searcher, $type) {
     $facets['changed'] = array(
       'title' => t('Updated date'),
       'description' => t('Filter by the date the node was last modified.'),
-      'form type' => 'checkboxes',
+      'form type' => 'textfield',
       'query type' => 'date',
       'map callback' => 'facetapi_date_range_map',
     );
@@ -1315,6 +1331,7 @@ function facetapi_facetapi_facets($searcher, $type) {
           'field' => 'category',
           'form type' => 'select',
           'map callback' => 'facetapi_taxonomy_term_map',
+          'values callback' => 'facetapi_values_taxonomy',
         );
 
         // Adds hierarchy callback to get parent information.

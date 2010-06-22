@@ -13,6 +13,7 @@
  *   A keyed array containing the current state of the form.
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
+ *
  * @return
  *   A FAPI array passed through system_settings_form().
  */
@@ -118,6 +119,7 @@ function facetapi_admin_settings_form(&$form_state, $searcher) {
  *
  * @param $form
  *   A FAPI array containing a fieldset.
+ *
  * @return
  *   A themed form element.
  */
@@ -224,6 +226,7 @@ function facetapi_admin_settings_form_submit(&$form, &$form_state) {
  *   An array containing the full realm definition.
  * @param $facet
  *   An array containing the fill realm definition.
+ *
  * @return
  *   A FAPI array containing the form.
  */

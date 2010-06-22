@@ -127,9 +127,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
       }
     }
 
-    // Gets the next gap in the gap drilldown.
-    $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
-
     // Converts all timestamps to dates in ISO 8601 format.
     $dates = array_combine($timestamps, $timestamps);
     array_walk($dates, 'facetapi_luceneapi_timestamp_convert', $gap);

@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Functions related to the block realm.
+ */
+
+/**
  * Renders facets as links.
  *
  * @param $facet_items
@@ -16,6 +21,7 @@
  *   An optional string containig the widget name. This is useful for other
  *   widgets that render the facets through this function, such as the
  *   "facetapi_checkboxes" widget.
+ *
  * @return
  *   A string containig the themed facet.
  */
@@ -50,6 +56,7 @@ function facetapi_links_widget_callback(array $facet_items, $searcher, $realm_na
  *   A string containing the machine readable name of the realm.
  * @param $facet_name
  *   A string containing the machine readable name of the facet.
+ *
  * @return
  *   A string containig the themed facet.
  */
@@ -63,8 +70,13 @@ function facetapi_checkboxes_widget_callback(array $facet_items, $searcher, $rea
 /**
  * Replaces active links when being displayed via the "facetapi_checkboxes"
  * widget.  Useful as an array_walk() callback.
+ *
+ * @param &$item
+ *   An array containing the facet item.
+ * @param $key
+ *   The array key of the item being modified.
  */
-function facetapi_active_checkbox_links_replace(&$item, $key) {
+function facetapi_active_checkbox_links_replace(array &$item, $key) {
   // Overrides the default "active" link.
   if ('facetapi_link_active' == $item['theme hook']) {
     $item['theme hook'] = 'facetapi_link';
@@ -77,6 +89,9 @@ function facetapi_active_checkbox_links_replace(&$item, $key) {
 
 /**
  * Returns data for the "list" operation of hook_block().
+ *
+ * @return
+ *   An array of block information.
  */
 function facetapi_block_info() {
   $blocks = array();
@@ -109,6 +124,7 @@ function facetapi_block_info() {
  *
  * @param $delta
  *   A string containing the identifier for the block.
+ *
  * @return
  *   An array containing the block subject and content.
  */
@@ -181,6 +197,7 @@ function facetapi_block_view($delta = '') {
  *
  * @param $reset
  *   A boolean flagging whether the static should be reset.
+ *
  * @return
  *   An array containing the delta map.
  */
@@ -223,6 +240,7 @@ function facetapi_delta_map_get($reset = FALSE) {
  *   A string containing the machine readable name of the realm.
  * @param $facets
  *   An array containing the full facet definitions.
+ *
  * @return
  *   A structured array that can be passed to a theming function.
  */
@@ -289,8 +307,6 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
  *   An integer containing the array key, or the ID being mapped to a value.
  * @param $map
  *   An array containing the mapped values.
- * @return
- *   NULL
  */
 function facetapi_ids_replace(array &$item, $key, array $map) {
   if (isset($map[$key])) {
@@ -311,8 +327,6 @@ function facetapi_ids_replace(array &$item, $key, array $map) {
  *   A string containing the machine readable name of the realm.
  * @param $facet
  *   An array containing the full facet definition.
- * @return
- *   NULL
  */
 function facetapi_paths_set(array &$facet_items, FacetapiAdapter $adapter, $realm_name, array $facet) {
 
@@ -372,6 +386,7 @@ function facetapi_paths_set(array &$facet_items, FacetapiAdapter $adapter, $real
  *
  * @param $facet_items
  *   An array containing the child facet items.
+ *
  * @return
  *   An array containing the values of all descendants.
  */
@@ -390,9 +405,11 @@ function facetapi_child_values_get(array $facet_items) {
  *
  * @param $facet_items
  *   An array containing the facet items.
+ *
  * @return
  *  An array containing the hierarchical links that can be passed directly to
  *  theme('item_list').
+ *
  * @see theme_item_list()
  */
 function facetapi_links_get(array $facet_items) {
@@ -428,6 +445,7 @@ function facetapi_links_get(array $facet_items) {
  *
  * @param $uids
  *   An array containing the user IDs.
+ *
  * @return
  *   An array mapping user IDs to usernames.
  */
@@ -450,6 +468,7 @@ function facetapi_node_uid_map(array $uids) {
  *
  * @param $types
  *   An array containing the machine readable content types.
+ *
  * @return
  *   An array mapping the machine readable content types to the display names.
  */
@@ -467,6 +486,7 @@ function facetapi_node_type_map(array $types) {
  *
  * @param $tids
  *   An array containing the term IDs.
+ *
  * @return
  *   An array mapping the term IDs to the display name.
  */
@@ -484,6 +504,7 @@ function facetapi_taxonomy_term_map(array $tids) {
  *
  * @param $languages
  *   An array containing the machine readable content types.
+ *
  * @return
  *   An array mapping the machine readable content types to the display names.
  */
@@ -506,6 +527,7 @@ function facetapi_node_language_map(array $languages) {
  *
  * @param $ranges
  *   An array containing the date ranges.
+ *
  * @return
  *   An array mapping the ranges to nice display dates.
  */
@@ -526,6 +548,7 @@ function facetapi_date_range_map(array $ranges) {
  *
  * @param &$tids
  *   An array containing the term ids.
+ *
  * @return
  *   An associative array keyed by term ID to parent ID.
  */

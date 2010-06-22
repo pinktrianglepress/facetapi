@@ -52,6 +52,7 @@ abstract class FacetapiAdapter {
    *   A string containing the machine readable name of the searcher module.
    * @param $type
    *   A string containing the type of content indexed by $searcher.
+   *
    * @return
    *   NULL
    */
@@ -68,8 +69,10 @@ abstract class FacetapiAdapter {
    *   A string containing the machine readable name of the realm.
    * @param $facets
    *   An array of enabled facets.
+   *
    * @return
    *   An array with facet count values appended.
+   *
    * @todo Define how the array is structured in this docblock.
    */
   public function getFacetData($realm_name, array $facets) {
@@ -138,6 +141,7 @@ abstract class FacetapiAdapter {
    *   A string containing the machine readable name of the realm.
    * @param $facet
    *   An array containing the full facet definition.
+   *
    * @return
    *   An array containing the facet data.
    */
@@ -170,6 +174,7 @@ abstract class FacetapiAdapter {
    *
    * @return
    *   A boolean flagging whether $this->_searcher executed a search.
+   *
    * @todo Generic search API should provide consistent functionality.
    */
   abstract public function searchExecuted();
@@ -183,6 +188,7 @@ abstract class FacetapiAdapter {
    *   An array containig the values to add or remove from the query string.
    * @param $active
    *   An integer, 1 if the facet is active, 0 if the facet is not active.
+   *
    * @reutrn
    *   An array containing the query strng variables.
    */
@@ -193,6 +199,7 @@ abstract class FacetapiAdapter {
    *
    * @param $field
    *   A string containing the field name.
+   *
    * @return
    *   An array of values.
    */
@@ -209,6 +216,7 @@ abstract class FacetapiAdapter {
    *   A string containing the facet's field.
    * @param $value
    *   A string containing the facet value.
+   *
    * @return
    *   An integer, 1 if the facet is active, 0 if the facet is not active.
    */
@@ -220,8 +228,6 @@ abstract class FacetapiAdapter {
    *
    * @param &$facet_items
    *   An array of facet items.
-   * @return
-   *   NULL
    */
   public function sortDefault(array &$facet_items) {
   }
@@ -231,6 +237,7 @@ abstract class FacetapiAdapter {
    *
    * @param $searcher
    *   A string containing the machine readable name of the searcher module.
+   *
    * @return
    *   An instance of this class.
    */
@@ -254,6 +261,7 @@ abstract class FacetapiAdapter {
    *
    * @param $type
    *   A string containing the type of content indexed by $this->_searcher.
+   *
    * @return
    *   An instance of this class.
    */

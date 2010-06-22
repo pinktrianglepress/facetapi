@@ -118,6 +118,9 @@ function hook_facetapi_realms_alter(array &$realms) {
  *     - hierarchy callback: Callback function that adds perent information to
  *       the facets. For example, the facetapi_taxonomy_hierarchy_callback()
  *       function maps term IDs to their parent IDs.
+ *     - values callabck: Callback function that returns the values for a field.
+ *       This callback is useful for returning form options when facets are
+ *       rendered as select boxes, radios, etc.
  *     - default range callabck: Callback function that returns the default
  *       range values for a field.
  *     - file: Optionally specify the file containing the callback functions.
