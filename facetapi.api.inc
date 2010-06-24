@@ -60,8 +60,6 @@ function hook_facetapi_adapters_alter(&$adapters) {
  *     - file: Optionally specify the file containing the callback function.
  *     - file path: The path to the folder containing the file specified in
  *       "file". This defaults to the path to the module implementing the hook.
- *     - theme hook: Optionally specify a theme hook to pass the rendered facets
- *       to prior to being returned by facetapi_realm_remner().
  *
  * @ingroup hooks
  */

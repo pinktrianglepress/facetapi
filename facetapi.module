@@ -406,7 +406,6 @@ function facetapi_realms_get($reset = FALSE) {
             'callback' => $module .'_realm_'. $realm_name .'_render',
             'file' => '',
             'file path' => drupal_get_path('module', $module),
-            'theme hook' => '',
           );
 
           // Merges realm definition into defaults, appends relam to list.
@@ -734,10 +733,10 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
  *   A string containing the machine readable name of the realm.
  *
  * @return
- *   A mixed value containing rendered facets.
+ *   A structured array containing the "rendered" facets.
  */
 function facetapi_realm_render($searcher, $realm_name) {
-  $rendered = '';
+  $rendered = array();
 
   // Gets all defined realms, makes sure the passed realm is valid.
   $realms = facetapi_realms_get();
@@ -752,13 +751,6 @@ function facetapi_realm_render($searcher, $realm_name) {
       // Renders the facets, allows modules to alter the rendered facets.
       $rendered = call_user_func($realms[$realm_name]['callback'], $adapter, $realm_name, $facets);
       drupal_alter('facetapi_postrender', $rendered, $searcher, $type, $realm_name);
-
-      // Themes the facets if a theme hook is defined.
-      if (!empty($realms[$realm_name]['theme hook'])) {
-        $rendered = call_user_func_array('theme', array(
-          $realms[$realm_name]['theme hook'], $rendered, $searcher, $type, $realm_name
-        ));
-      }
     }
   }
 
