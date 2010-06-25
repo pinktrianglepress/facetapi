@@ -362,7 +362,7 @@ function facetapi_adapter_definitions_get($reset = FALSE) {
 }
 
 /**
- * Invokes hook_facetapi_realms(), sets defaults and caches results.
+ * Invokes hook_facetapi_realms(), returns realm definitions.
  *
  * @param $reset
  *   A boolean flagging whether the static should be reset.
@@ -373,16 +373,7 @@ function facetapi_adapter_definitions_get($reset = FALSE) {
 function facetapi_realms_get($reset = FALSE) {
   static $realms;
   if (NULL === $realms || $reset) {
-    global $language;
-
-    // Get realm data from cache, invokes hooks otherwise.
-    // NOTE: language is needed since translated items are cached.
-    $cid = 'facetapi:realms:'. $language->language;
-    if ($data = cache_get($cid, 'cache')) {
-      $realms = $data->data;
-    }
-    else {
-      $realms = array();
+    $realms = array();
 
       // Gets realms from hooks and the modules they are defined in.
       foreach (module_implements('facetapi_realms') as $module) {
@@ -416,9 +407,7 @@ function facetapi_realms_get($reset = FALSE) {
       // Invokes alter hook, sorts realms by weight, caches realm data.
       drupal_alter('facetapi_realms', $realms);
       uasort($realms, 'facetapi_sort_weight');
-      cache_set($cid, $realms, 'cache', CACHE_TEMPORARY);
     }
-  }
 
   // Returns realms.
   return $realms;
