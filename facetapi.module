@@ -375,39 +375,39 @@ function facetapi_realms_get($reset = FALSE) {
   if (NULL === $realms || $reset) {
     $realms = array();
 
-      // Gets realms from hooks and the modules they are defined in.
-      foreach (module_implements('facetapi_realms') as $module) {
-        $module_realms = module_invoke($module, 'facetapi_realms');
-        if (!is_array($module_realms)) {
-          // @todo Call watchdog() or drupal_set_message()???
-          continue;
-        }
-
-        // Iterates over the module's realms, applies defaults.
-        foreach ($module_realms as $realm_name => $realm) {
-
-          // Builds array of default values.
-          $defaults = array(
-            'name' => $realm_name,
-            'title' => $realm_name,
-            'description' => '',
-            'weight' => 0,
-            'sortable' => TRUE,
-            'module' => $module,
-            'callback' => $module .'_realm_'. $realm_name .'_render',
-            'file' => '',
-            'file path' => drupal_get_path('module', $module),
-          );
-
-          // Merges realm definition into defaults, appends relam to list.
-          $realms[$realm_name] = array_merge($defaults, $realm);
-        }
+    // Gets realms from hooks and the modules they are defined in.
+    foreach (module_implements('facetapi_realms') as $module) {
+      $module_realms = module_invoke($module, 'facetapi_realms');
+      if (!is_array($module_realms)) {
+        // @todo Call watchdog() or drupal_set_message()???
+        continue;
       }
 
-      // Invokes alter hook, sorts realms by weight, caches realm data.
-      drupal_alter('facetapi_realms', $realms);
-      uasort($realms, 'facetapi_sort_weight');
+      // Iterates over the module's realms, applies defaults.
+      foreach ($module_realms as $realm_name => $realm) {
+
+        // Builds array of default values.
+        $defaults = array(
+          'name' => $realm_name,
+          'title' => $realm_name,
+          'description' => '',
+          'weight' => 0,
+          'sortable' => TRUE,
+          'module' => $module,
+          'callback' => $module .'_realm_'. $realm_name .'_render',
+          'file' => '',
+          'file path' => drupal_get_path('module', $module),
+        );
+
+        // Merges realm definition into defaults, appends relam to list.
+        $realms[$realm_name] = array_merge($defaults, $realm);
+      }
     }
+
+    // Invokes alter hook, sorts realms by weight, caches realm data.
+    drupal_alter('facetapi_realms', $realms);
+    uasort($realms, 'facetapi_sort_weight');
+  }
 
   // Returns realms.
   return $realms;
@@ -554,16 +554,8 @@ function facetapi_enabled_facets_get($searcher, $realm_name = NULL, $reset = FAL
 function facetapi_widgets_get() {
   static $widgets;
   if (NULL === $widgets) {
-    global $language;
-    $cid = 'facetapi:widgets:'. $language->language;
-    if ($data = cache_get($cid, 'cache')) {
-      $widgets = $data->data;
-    }
-    else {
-      $widgets = module_invoke_all('facetapi_widgets');
-      drupal_alter('facetapi_widgets', $widgets);
-      cache_set($cid, $widgets, 'cache', CACHE_TEMPORARY);
-    }
+    $widgets = module_invoke_all('facetapi_widgets');
+    drupal_alter('facetapi_widgets', $widgets);
   }
   return $widgets;
 }
@@ -633,9 +625,18 @@ function facetapi_facet_disable($searcher, $realm_name, $facet_name) {
 function facetapi_facet_status_set($searcher, $realm_name, $facet_name, $enabled) {
   $realm_names = (NULL === $realm_name) ? array_keys(facetapi_realms_get()) : array($realm_name);
   foreach ($realm_names as $realm_name) {
+
+    // Gets current variable, toggles status for the facet, sets the variable.
     $facets = (array)facetapi_setting_get('facet_status', $searcher, $realm_name);
     $facets[$facet_name] = ($enabled) ? $facet_name : 0;
     facetapi_setting_set('facet_status', $facets, $searcher, $realm_name);
+
+    // Clears the facet status cache.
+    $cid = 'facetapi:facets:'. $searcher .':';
+    if (NULL !== $realm_name) {
+      $cid .= $realm_name .':';
+    }
+    cache_clear_all($cid, 'cache', TRUE);
   }
 }
 
