@@ -203,16 +203,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     luceneapi_subquery_add($query, $user_query, 'required', TRUE);
     module_invoke_all('luceneapi_query_alter', $query, $this->getSearcher(), $this->getType());
 
-    // Re-executes search query, gets docuent IDs.
-    // NOTE: This is more efficient when caching is enabled.
-    /*
-    $this->_docs = array();
-    $hits = luceneapi_find($this->_index, $query, array(), $positive_keys, TRUE);
-    foreach ($hits as $hit) {
-      $this->_docs[$hit->id] = $hit->score;
-    }
-    //*/
-
     // Gets documents matched in the query.
     $this->_docs = facetapi_luceneapi_match_query($this->_index, $query);
     return parent::getFacetData($realm_name, $facets);
