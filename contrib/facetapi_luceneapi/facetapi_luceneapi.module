@@ -254,3 +254,17 @@ function facetapi_luceneapi_luceneapi_document_alter(Zend_Search_Lucene_Document
   }
 }
 
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function facetapi_luceneapi_form_facetapi_facet_settings_form_alter(&$form, &$form_state) {
+  $arg = arg(2);
+  $modules = luceneapi_searchable_module_list();
+  if (isset($modules[$arg])) {
+    $breadcrumb = drupal_get_breadcrumb();
+    $breadcrumb[] = l($modules[$arg], "admin/settings/$arg");
+    $breadcrumb[] = l(t('Facets'), "admin/settings/$arg/facetapi");
+    drupal_set_breadcrumb($breadcrumb);
+  }
+}
+

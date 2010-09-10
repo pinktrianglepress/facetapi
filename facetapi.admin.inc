@@ -18,6 +18,7 @@
  *   A FAPI array passed through system_settings_form().
  */
 function facetapi_admin_settings_form(&$form_state, $searcher) {
+  $form = array();
   $type = facetapi_adapter_load($searcher)->getType();
 
   // Common url() function options that will redirect form submissions in linked
@@ -319,12 +320,12 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#default_value' => variable_get($sort_var, 0),
     '#options' => array(
       0 => t('Count'),
-      SORT_STRING .':'. SORT_ASC => t('Alphanumeric, ascending'),
-      SORT_STRING .':'. SORT_DESC => t('Alphanumeric, descending'),
-      SORT_NUMERIC .':'. SORT_ASC => t('Key sort, ascending'),
-      SORT_NUMERIC .':'. SORT_DESC => t('Key sort, descending'),
+      SORT_STRING .':'. SORT_ASC => t('Display value, ascending'),
+      SORT_STRING .':'. SORT_DESC => t('Display value, descending'),
+      SORT_NUMERIC .':'. SORT_ASC => t('Raw indexed value, ascending'),
+      SORT_NUMERIC .':'. SORT_DESC => t('Raw indexed value, descending'),
     ),
-    '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Alphanumeric</em> will sort alphabetically, either ascending or descending. <em>Key</em> sorts by the raw value indexed in the search engine, usually a machine readable ID.')
+    '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Display value</em> will sort alphabetically, either ascending or descending, but the value displayed to the user. <em>Raw value</em> sorts by the raw value stored in the search index, usually a machine readable ID.')
   );
 
   $slimit_var = sprintf(

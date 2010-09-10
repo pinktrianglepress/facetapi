@@ -250,10 +250,12 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   // cache_get();
 
   // Initializes breadcrumb trail.
+  /*
   $breadcrumb = array();
   if ($keys = $adapter->getSearchKeys()) {
     $breadcrumb[] = l($keys, $_GET['q']);
   }
+  */
 
   // Gets facet counts, iterates over collection.
   $data = $adapter->getFacetData($realm_name, $facets);
@@ -277,11 +279,13 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
 
 
   // Finalizes breadcrumb trail and sets.
+  /*
   if (!empty($breadcrumb)) {
     $last = count($breadcrumb) - 1;
     $breadcrumb[$last] = strip_tags($breadcrumb[$last]);
     drupal_set_breadcrumb(array_merge(menu_get_active_breadcrumb(), $breadcrumb));
   }
+  */
 
   // @todo Set cached data here??
   // cache_set();

@@ -159,3 +159,15 @@ function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
   // Returns the range information.
   return $return;
 }
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function facetapi_apachesolr_form_facetapi_facet_settings_form_alter(&$form, &$form_state) {
+  if ('apachesolr_search' == arg(2)) {
+    $breadcrumb = drupal_get_breadcrumb();
+    $breadcrumb[] = l(t('Apache Solr'), 'admin/settings/apachesolr');
+    $breadcrumb[] = l(t('Facets'), 'admin/settings/apachesolr/facets');
+    drupal_set_breadcrumb($breadcrumb);
+  }
+}
