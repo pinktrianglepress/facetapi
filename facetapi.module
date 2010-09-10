@@ -7,11 +7,6 @@
  */
 
 /**
- * Table containing cached facetapi data.
- */
-define('FACETAPI_CACHE_TABLE', 'cache_facetapi');
-
-/**
  * Constant for the "AND" operator.
  */
 define('FACETAPI_OPERATOR_AND', 'and');
@@ -55,13 +50,6 @@ define('FACETAPI_DATE_SECOND', 'SECOND');
  * Date string for ISO 8601 date formats.
  */
 define('FACETAPI_DATE_ISO8601', 'Y-m-d\TH:i:s\Z');
-
-/**
- * Implementation of hook_flush_caches().
- */
-function facetapi_flush_caches() {
-  return array(FACETAPI_CACHE_TABLE);
-}
 
 /**
  * Implementation of hook_menu().
