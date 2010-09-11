@@ -325,7 +325,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
       SORT_NUMERIC .':'. SORT_ASC => t('Raw indexed value, ascending'),
       SORT_NUMERIC .':'. SORT_DESC => t('Raw indexed value, descending'),
     ),
-    '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Display value</em> will sort alphabetically, either ascending or descending, but the value displayed to the user. <em>Raw value</em> sorts by the raw value stored in the search index, usually a machine readable ID.')
+    '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Display value</em> will sort alphabetically, either ascending or descending, but the value displayed to the user. <em>Raw indexed value</em> sorts by the raw value stored in the search index, usually a machine readable ID.')
   );
 
   $slimit_var = sprintf(
@@ -337,7 +337,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#title' => t('Soft limit'),
     '#default_value' => variable_get($slimit_var, 10),
     '#options' => drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
-    '#description' => t('Limits the number of displayed facets via jQuery.')
+    '#description' => t('Limits the number of displayed facets via JavaScript.')
   );
 
   return system_settings_form($form);
