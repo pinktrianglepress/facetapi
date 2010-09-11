@@ -31,17 +31,33 @@ function facetapi_links_widget_callback(array $facet_items, $searcher, $realm_na
   if (NULL === $limit) {
     $limit = 10;
   }
-  $settings['facetapi'][$searcher][$realm_name][$facet_name] = array(
-    'limit' => $limit,
-    'widget' => (NULL === $widget) ? 'facetapi_links' : $widget,
+
+  // Builds array of settings.
+  $settings = array('facetapi' => array('facets' => array()));
+  $settings['facetapi']['facets'][] = array(
+    'searcher'  => $searcher,
+    'realmName' => $realm_name,
+    'facetName' => $facet_name,
+    'limit'     => $limit,
+    'widget'    => (NULL === $widget) ? 'facetapi_links' : $widget,
   );
 
   // Adds settings as javascript variables.
   drupal_add_js($settings, 'setting');
 
-  // Builds links, themes links as an item list.
+  // Gets facet object, extracts title.
+  // NOTE: facetapi_enabled_facets_get() is faster than facetapi_facet_load()
+  // because the objects are statically cached.
+  $enabled_facets = facetapi_enabled_facets_get($searcher, $realm_name);
+  $title = theme('facetapi_block_title', $enabled_facets[$facet_name]['title']);
+
+  // Builds links, array of attributes.
   $links = facetapi_links_get($facet_items);
-  return theme('facetapi_block', $links);
+  $attributes = array(
+    'id'    => "facetapi-facet-$searcher-$realm_name-$facet_name",
+    'class' => "facetapi-realm-$searcher-$realm_name facetapi-facet-$facet_name",
+  );
+  return theme('facetapi_block', $links, $title, $attributes);
 }
 
 /**
@@ -168,7 +184,7 @@ function facetapi_block_view($delta = '') {
 
           // Builds the facet links, passes to the widget callback
           $blocks[$group][$facet_data['name']] = array(
-            'subject' => $facet_data['title'],
+            'subject' => '',
             'content' => $callback($facet_data['items'], $searcher, $realm_name, $facet_data['name'])
           );
         }
@@ -176,7 +192,7 @@ function facetapi_block_view($delta = '') {
 
       // Adds javascript if at least one facet is rendered.
       if ($add_js) {
-        drupal_add_js(drupal_get_path('module', 'facetapi') .'/facetapi.js');
+        drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
       }
     }
     else {

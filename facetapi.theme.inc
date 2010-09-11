@@ -11,12 +11,33 @@
  *
  * @param $links
  *   An array of facet links.
+ * @param $title
+ *   A string containing the facet title.
+ *   NOTE: Assume title has been run through theme('facetapi_block_title');
+ * @param $class
+ *   A string containing the class for the container div.
  *
  * @return
  *   A string containing the themed list.
  */
-function theme_facetapi_block($links) {
-  return theme('item_list', $links);
+function theme_facetapi_block($links, $title = NULL, array $attributes = array()) {
+  $output  = '<div'. drupal_attributes($attributes) .'>';
+  $output .= theme('item_list', $links, $title, 'ul', $attributes);
+  $output .= '</div>';
+  return $output;
+}
+
+/**
+ * Themes the facet title.
+ *
+ * @param $title
+ *   A string containing the facet title.
+ *
+ * @return
+ *   A string containing the themed title.
+ */
+function theme_facetapi_block_title($title) {
+  return t('Filter by @title:', array('@title' => drupal_strtolower($title)));
 }
 
 /**

@@ -189,7 +189,11 @@ function facetapi_theme() {
       'file' => 'facetapi.admin.inc',
     ),
     'facetapi_block' => array(
-      'arguments' => array('links' => NULL),
+      'arguments' => array('links' => NULL, 'title' => NULL, 'attributes' => array()),
+      'file' => 'facetapi.theme.inc',
+    ),
+    'facetapi_block_title' => array(
+      'arguments' => array('title' => NULL),
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_count' => array(
@@ -726,7 +730,8 @@ function facetapi_realm_render($searcher, $realm_name) {
       $adapter = facetapi_adapter_load($searcher);
       $type = $adapter->getType();
 
-      // Renders the facets, allows modules to alter the rendered facets.
+      // Adds JS, renders  facets, allows modules to alter the rendered facets.
+      drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
       $rendered = call_user_func($realms[$realm_name]['callback'], $adapter, $realm_name, $facets);
       drupal_alter('facetapi_postrender', $rendered, $searcher, $type, $realm_name);
     }
@@ -1193,7 +1198,7 @@ function facetapi_facetapi_realms() {
     'title' => t('Blocks'),
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
-      array('@block-page' => url('admin/build/block/list'))
+      array('@block-page' => url('admin/build/block/list', array('query' => array('destination' => $_GET['q']))))
     ),
     'weight' => -10,
     'sortable' => FALSE,
@@ -1223,6 +1228,22 @@ function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
       module_load_include('inc', 'facetapi', 'facetapi.block');
       return facetapi_block_view($delta);
   }
+}
+
+/**
+ * Implementation of hook_FORM_ID_form_alter().
+ */
+function facetapi_form_block_admin_display_form_alter(&$form, &$form_state) {
+  if (!empty($_REQUEST['destination'])) {
+    $form['#submit'][] = 'facetapi_block_admin_display_form_submit';
+  }
+}
+
+/**
+ * Processes facetapi_block_admin_display_form form submissions.
+ */
+function facetapi_block_admin_display_form_submit(&$form, &$form_state) {
+
 }
 
 /**
