@@ -288,7 +288,6 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#collapsible' => TRUE,
   );
 
-
   // Gets widgets, sorts.
   $widgets = facetapi_widgets_get();
   uasort($widgets, 'facetapi_sort_weight');

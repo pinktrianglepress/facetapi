@@ -46,6 +46,11 @@ function facetapi_facet_to_fapi(array $facet, FacetapiAdapter $adapter) {
     '#description' => filter_xss($facet['description']),
   );
 
+  // Allows for multiple if select box.
+  if ('select' == $form['#type']) {
+    $form['#multiple'] = TRUE;
+  }
+
   // Adds options if "values callback" is defined.
   if (!empty($facet['values callback'])) {
     $form = array_merge($form, array(
@@ -54,15 +59,9 @@ function facetapi_facet_to_fapi(array $facet, FacetapiAdapter $adapter) {
   }
 
   // Adds default value, if one was passed.
-  $default_value = $adapter->getActiveFacets($facet['field']);
-  if (!empty($default_value)) {
-    if (isset($form['#options'])) {
-      $default_value = drupal_map_assoc(array_keys($default_value));
-    }
-    else {
-      $default_value = join(' ', $default_value);
-    }
-    $form = array_merge($form, array('#default_value' => $default_value));
+  $active_facets = $adapter->getActiveFacets($facet['field alias']);
+  if (!empty($active_facets)) {
+    $form['#default_value'] = $active_facets;
   }
 
   // Returns form element.

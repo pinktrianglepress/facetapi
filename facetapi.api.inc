@@ -25,7 +25,7 @@
  *
  * @ingroup hooks
  */
-function hook_facetapi_adapters() {
+function hook_facetapi_adapter_info() {
 }
 
 /**
@@ -36,7 +36,7 @@ function hook_facetapi_adapters() {
  *
  * @ingroup hooks
  */
-function hook_facetapi_adapters_alter(&$adapters) {
+function hook_facetapi_adapter_info_alter(&$adapters) {
 }
 
 /**
@@ -63,7 +63,7 @@ function hook_facetapi_adapters_alter(&$adapters) {
  *
  * @ingroup hooks
  */
-function hook_facetapi_realms() {
+function hook_facetapi_realm_info() {
 }
 
 /**
@@ -74,7 +74,7 @@ function hook_facetapi_realms() {
  *
  * @ingroup hooks
  */
-function hook_facetapi_realms_alter(array &$realms) {
+function hook_facetapi_realm_info_alter(array &$realms) {
 }
 
 /**
@@ -127,7 +127,7 @@ function hook_facetapi_realms_alter(array &$realms) {
  *
  * @ingroup hooks
  */
-function hook_facetapi_facets($searcher, $type) {
+function hook_facetapi_facet_info($searcher, $type) {
 }
 
 /**
@@ -142,7 +142,7 @@ function hook_facetapi_facets($searcher, $type) {
  *
  * @ingroup hooks
  */
-function hook_facetapi_facets_alter(array &$facets, $searcher, $type) {
+function hook_facetapi_facet_info_alter(array &$facets, $searcher, $type) {
 }
 
 /**
@@ -162,11 +162,13 @@ function hook_facetapi_postrender_alter(&$rendered, $searcher, $type, $realm_nam
  *   - name: The machine readable name of the widget.
  *     - title: Human readable name of the widget.
  *     - callback: Callback function used to theme the facets.
+ *     - realms: An array of realms the widget applies to.
+ *     - query types: An array of query types the widget applies to.
  *     - weight: The weight of the widget when displayed in forms.
  *
  * @ingroup hooks
  */
-function hook_facetapi_widgets() {
+function hook_facetapi_widget_info() {
 }
 
 /**
@@ -177,7 +179,7 @@ function hook_facetapi_widgets() {
  *
  * @ingroup hooks
  */
-function hook_facetapi_widgets_alter() {
+function hook_facetapi_widget_info_alter() {
 }
 
 /**

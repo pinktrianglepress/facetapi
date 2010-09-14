@@ -28,9 +28,9 @@ function facetapi_apachesolr_menu() {
 }
 
 /**
- * Implementation of hook_facetapi_adapters().
+ * Implementation of hook_facetapi_adapter_info().
  */
-function facetapi_apachesolr_facetapi_adapters() {
+function facetapi_apachesolr_facetapi_adapter_info() {
   return array(
     'apachesolr_search' => array(
       'class' => 'FacetapiApachesolrAdapter',
@@ -41,9 +41,11 @@ function facetapi_apachesolr_facetapi_adapters() {
 }
 
 /**
- * Implementation of hook_facetapi_facets_alter().
+ * Implementation of hook_facetapi_facet_info_alter().
+ *
+ * Modifies fields for vocabulary facets.
  */
-function facetapi_apachesolr_facetapi_facets_alter(array &$facets, $searcher, $type) {
+function facetapi_apachesolr_facetapi_facet_info_alter(array &$facets, $searcher, $type) {
   if ('apachesolr_search' == $searcher) {
     foreach ($facets as &$facet) {
       if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $matches)) {
@@ -57,9 +59,25 @@ function facetapi_apachesolr_facetapi_facets_alter(array &$facets, $searcher, $t
 
 /**
  * Implementation of hook_apachesolr_prepare_query().
+ *
+ * Invokes type hooks, adds filters.
+ *
+ * @see apachesolr
  */
 function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller) {
   facetapi_query_type_hooks_invoke('apachesolr_search', $params, $query);
+
+  // Gets enabled facets, adds filter queries to $params.
+  $adapter = facetapi_adapter_load('apachesolr_search');
+  foreach (facetapi_enabled_facets_get('apachesolr_search') as $facet) {
+    $queries = array();
+    foreach ($adapter->getActiveFacets($facet['field alias']) as $active_facets) {
+      $queries[] = $facet['field alias'] .':'. $active_facets;
+    }
+    if (!empty($queries)) {
+      $params['fq'][$facet['field alias']] = $queries;
+    }
+  }
 }
 
 /**
@@ -162,6 +180,8 @@ function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
 
 /**
  * Implementation of hook_form_FORM_ID_alter().
+ *
+ * Adds breadcrumb trail for Apache Solr administrative pages.
  */
 function facetapi_apachesolr_form_facetapi_facet_settings_form_alter(&$form, &$form_state) {
   if ('apachesolr_search' == arg(2)) {

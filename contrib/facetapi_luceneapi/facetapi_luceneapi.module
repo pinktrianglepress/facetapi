@@ -80,9 +80,9 @@ function facetapi_luceneapi_form_facetapi_admin_settings_form(&$form, &$form_sta
 }
 
 /**
- * Implementation of hook_facetapi_facets_alter().
+ * Implementation of hook_facetapi_facet_info_alter().
  */
-function facetapi_luceneapi_facetapi_facets_alter(array &$facets, $searcher, $type) {
+function facetapi_luceneapi_facetapi_facet_info_alter(array &$facets, $searcher, $type) {
   if ('luceneapi_node' == $searcher) {
     foreach ($facets as &$facet) {
       if (preg_match('/^vocabulary_(\d+)$/', $facet['name'], $matches)) {
@@ -95,9 +95,9 @@ function facetapi_luceneapi_facetapi_facets_alter(array &$facets, $searcher, $ty
 }
 
 /**
- * Implementation of hook_facetapi_adapters().
+ * Implementation of hook_facetapi_adapter_info().
  */
-function facetapi_luceneapi_facetapi_adapters() {
+function facetapi_luceneapi_facetapi_adapter_info() {
   $adapters = array();
 
   // Iterates over searchable Search Lucene API modules, builds adapter information.

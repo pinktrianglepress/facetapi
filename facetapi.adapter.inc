@@ -191,8 +191,23 @@ abstract class FacetapiAdapter {
    *
    * @reutrn
    *   An array containing the query string variables.
+   *
+   * @todo capture active facets in constructr to avoid repeated calculations.
    */
-  abstract public function getFacetQueryString(array $facet, array $values, $active);
+  public function getFacetQueryString(array $facet, array $values, $active) {
+    $qstring = $_GET;
+    $active_facets = $this->getActiveFacets($facet['field alias']);
+    foreach ($values as $value) {
+      $key = array_search($value, $active_facets);
+      if ($active && FALSE !== $key) {
+        unset($qstring[$facet['field alias']][$key]);
+      }
+      elseif (!$active && FALSE === $key) {
+        $qstring[$facet['field alias']][] = $value;
+      }
+    }
+    return $qstring;
+  }
 
   /**
    * Returns an array of active facet values in a field.
@@ -202,8 +217,15 @@ abstract class FacetapiAdapter {
    *
    * @return
    *   An array of values.
+   *
+   * @todo capture active facets in constructr to avoid repeated calculations.
    */
-  abstract public function getActiveFacets($field);
+  public function getActiveFacets($field) {
+    if (isset($_GET[$field])) {
+      return (is_array($_GET[$field])) ? $_GET[$field] : (array) $_GET[$field];
+    }
+    return array();
+  }
 
   /**
    * Tests whether a facet is active.
@@ -219,8 +241,16 @@ abstract class FacetapiAdapter {
    *
    * @return
    *   An integer, 1 if the facet is active, 0 if the facet is not active.
+   *
+   * @todo capture active facets in constructr to avoid repeated calculations.
    */
-  abstract public function facetActive($field, $value);
+  public function facetActive($field, $value) {
+    if (isset($_GET[$field])) {
+      $values = (is_array($_GET[$field])) ? $_GET[$field] : (array) $_GET[$field];
+      return (int) (FALSE !== array_search($value, $values));
+    }
+    return 0;
+  }
 
   /**
    * Applies the default sort to the facets. If facets are already sorted by

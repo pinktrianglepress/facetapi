@@ -26,24 +26,6 @@
  *   A string containig the themed facet.
  */
 function facetapi_links_widget_callback(array $facet_items, $searcher, $realm_name, $facet_name, $widget = NULL) {
-  // Gets the facet's soft limit, adds to javascript variables.
-  $limit = facetapi_setting_get('soft_limit', $searcher, $realm_name, $facet_name);
-  if (NULL === $limit) {
-    $limit = 10;
-  }
-
-  // Builds array of settings.
-  $settings = array('facetapi' => array('facets' => array()));
-  $settings['facetapi']['facets'][] = array(
-    'searcher'  => $searcher,
-    'realmName' => $realm_name,
-    'facetName' => $facet_name,
-    'limit'     => $limit,
-    'widget'    => (NULL === $widget) ? 'facetapi_links' : $widget,
-  );
-
-  // Adds settings as javascript variables.
-  drupal_add_js($settings, 'setting');
 
   // Gets facet object, extracts title.
   // NOTE: facetapi_enabled_facets_get() is faster than facetapi_facet_load()
@@ -114,7 +96,7 @@ function facetapi_block_info() {
 
   // Gets "delta map", iterates over available searcher modules.
   $map = facetapi_delta_map_get();
-  foreach (facetapi_adapter_definitions_get() as $searcher => $definition) {
+  foreach (facetapi_adapter_info_get() as $searcher => $definition) {
     $facets = facetapi_enabled_facets_get($searcher, 'block');
     foreach ($facets as $facet_name => $facet) {
 
@@ -227,7 +209,7 @@ function facetapi_delta_map_get($reset = FALSE) {
       $map = array();
 
       // Calculates deltas for each facet in each realms for each searcher.
-      foreach (facetapi_adapter_definitions_get() as $searcher => $definition) {
+      foreach (facetapi_adapter_info_get() as $searcher => $definition) {
         foreach (facetapi_realms_get() as $realm) {
           foreach (facetapi_enabled_facets_get($searcher, $realm['name']) as $facet) {
             $string = $searcher .':'. $realm['name'] .':'. $facet['name'];

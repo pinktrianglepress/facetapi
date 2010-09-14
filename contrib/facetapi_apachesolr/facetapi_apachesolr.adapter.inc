@@ -30,7 +30,7 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     $facet_items = array();
     $raw_values = (array)$this->_response->facet_counts->facet_fields->{$facet['field']};
     foreach ($raw_values as $value => $count) {
-      $facet_items[$value]= array('count' => $count);
+      $facet_items[$value] = array('count' => $count);
     }
     return $facet_items;
   }
@@ -57,7 +57,6 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
         $total = 0;
       }
     }
-
 
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
@@ -138,54 +137,6 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
    */
   public function sortDefault(array &$facet_items) {
     uasort($facet_items, 'facetapi_sort_count');
-  }
-
-  /**
-   * Returns query string variables for a facet link.
-   */
-  public function getFacetQueryString(array $facet, array $values, $active) {
-    $new_query = clone apachesolr_current_query();
-    $method = ($active) ? 'remove_filter' : 'add_filter';
-    foreach ($values as $value) {
-      // @todo Ask Robert or Peter about the $exclude variable.
-      // NOTE: The remove_filter method doesn't have a third param, so we can
-      // pass FALSE with no problems.
-      $new_query->$method($facet['field alias'], $value, FALSE);
-    }
-
-    // Builds and returns query string.
-    $qstring = $_GET;
-    unset($qstring['filters']);
-    return array_merge($qstring, $new_query->get_url_queryvalues());
-  }
-
-  /**
-   * Returns an array of active facet values in a field.
-   *
-   * @param $field
-   *   A string containing the field name.
-   * @return
-   *   An array of values.
-   */
-  public function getActiveFacets($field) {
-    if ($query = apachesolr_current_query()) {
-      $active = array();
-      foreach ($query->get_filters($field) as $filter) {
-        $active[$filter['#value']] = $filter['#query'];
-      }
-      return $active;
-    }
-    return array();
-  }
-
-  /**
-   * Returns an integer flagging whether the facet is active.
-   */
-  public function facetActive($field, $value) {
-    if (!$query = apachesolr_current_query()) {
-      $query = FALSE;
-    }
-    return ($query) ? (int)$query->has_filter($field, $value) : 0;
   }
 
   /**
