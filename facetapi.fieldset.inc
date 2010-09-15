@@ -7,7 +7,7 @@
  */
 
 /**
- * Renders facets in the fieldset realm.
+ * Builds facets in the fieldset realm.
  *
  * @param $adapter
  *   A FacetapiAdapter object extended by the searcher module.
@@ -19,7 +19,7 @@
  * @return
  *   A FAPI array.
  */
-function facetapi_realm_fieldset_render(FacetapiAdapter $adapter, $realm_name, array $facets) {
+function facetapi_realm_fieldset_build(FacetapiAdapter $adapter, $realm_name, array $facets) {
   $form = array();
   foreach ($facets as $facet) {
     $form = array_merge_recursive($form, facetapi_facet_to_fapi($facet, $adapter));

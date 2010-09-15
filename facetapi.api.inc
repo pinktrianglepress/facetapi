@@ -40,11 +40,11 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
 }
 
 /**
- * Defines realms that facets can be rendered in.
+ * Defines realms that facets can be built in.
  *
  * A facet realm is a group of facets that are displayed in a similar fashion
- * and rendered through the same function.  For example, facets in the "block"
- * realm are rendered via the facetapi_realm_block_render() function. This
+ * and built through the same function.  For example, facets in the "block"
+ * realm are built via the facetapi_realm_block_build() function. This
  * architecture allows us to define a single facet but display it in
  * different ways.
  *
@@ -55,8 +55,8 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *     - description: The realm description.
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
- *     - callback => The realm rendering function, defaults to
- *       "MODULE_realm_REALM_NAME_render".
+ *     - callback => The realm building function, defaults to
+ *       "MODULE_realm_REALM_NAME_build".
  *     - file: Optionally specify the file containing the callback function.
  *     - file path: The path to the folder containing the file specified in
  *       "file". This defaults to the path to the module implementing the hook.
@@ -97,7 +97,7 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *     - description: The realm description.
  *     - field: The search field associated with the filter. Defaults to "name".
  *     - field alias: The variable name used in the query string as well as the
- *       name of the form element when the facet is rendered as a FAPI element.
+ *       name of the form element when the facet is built as a FAPI element.
  *       Defaults to "name".
  *     - query type: The type of query used to filter the search results when
  *       the facet is active, i.e. "range" or "wildcard", defaults to "term".
@@ -107,9 +107,9 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       retrieve the facet data from the search backend. Defaults to whatever
  *       is passed in "query type".
  *       meaning that the detchDefault() method is used to retrieve the data.
- *     - form type: The form element type when rendering the facet as a for
+ *     - form type: The form element type when building the facet as a for
  *       element i.e. "checkboxes", "select".
- *     - weight: The default weight of the facet when rendered.
+ *     - weight: The default weight of the facet when built.
  *     - map callback: Callback function that maps raw values stored in the =
  *       search backend to something human readable, for example user IDs to
  *       usernames.
@@ -118,7 +118,7 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       function maps term IDs to their parent IDs.
  *     - values callabck: Callback function that returns the values for a field.
  *       This callback is useful for returning form options when facets are
- *       rendered as select boxes, radios, etc.
+ *       built as select boxes, radios, etc.
  *     - default range callabck: Callback function that returns the default
  *       range values for a field.
  *     - file: Optionally specify the file containing the callback functions.
@@ -146,12 +146,12 @@ function hook_facetapi_facet_info_alter(array &$facets, $searcher, $type) {
 }
 
 /**
- * Allows modules to alter the rendered facets prior to being returned by
- * facetapi_realm_render().
+ * Allows modules to alter the built facets prior to being returned by
+ * facetapi_realm_build().
  *
  * @ingroup hooks
  */
-function hook_facetapi_postrender_alter(&$rendered, $searcher, $type, $realm_name) {
+function hook_facetapi_facets_alter(&$built, $searcher, $type, $realm_name) {
 }
 
 /**

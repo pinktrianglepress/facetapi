@@ -95,6 +95,26 @@ function facetapi_luceneapi_facetapi_facet_info_alter(array &$facets, $searcher,
 }
 
 /**
+ * Implementation of hook_facetapi_facets_alter().
+ *
+ * Re-implements the logic in facetapi_facetapi_facets_alter() because
+ * Search Lucene API uses a different name for the general taxonomy field.
+ *
+ * @see facetapi_facetapi_facets_alter()
+ */
+function facetapi_luceneapi_facetapi_facets_alter(&$built, $searcher, $type, $realm_name) {
+  if ('fieldset' == $realm_name && 'node' == $type && isset($built['category'])) {
+    $built['category']['#title']       = t('Only in the category(s)');
+    $built['category']['#type']        = 'select';
+    $built['category']['#multiple']    = TRUE;
+    $built['category']['#description'] = '';
+    if (isset($built['category']['#weight']) && is_array($built['category']['#weight'])) {
+      $built['category']['#weight'] = min($built['category']['#weight']);
+    }
+  }
+}
+
+/**
  * Implementation of hook_facetapi_adapter_info().
  */
 function facetapi_luceneapi_facetapi_adapter_info() {

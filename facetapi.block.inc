@@ -7,7 +7,7 @@
  */
 
 /**
- * Renders facets as links.
+ * Builds facets as links.
  *
  * @param $facet_items
  *   An array containing the facet items.
@@ -137,8 +137,8 @@ function facetapi_block_view($delta = '') {
   }
 
   // Extracts the searcher, realm name, and facet name from $delta. Caches
-  // rendered blocks by group (searcher - realm name), because we cannot
-  // render facets individually, only the realm as a whole.
+  // built blocks by group (searcher - realm name), because we cannot build
+  // facets individually, only the realm as a whole.
   list($searcher, $realm_name, $facet_name) = explode(':', $map[$delta]);
   $group = $searcher .':'. $realm_name;
   if (!isset($blocks[$group])) {
@@ -149,8 +149,8 @@ function facetapi_block_view($delta = '') {
     if (facetapi_adapter_load($searcher)->searchExecuted()) {
       $widgets = facetapi_widgets_get();
 
-      // Renders the facet via facetapi_realm_render().
-      $data = facetapi_realm_render($searcher, $realm_name);
+      // Builds the facet via facetapi_realm_build().
+      $data = facetapi_realm_build($searcher, $realm_name);
       foreach ($data as $facet_data) {
         if (!empty($facet_data['items'])) {
           $add_js = TRUE;
@@ -172,7 +172,7 @@ function facetapi_block_view($delta = '') {
         }
       }
 
-      // Adds javascript if at least one facet is rendered.
+      // Adds javascript if at least one facet is built.
       if ($add_js) {
         drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
       }
@@ -230,7 +230,7 @@ function facetapi_delta_map_get($reset = FALSE) {
 }
 
 /**
- * Renders facets in the block realm.
+ * Builds facets in the block realm.
  *
  * @param $adapter
  *   A FacetapiAdapter object extended by the searcher module.
@@ -242,7 +242,7 @@ function facetapi_delta_map_get($reset = FALSE) {
  * @return
  *   A structured array that can be passed to a theming function.
  */
-function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, array $facets) {
+function facetapi_realm_block_build(FacetapiAdapter $adapter, $realm_name, array $facets) {
 
   // @todo Get cached data here???
   // cache_get();
@@ -296,7 +296,7 @@ function facetapi_realm_block_render(FacetapiAdapter $adapter, $realm_name, arra
   }
   unset($facet_data);
 
-  // Returns the rendered facet data.
+  // Returns the built facets.
   return $data;
 }
 

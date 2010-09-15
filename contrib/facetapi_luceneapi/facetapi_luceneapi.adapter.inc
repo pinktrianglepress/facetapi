@@ -12,11 +12,6 @@
 class FacetapiLuceneapiAdapter extends FacetapiAdapter {
 
   /**
-   * Stores all active facets.
-   */
-  protected $_filters;
-
-  /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
    */
   public function searchExecuted() {
@@ -213,98 +208,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    */
   public function sortDefault(array &$facet_items) {
     uasort($facet_items, 'facetapi_sort_count');
-  }
-
-  /**
-   * Returns query string for the facet.
-   */
-  public function getFacetQueryString(array $facet, array $values, $active) {
-    $filters = $this->_filters;
-
-    // Adds or removes filters from the array.
-    foreach ($values as $value) {
-      if (!$active) {
-        $filters[$facet['field alias']][$value] = $facet['field alias'] .':'. $value;
-      }
-      else {
-        unset($filters[$facet['field alias']][$value]);
-      }
-    }
-
-    // Builds the query string.
-    $active_filters = array();
-    foreach ($filters as $field => $field_filters) {
-      foreach ($field_filters as $value => $filter) {
-        $active_filters[] = $filter;
-      }
-    }
-
-    // Buids query string.
-    $qstring = $_GET;
-    $filter_string = join(' ', $active_filters);
-    if ($filter_string) {
-      $qstring['filters'] = $filter_string;
-    }
-    else {
-      unset($qstring['filters']);
-    }
-    return $qstring;
-  }
-
-  /**
-   * Returns an array of active facet values in a field.
-   */
-  public function getActiveFacets($field) {
-    if (NULL === $this->_filters) {
-      $this->_populateActiveFilters();
-    }
-    return isset($this->_filters[$field]) ? $this->_filters[$field] : array();
-  }
-
-  /**
-   * Returns an integer flagging whether the facet is active.
-   */
-  public function facetActive($field, $value) {
-    if (NULL === $this->_filters) {
-      $this->_populateActiveFilters();
-    }
-    return isset($this->_filters[$field][$value]);
-  }
-
-  /**
-   * Populates filters.
-   */
-  protected function _populateActiveFilters() {
-    $this->_filters = array();
-    $string = isset($_GET['filters']) ? (string)$_GET['filters'] : '';
-    foreach (facetapi_enabled_facets_get($this->getSearcher()) as $facet) {
-      $field = preg_quote($facet['field alias'], '/');
-
-      // Patterns that pull queries from filter string.
-      $patterns = array(
-        // Range queries.  The "TO" is case-sensitive.
-        '/(^| |-)'. $field .':([\[\{](\S+) TO (\S+)[\]\}])/',
-        // Match quoted values.
-        '/(^| |-)'. $field .':"([^"]*)"/',
-        // Match unquoted values.
-        '/(^| |-)'. $field .':([^ ]*)/',
-      );
-
-      // Pulls data from the query string.
-      foreach ($patterns as $pattern) {
-        if (preg_match_all($pattern, $string, $matches, PREG_SET_ORDER)) {
-          foreach ($matches as $match) {
-            $value = trim($match[2]);
-            $this->_filters[$field][$value] = trim($match[0]);
-
-            // Update the local copy of $filters by removing the match.  If we
-            // don't do this, part of the range queries will be matched as term
-            // queries.
-            $string = str_replace($match[0], '', $string);
-          }
-        }
-      }
-    }
   }
 
   /**

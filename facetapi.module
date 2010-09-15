@@ -386,7 +386,7 @@ function facetapi_realms_get($reset = FALSE) {
           'weight' => 0,
           'sortable' => TRUE,
           'module' => $module,
-          'callback' => $module .'_realm_'. $realm_name .'_render',
+          'callback' => $module .'_realm_'. $realm_name .'_build',
           'file' => '',
           'file path' => drupal_get_path('module', $module),
         );
@@ -679,7 +679,7 @@ function facetapi_setting_set($setting, $value) {
  * Query type hooks are generally used to process facet data and apply filters
  * to the query for the selectd items. The query type is set in the facet
  * definition, and the adapter module's hook_facetapi_query_TYPE_process()
- * implementation is invoked for each facet being rendered by the adapter.
+ * implementation is invoked for each facet being built by the adapter.
  *
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
@@ -706,7 +706,7 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
 }
 
 /**
- * Renders a facet realm, in other words converts the facet values to some
+ * Builds a facet realm, in other words converts the facet values to some
  * normalized value.
  *
  * @param $searcher
@@ -715,10 +715,10 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
  *   A string containing the machine readable name of the realm.
  *
  * @return
- *   A structured array containing the "rendered" facets.
+ *   A structured array containing the "built" facets.
  */
-function facetapi_realm_render($searcher, $realm_name) {
-  $rendered = array();
+function facetapi_realm_build($searcher, $realm_name) {
+  $built = array();
 
   // Gets all defined realms, makes sure the passed realm is valid.
   $realms = facetapi_realms_get();
@@ -730,10 +730,10 @@ function facetapi_realm_render($searcher, $realm_name) {
       $adapter = facetapi_adapter_load($searcher);
       $type = $adapter->getType();
 
-      // Adds JS, renders  facets, allows modules to alter the rendered facets.
+      // Adds JS, builds facets, allows modules to alter the built facets.
       drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
-      $rendered = call_user_func($realms[$realm_name]['callback'], $adapter, $realm_name, $facets);
-      drupal_alter('facetapi_postrender', $rendered, $searcher, $type, $realm_name);
+      $built = call_user_func($realms[$realm_name]['callback'], $adapter, $realm_name, $facets);
+      drupal_alter('facetapi_facets', $built, $searcher, $type, $realm_name);
 
       // Adds JS settings for each facet in the realm.
       $settings = array('facetapi' => array('facets' => array()));
@@ -753,7 +753,7 @@ function facetapi_realm_render($searcher, $realm_name) {
   }
 
   // Returns the rendered facet realm.
-  return $rendered;
+  return $built;
 }
 
 /**
@@ -915,7 +915,7 @@ function facetapi_hierarchy_process(array &$facet_items, array $facet) {
     $active = 0;
     foreach ($facet_items as $value => $item) {
       if ($item['active'] && !empty($item['parents'])) {
-        // @todo Can we render facets with multiple parents? Core taxonomy
+        // @todo Can we build facets with multiple parents? Core taxonomy
         // form cannot, so we will need a check here.
         foreach ($item['parents'] as $parent) {
           if (!$facet_items[$parent]['active']) {
@@ -1270,8 +1270,8 @@ function facetapi_form_search_form_alter(&$form, &$form_state) {
     return;
   }
 
-  // Renders the facets as form elements.
-  $elements = facetapi_realm_render($form['module']['#value'], 'fieldset');
+  // Builds the facets as form elements.
+  $elements = facetapi_realm_build($form['module']['#value'], 'fieldset');
   if (!empty($elements)) {
 
     // If setting is enabled, expands fieldset if at least one facet is active.
@@ -1468,19 +1468,19 @@ function facetapi_facetapi_widget_info() {
 }
 
 /**
- * Implementation of hook_facetapi_postrender_alter().
+ * Implementation of hook_facetapi_facets_alter().
  *
  * Prevents errors caused by array_merge_recursive() turning things that should
  * be strings into arrays, such as the form title and description.
  */
-function facetapi_facetapi_postrender_alter(&$rendered, $searcher, $type, $realm_name) {
-  if ('fieldset' == $realm_name && 'node' == $type && isset($rendered['tid'])) {
-    $rendered['tid']['#title']       = t('Only in the category(s)');
-    $rendered['tid']['#type']        = 'select';
-    $rendered['tid']['#multiple']    = TRUE;
-    $rendered['tid']['#description'] = '';
-    if (isset($rendered['tid']['#weight']) && is_array($rendered['tid']['#weight'])) {
-      $rendered['tid']['#weight'] = min($rendered['tid']['#weight']);
+function facetapi_facetapi_facets_alter(&$built, $searcher, $type, $realm_name) {
+  if ('fieldset' == $realm_name && 'node' == $type && isset($built['tid'])) {
+    $built['tid']['#title']       = t('Only in the category(s)');
+    $built['tid']['#type']        = 'select';
+    $built['tid']['#multiple']    = TRUE;
+    $built['tid']['#description'] = '';
+    if (isset($built['tid']['#weight']) && is_array($built['tid']['#weight'])) {
+      $built['tid']['#weight'] = min($built['tid']['#weight']);
     }
   }
 }
