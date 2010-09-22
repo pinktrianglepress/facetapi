@@ -21,7 +21,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * The default method used to retrieve facet data.
    */
-  public function fetchTerm($realm_name, array $facet) {
+  public function fetchTerm(array $facet) {
     $facet_items = array();
 
     $sql = "
@@ -46,7 +46,7 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   /**
    * Fetches data from facets that filter results by date ranges.
    */
-  public function fetchDate($realm_name, array $facet) {
+  public function fetchDate(array $facet) {
 
     $sql = "
       SELECT MIN(term) as minimum, MAX(term) as maximum
@@ -84,21 +84,16 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
     $parent = NULL;
     $gap = NULL;
 
-    $pattern = '/^'. preg_quote($facet['field alias'], '/') .':/';
-    foreach ($this->getActiveFacets($facet['field']) as $filter) {
+    foreach ($this->getActiveFacets($facet['field alias']) as $value => $active_facet) {
 
       // Strips field from value, adds to $facet_items array.
-      $value = preg_replace($pattern, '', $filter);
       $facet_items[$value] = array('count' => count($this->_docs));
 
       // Gets next "gap" increment, mintue being the lowest be can go.
-      $filter_range = explode(' TO ', trim($value, '{[]}'));
-      if (2 == count($filter_range)) {
-        $gap = facetapi_next_date_gap_get(
-          facetapi_date_gap_get($filter_range[0], $filter_range[1]),
-          FACETAPI_DATE_MINUTE
-        );
-      }
+      $gap = facetapi_next_date_gap_get(
+        facetapi_date_gap_get($active_facet['start'], $active_facet['end']),
+        FACETAPI_DATE_MINUTE
+      );
 
       // If there is a previous item, there is a parent, uses a reference so the
       // arrays are populated when they are updated.
@@ -163,16 +158,16 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
    * Overrides the fetch() function, prepopulates the termFreqs cache by calling
    * the facetapi_luceneapi_termfreqs_get() function.
    */
-  public function fetch($realm_name, array $facet) {
+  public function fetch(array $facet) {
     $term = new Zend_Search_Lucene_Index_Term(NULL, $facet['field']);
     facetapi_luceneapi_termfreqs_get($this->getSearcher(), $term);
-    return parent::fetch($realm_name, $facet);
+    return parent::fetch($facet);
   }
 
   /**
    * Returns a normalized array with facet counts included.
    */
-  public function getFacetData($realm_name, array $facets) {
+  public function getFacetData(array $facet) {
 
     // Opens the index, returns an empty index in it cannot be opened.
     if (!$this->_index = luceneapi_index_open($this->getSearcher(), $errstr)) {

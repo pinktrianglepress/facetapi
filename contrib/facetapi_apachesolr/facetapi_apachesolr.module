@@ -61,8 +61,6 @@ function facetapi_apachesolr_facetapi_facet_info_alter(array &$facets, $searcher
  * Implementation of hook_apachesolr_prepare_query().
  *
  * Invokes type hooks, adds filters.
- *
- * @see apachesolr
  */
 function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller) {
   facetapi_query_type_hooks_invoke('apachesolr_search', $params, $query);
@@ -71,8 +69,8 @@ function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller)
   $adapter = facetapi_adapter_load('apachesolr_search');
   foreach (facetapi_enabled_facets_get('apachesolr_search') as $facet) {
     $queries = array();
-    foreach ($adapter->getActiveFacets($facet['field alias']) as $active_facets) {
-      $queries[] = $facet['field alias'] .':'. $active_facets;
+    foreach ($adapter->getActiveItems($facet) as $value => $item) {
+      $queries[] = $facet['field alias'] .':'. $value;
     }
     if (!empty($queries)) {
       $params['fq'][$facet['field alias']] = $queries;
@@ -131,17 +129,24 @@ function facetapi_apachesolr_facetapi_query_date_process(FacetapiAdapter $adapte
  */
 function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
 
+  // Captures adapter, facet.
+  // @todo Do we need some defensive coding here?
+  // @todo Is facet field the facet name or the field alias?
+  $adapter = facetapi_adapter_load('apachesolr_search');
+  $enabled_facets = facetapi_enabled_facets_get('apachesolr_search');
+  $facet = $enabled_facets[$facet_field];
+
   // Attempts to get next gap from passed date filters.
   $return = NULL;
-  foreach ($query->get_filters($facet_field) as $filter) {
-    if ($gap = facetapi_date_gap_get($filter['#start'], $filter['#end'])) {
+  foreach ($adapter->getActiveItems($facet) as $value => $item) {
+    if ($gap = facetapi_date_gap_get($item['start'], $item['end'])) {
       $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
       if ($next_gap == $gap) {
         $next_gap = NULL;
       }
       $return = array(
-        "{$filter['#start']}/$next_gap",
-        "{$filter['#end']}+1$next_gap/$next_gap",
+        "{$item['start']}/$next_gap",
+        "{$item['end']}+1$next_gap/$next_gap",
         "+1$next_gap",
       );
     }
@@ -151,26 +156,25 @@ function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
   if (NULL === $return) {
 
     // Builds SQL that gets minimum and maximum values from node table.
-    $facet_field = db_escape_table($facet_field);
-    $sql = "
-      SELECT MIN($facet_field) as minimum, MAX($facet_field) as maximum
-      FROM {node}
-      WHERE status = '1'
-    ";
+    $minimum = $maximum = FALSE;
+    if (!empty($facet['min callback']) && function_exists($facet['min callback'])) {
+      $minimum = $facet['min callback']($facet);
+    }
+    if (!empty($facet['max callback']) && function_exists($facet['max callback'])) {
+      $maximum = $facet['max callback']($facet);
+    }
 
     // Gets the default gap.
     $gap = FACETAPI_DATE_YEAR;
-    if ($result = db_query($sql)) {
-      if ($record = db_fetch_object($result)) {
-        $gap = facetapi_timestamp_gap_get($record->minimum, $record->maximum);
-        $minimum = facetapi_isodate($record->minimum, $gap);
-        $maximum = facetapi_isodate($record->maximum, $gap);
-        $return = array(
-          "$minimum/$gap",
-          "$maximum+1$gap/$gap",
-          "+1$gap",
-        );
-      }
+    if ($minimum && $maximum) {
+      $gap = facetapi_timestamp_gap_get($minimum, $maximum);
+      $minimum = facetapi_isodate($minimum, $gap);
+      $maximum = facetapi_isodate($maximum, $gap);
+      $return = array(
+        "$minimum/$gap",
+        "$maximum+1$gap/$gap",
+        "+1$gap",
+      );
     }
   }
 

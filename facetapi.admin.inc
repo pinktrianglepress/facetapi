@@ -289,7 +289,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
   );
 
   // Gets widgets, sorts.
-  $widgets = facetapi_widgets_get();
+  $widgets = facetapi_widgets_get($realm['name'], $facet['query type']);
   uasort($widgets, 'facetapi_sort_weight');
 
   // Builds options.
@@ -314,15 +314,15 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     $adapter->getSearcher(), $realm['name'], $facet['name']
   );
   $form['realm'][$sort_var] = array(
-    '#type' => 'radios',
+    '#type' => 'select',
     '#title' => t('Sort order'),
     '#default_value' => variable_get($sort_var, 0),
     '#options' => array(
-      0 => t('Count'),
-      SORT_STRING .':'. SORT_ASC => t('Display value, ascending'),
-      SORT_STRING .':'. SORT_DESC => t('Display value, descending'),
-      SORT_NUMERIC .':'. SORT_ASC => t('Raw indexed value, ascending'),
-      SORT_NUMERIC .':'. SORT_DESC => t('Raw indexed value, descending'),
+      'count'        => t('Count'),
+      'display:asc'  => t('Display value, ascending'),
+      'display:desc' => t('Display value, descending'),
+      'raw:asc'      => t('Raw indexed value, ascending'),
+      'raw:desc'     => t('Raw indexed value, descending'),
     ),
     '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Display value</em> will sort alphabetically, either ascending or descending, but the value displayed to the user. <em>Raw indexed value</em> sorts by the raw value stored in the search index, usually a machine readable ID.')
   );

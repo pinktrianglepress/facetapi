@@ -55,11 +55,9 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *     - description: The realm description.
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
- *     - callback => The realm building function, defaults to
- *       "MODULE_realm_REALM_NAME_build".
- *     - file: Optionally specify the file containing the callback function.
- *     - file path: The path to the folder containing the file specified in
- *       "file". This defaults to the path to the module implementing the hook.
+ *       user interface.
+ *     - ui: A boolean that flags whether the realm should have a user
+ *       interface.
  *
  * @ingroup hooks
  */
@@ -102,13 +100,8 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *     - query type: The type of query used to filter the search results when
  *       the facet is active, i.e. "range" or "wildcard", defaults to "term".
  *       Each adapter must implement hook_facetapi_query_TYPE_process() to add
- *       the facet filter to the search uery.
- *     - fetch type: Determines which adapter's fetch*() method is used to
- *       retrieve the facet data from the search backend. Defaults to whatever
- *       is passed in "query type".
+ *       the facet filter to the search query.
  *       meaning that the detchDefault() method is used to retrieve the data.
- *     - form type: The form element type when building the facet as a for
- *       element i.e. "checkboxes", "select".
  *     - weight: The default weight of the facet when built.
  *     - map callback: Callback function that maps raw values stored in the =
  *       search backend to something human readable, for example user IDs to
@@ -119,8 +112,8 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *     - values callabck: Callback function that returns the values for a field.
  *       This callback is useful for returning form options when facets are
  *       built as select boxes, radios, etc.
- *     - default range callabck: Callback function that returns the default
- *       range values for a field.
+ *     - min callback: Callback that returns the minimum value for a field.
+ *     - max callback: Callback that returns the maximum value for a field.
  *     - file: Optionally specify the file containing the callback functions.
  *     - file path: The path to the folder containing the file specified in
  *       "file". This defaults to the path to the module implementing the hook.
@@ -149,9 +142,31 @@ function hook_facetapi_facet_info_alter(array &$facets, $searcher, $type) {
  * Allows modules to alter the built facets prior to being returned by
  * facetapi_realm_build().
  *
+ * @param $build
+ *   An array containing the build facet.
+ * @param $adapter
+ *   A FacetapiAdapter object containing the adapter.
+ * @param $realm
+ *   An array containing the full realm definition.
+ *
  * @ingroup hooks
  */
-function hook_facetapi_facets_alter(&$built, $searcher, $type, $realm_name) {
+function hook_facetapi_facets_alter(&$build, FacetapiAdapter $adapter, array $realm) {
+}
+
+/**
+ * Allows modules to parse and extract information from facet values passed
+ * through query string.
+ *
+ * @param &$value
+ *   An array containing information about the value extracted from the query
+ *   string.
+ * @param $adapter
+ *   A FacetapiAdapter object containing the adapter.
+ *
+ * @ingroup hooks
+ */
+function hook_facetapi_QUERY_TYPE_facet_value_alter(array &$value, FacetapiAdapter $adapter) {
 }
 
 /**
@@ -179,34 +194,5 @@ function hook_facetapi_widget_info() {
  *
  * @ingroup hooks
  */
-function hook_facetapi_widget_info_alter() {
+function hook_facetapi_widget_info_alter(&$widgets) {
 }
-
-/**
- *
- * @ingroup hooks
- */
-function hook_facetapi_facets_export_alter(&$export, $searcher, $realm_name) {
-}
-
-/**
- *
- * @ingroup hooks
- */
-function hook_facetapi_facets_import_alter(&$export, $searcher, $realm_name) {
-}
-
-/**
- *
- * @ingroup hooks
- */
-function hook_facetapi_realms_export_alter(&$export, $searcher) {
-}
-
-/**
- *
- * @ingroup hooks
- */
-function hook_facetapi_realms_import_alter(&$export, $searcher) {
-}
-

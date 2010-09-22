@@ -17,6 +17,21 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   protected $_response;
 
   /**
+   * Constructor, sets the response object.
+   *
+   * @param $searcher
+   *   A string containing the machine readable name of the searcher module.
+   * @param $type
+   *   A string containing the type of content indexed by $searcher.
+   * @param $module
+   *   A string containing the module that defined the adapter.
+   */
+  public function __construct($searcher, $type, $module) {
+    $this->_response = apachesolr_static_response_cache();
+    parent::__construct($searcher, $type, $module);
+  }
+
+  /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
    */
   public function searchExecuted() {
@@ -26,11 +41,13 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   /**
    * The default "fetch" method for facet data.
    */
-  public function fetchTerm($realm_name, array $facet) {
+  public function fetchTerm(array $facet) {
     $facet_items = array();
-    $raw_values = (array)$this->_response->facet_counts->facet_fields->{$facet['field']};
-    foreach ($raw_values as $value => $count) {
-      $facet_items[$value] = array('count' => $count);
+    if (NULL !== $this->_response) {
+      $raw_values = (array)$this->_response->facet_counts->facet_fields->{$facet['field']};
+      foreach ($raw_values as $value => $count) {
+        $facet_items[$value] = array('#count' => $count);
+      }
     }
     return $facet_items;
   }
@@ -38,11 +55,9 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   /**
    * Fetches data from facets that filter results by date ranges.
    */
-  public function fetchDate($realm_name, array $facet) {
+  public function fetchDate(array $facet) {
     $facet_items = array();
-
-    // Makes sure we have access to the query object.
-    if (!$query = apachesolr_current_query()) {
+    if (NULL === $this->_response) {
       return array();
     }
 
@@ -61,18 +76,17 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;
-    foreach ($query->get_filters($facet['field alias']) as $filter) {
+    foreach ($this->getActiveItems($facet) as $value => $item) {
 
       // Builds the raw facet "value", the count for selected items will be the
       // total number of rows returned in the query.
-      $value = '['. $filter['#start'] .' TO '. $filter['#end'] .']';
-      $facet_items[$value] = array('count' => $total);
+      $facet_items[$value] = array('#count' => $total);
 
       // If there is a previous item, there is a parent, uses a reference so the
       // arrays are populated when they are updated.
       if (NULL !== $parent) {
-        $facet_items[$parent]['children'][$value] = &$facet_items[$value];
-        $facet_items[$value]['parents'][$parent] = $parent;
+        $facet_items[$parent]['#item_children'][$value] = &$facet_items[$value];
+        $facet_items[$value]['#item_parents'][$parent] = $parent;
       }
 
       // Stores the last value iterated over.
@@ -109,10 +123,10 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
     foreach ($raw_data as $value => $count) {
       if ($count) {
         $new_value = '['. $value .' TO '. $range_end[$value] .']';
-        $facet_items[$new_value] = array('count' => $count);
+        $facet_items[$new_value] = array('#count' => $count, '#active' => 0);
         if (NULL !== $parent) {
-          $facet_items[$parent]['children'][$new_value] = &$facet_items[$new_value];
-          $facet_items[$new_value]['parents'][$parent] = $parent;
+          $facet_items[$parent]['#item_children'][$new_value] = &$facet_items[$new_value];
+          $facet_items[$new_value]['#item_parents'][$parent] = $parent;
         }
       }
     }
@@ -121,15 +135,13 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Returns an array of facet counts.
+   *
    */
-  public function getFacetData($realm_name, array $facets) {
-    if ($this->_response = apachesolr_static_response_cache()) {
-      return parent::getFacetData($realm_name, $facets);
+  public function fetch(array $facet) {
+    if (NULL === $this->_response) {
+      $this->_response = apachesolr_static_response_cache();
     }
-    else {
-      return array();
-    }
+    return parent::fetch($facet);
   }
 
   /**

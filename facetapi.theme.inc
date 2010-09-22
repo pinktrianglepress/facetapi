@@ -7,23 +7,27 @@
  */
 
 /**
- * Themes facets displayed in a block.
+ * Wrapper around theme_item_list(), accepts render array as an argument.
  *
- * @param $links
- *   An array of facet links.
- * @param $title
- *   A string containing the facet title.
- *   NOTE: Assume title has been run through theme('facetapi_block_title');
- * @param $class
- *   A string containing the class for the container div.
+ * @param $variables
  *
- * @return
- *   A string containing the themed list.
+ * @see theme_item_list()
+ * @todo Remove in Drupal 7.
  */
-function theme_facetapi_block($links, $title = NULL, array $attributes = array()) {
-  $output  = '<div'. drupal_attributes($attributes) .'>';
-  $output .= theme('item_list', $links, $title, 'ul', $attributes);
+function theme_facetapi_item_list($element) {
+  $field_alias = $element['#facet']['field alias'];
+
+  // Themes title, initializes attributes if necessary.
+  $title = theme('facetapi_title', $element['#title']);
+  if (empty($element['#attributes'])) {
+    $element['#attributes'] = array();
+  }
+
+  // Themes the item list.
+  $output  = '<div'. drupal_attributes($element['#attributes']) .'>';
+  $output .= theme('item_list', $element[$field_alias], $title);
   $output .= '</div>';
+
   return $output;
 }
 
@@ -36,7 +40,7 @@ function theme_facetapi_block($links, $title = NULL, array $attributes = array()
  * @return
  *   A string containing the themed title.
  */
-function theme_facetapi_block_title($title) {
+function theme_facetapi_title($title) {
   return t('Filter by @title:', array('@title' => drupal_strtolower($title)));
 }
 
@@ -94,7 +98,7 @@ function theme_facetapi_link_inactive($text, $path, array $options = array(), $c
  *   The themes number.
  */
 function theme_facetapi_count($count) {
-  return sprintf(' (%d)', $count);
+  return '('. check_plain($count) .')';
 }
 
 /**
@@ -113,5 +117,5 @@ function theme_facetapi_count($count) {
  * @see facetapi_l()
  */
 function theme_facetapi_link_active($text, $path, array $options = array()) {
-  return facetapi_l(sprintf('(-) %s', $text), $path, $options);
+  return facetapi_l('(-) '. $text, $path, $options);
 }

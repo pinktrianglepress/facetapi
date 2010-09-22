@@ -8,7 +8,7 @@ Drupal.behaviors.facetapi = function(context) {
     var facet = new facetapi.facet(Drupal.settings.facetapi.facets[index]);
     facet.init();
   }
-};
+}
 
 /**
  * Constructor for facet settings class.
