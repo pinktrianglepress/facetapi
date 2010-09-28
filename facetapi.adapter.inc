@@ -454,8 +454,7 @@ class FacetapiFacet {
     );
 
     // Sorts the facet tiems.
-    // @todo Complete this functionality.
-    facetapi_facet_sort($build[$field_alias]);
+    facetapi_facet_sort($build[$field_alias], $this->_facet);
 
     // Gets the widget from the settings.
     // @todo Realm should provide a default widget.
@@ -546,6 +545,7 @@ class FacetapiFacet {
     $defaults = array(
       '#type'          => 'markup',
       '#value'         => '',
+      '#indexed_value' => '',
       '#count'         => 0,
       '#active'        => 0,
       '#item_parents'  => array(),
@@ -557,8 +557,9 @@ class FacetapiFacet {
     foreach (element_children($items) as $value) {
       // @todo Use #markup in D7.
       $item_defaults = array(
-        '#value' => $value,
-        '#active' => $this->itemActive($value),
+        '#value'          => $value,
+        '#indexed_value'  => $value,
+        '#active'         => $this->itemActive($value),
       );
 
       // This seems silly, but it maintains the references to the child items
@@ -739,27 +740,16 @@ function facetapi_inactive_parent_filter(array $build) {
  *
  * @param &$build
  *   The render array for the facet's items.
+ * @param $facet
+ *   An array containing the facet information.
  */
-function facetapi_facet_sort(&$build, $type = 'count', $flow = 'desc') {
-  if (!empty($build['#item_children'])) {
-    facetapi_facet_sort($build['#item_children']);
+function facetapi_facet_sort(&$build, array $facet) {
+  foreach (element_children($build) as $value) {
+    if (!empty($build[$value]['#item_children'])) {
+      facetapi_facet_sort($build[$value]['#item_children'], $facet);
+    }
   }
-
-  switch ($type) {
-    case 'display':
-      $cmp_function = (SORT_DESC != $flow) ? 'facetapi_sort_text' : 'facetapi_rsort_text';
-      uasort($build, $cmp_function);
-      break;
-
-    case 'raw':
-      $sort_function = (SORT_ASC == $flow) ? 'ksort' : 'krsort';
-      $sort_function($build);
-      break;
-
-    default:
-      uasort($build, 'facetapi_sort_count');
-      break;
-  }
+  uasort($build, 'facetapi_sort_count');
 }
 
 /**
@@ -776,26 +766,28 @@ function facetapi_sort_active(array $a, array $b) {
 }
 
 /**
- * Useful as a uasort() callback to sort structured arrays by count.  If the
- * weights are equal, sorts by text.
+ * A uasort() callback for count.
  *
- * @see facetapi_sort_text()
- * @see facetapi_sort_active()
+ * @see facetapi_facetapi_sort_info().
  */
 function facetapi_sort_count(array $a, array $b) {
+  if ($active_sort = facetapi_sort_active($a, $b)) {
+    return $active_sort;
+  }
   $a_count = (isset($a['#count'])) ? $a['#count'] : 0;
   $b_count = (isset($b['#count'])) ? $b['#count'] : 0;
   if ($a_count == $b_count) {
-    return facetapi_sort_text($a, $b);
+    return facetapi_sort_display($a, $b);
   }
-  // NOTE: Sorts in reverse order, starting with highest count.
   return ($a_count > $b_count) ? -1 : 1;
 }
 
 /**
- * Useful as a uasort() callback to sort structured arrays by text.
+ * A uasort() callback for display value.
+ *
+ * @see facetapi_facetapi_sort_info().
  */
-function facetapi_sort_text(array $a, array $b) {
+function facetapi_sort_display(array $a, array $b) {
   if ($active_sort = facetapi_sort_active($a, $b)) {
     return $active_sort;
   }
@@ -805,9 +797,16 @@ function facetapi_sort_text(array $a, array $b) {
 }
 
 /**
- * Useful as a uasort() callback to reverse sort structured arrays by title.
+ * A uasort() callback for indexed value.
+ *
+ * @see facetapi_facetapi_sort_info().
  */
-function facetapi_rsort_text(array $a, array $b) {
-  return -1 * facetapi_sort_text($a, $b);
+function facetapi_sort_indexed(array $a, array $b) {
+  if ($active_sort = facetapi_sort_active($a, $b)) {
+    return $active_sort;
+  }
+  $a_count = (isset($a['#indexed_value'])) ? $a['#indexed_value'] : '';
+  $b_count = (isset($b['#indexed_value'])) ? $b['#indexed_value'] : '';
+  return ($a['#indexed_value'] > $b['#indexed_value']) ? 1 : -1;
 }
 

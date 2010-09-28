@@ -52,6 +52,8 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *   An associative array containing:
  *   - name: The machine readable name of the realm.
  *     - title: Human readable name of the realm, i.e. label.
+ *     - display type: Discribes the general type of display, for example "form"
+ *       or "list".
  *     - description: The realm description.
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
@@ -102,6 +104,10 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       Each adapter must implement hook_facetapi_query_TYPE_process() to add
  *       the facet filter to the search query.
  *       meaning that the detchDefault() method is used to retrieve the data.
+ *     - data group: Used to describe what type of data is being faceted on. For
+ *       example, taxonomy terms use "taxonomy", while user data uses "user".
+ *       Some widgets rescrict which facets can use them by white listing
+ *       certain data groups.
  *     - weight: The default weight of the facet when built.
  *     - map callback: Callback function that maps raw values stored in the =
  *       search backend to something human readable, for example user IDs to
@@ -177,8 +183,8 @@ function hook_facetapi_QUERY_TYPE_facet_value_alter(array &$value, FacetapiAdapt
  *   - name: The machine readable name of the widget.
  *     - title: Human readable name of the widget.
  *     - callback: Callback function used to theme the facets.
- *     - realms: An array of realms the widget applies to.
- *     - query types: An array of query types the widget applies to.
+ *     - access callbacks: An array of callbacks that restrict whether or not a
+ *       facet has access to use it.
  *     - weight: The weight of the widget when displayed in forms.
  *
  * @ingroup hooks
@@ -195,4 +201,24 @@ function hook_facetapi_widget_info() {
  * @ingroup hooks
  */
 function hook_facetapi_widget_info_alter(&$widgets) {
+}
+
+/**
+ * Allows modules to define custom sorting routines for facet items.
+ *
+ * @return
+ *   An array of sort information.
+ */
+function hook_facetapi_sort_info() {
+}
+
+/**
+ * Allows modules to alter the sort definitions.
+ *
+ * @param &sorts
+ *   An associative array of sort definitions.
+ *
+ * @ingroup hooks
+ */
+function hook_facetapi_sort_info_alter() {
 }

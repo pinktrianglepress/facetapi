@@ -288,8 +288,15 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#collapsible' => TRUE,
   );
 
+  // Variables passed to facetapi_widgets_get().
+  $varialbes = array(
+    'adapter' => $adapter,
+    'realm'   => $realm,
+    'facet'   => $facet,
+  );
+
   // Gets widgets, sorts.
-  $widgets = facetapi_widgets_get($realm['name'], $facet['query type']);
+  $widgets = facetapi_widgets_get($varialbes);
   uasort($widgets, 'facetapi_sort_weight');
 
   // Builds options.

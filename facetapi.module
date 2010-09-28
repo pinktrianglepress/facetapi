@@ -57,6 +57,16 @@ define('FACETAPI_DATE_ISO8601', 'Y-m-d\TH:i:s\Z');
 define('FACETAPI_REGEX_RANGE', '/^[\[\{](\S+) TO (\S+)[\]\}]$/');
 
 /**
+ * Regex pattern for date queries.
+ */
+define('FACETAPI_REGEX_DATE', '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/');
+
+/**
+ * Regex pattern for date ranges.
+ */
+define('FACETAPI_REGEX_DATE_RANGE', '/^\[('. trim(FACETAPI_REGEX_DATE, '/^$') .') TO ('. trim(FACETAPI_REGEX_DATE, '/^$') .')\]$/');
+
+/**
  * Implementation of hook_menu().
  */
 function facetapi_menu() {
@@ -138,6 +148,10 @@ function facetapi_realm_load($realm_name) {
 
 /**
  * Loads a single facet definition.
+ *
+ * NOTE: Facets aren't statically cached by this function, so avoid situations
+ * where this needs to be called repeatedly. Use facetapi_enabled_facets_get()
+ * as an alternative.
  *
  * @param $realm_name
  *   A string containing the machine readable name of the realm.
@@ -318,12 +332,13 @@ function facetapi_realms_get($reset = FALSE) {
     $realms = array();
     foreach (module_invoke_all('facetapi_realm_info') as $realm_name => $realm) {
       $defaults = array(
-        'name'        => $realm_name,
-        'title'       => $realm_name,
-        'description' => '',
-        'weight'      => 0,
-        'sortable'    => TRUE,
-        'ui'          => TRUE,
+        'name'         => $realm_name,
+        'title'        => $realm_name,
+        'description'  => '',
+        'display type' => 'form',
+        'weight'       => 0,
+        'sortable'     => TRUE,
+        'ui'           => TRUE,
       );
       $realms[$realm_name] = array_merge($defaults, $realm);
     }
@@ -363,6 +378,7 @@ function facetapi_facets_get($searcher, $type) {
         'field'              => $facet_name,
         'field alias'        => isset($facet['field']) ? $facet['field'] : $facet_name,
         'query type'         => 'term',
+        'data group'         => FALSE,
         'weight'             => 0,
         'map callback'       => FALSE,
         'hierarchy callback' => FALSE,
@@ -464,19 +480,17 @@ function facetapi_enabled_facets_get($searcher, $realm_name = NULL, $reset = FAL
 /**
  * Invokes hook_facetapi_widget_info(), returns all defined widgets.
  *
- * @param $realm_name
- *   A string containing the machine readable name of the realm. If passed,
- *   only the widgets that apply to the realm will be returned.
- * @param $query_type
- *   A string containing the query type. If passed, only the widgets that apply
- *   to the query type will be returned.
+ * @param $variables
+ *   An array of variables passed to the restriction callbacks. By default it
+ *   contains the adapter, realm definition, and facet definition. If the array
+ *   is empty, all widgets will be returned.
  * @param $reset
  *   A boolean flagging whether the static should be reset.
  *
  * @return
  *   An associative array of widget definitions keyed by widget name.
  */
-function facetapi_widgets_get($realm_name = NULL, $query_type = NULL, $reset = FALSE) {
+function facetapi_widgets_get(array $variables = array(), $reset = FALSE) {
   static $widgets;
   if (NULL === $widgets || $reset) {
 
@@ -486,15 +500,18 @@ function facetapi_widgets_get($realm_name = NULL, $query_type = NULL, $reset = F
       $module_widgets = module_invoke($module, 'facetapi_widget_info');
       foreach ($module_widgets as $widget_name => $widget_info) {
         $defaults = array(
-          'title'       => t('Widget'),
-          'callback'    => 'facetapi_links_widget_callback',
-          'realms'      => array(),
-          'query types' => array(),
-          'weight'      => 0,
-          'file'        => '',
-          'file path'   => drupal_get_path('module', $module),
+          'title'            => t('Widget'),
+          'callback'         => 'facetapi_links_widget_callback',
+          'access callbacks' => array(),
+          'access arguments' => array(),
+          'weight'           => 0,
+          'file'             => '',
+          'file path'        => drupal_get_path('module', $module),
         );
         $widgets[$widget_name] = array_merge($defaults, $widget_info);
+        $widgets[$widget_name]['access arguments'] = array_merge(
+          $variables, $widgets[$widget_name]['access arguments']
+        );
       }
     }
 
@@ -502,32 +519,63 @@ function facetapi_widgets_get($realm_name = NULL, $query_type = NULL, $reset = F
     drupal_alter('facetapi_widget_info', $widgets);
   }
 
-  // Strips widgets that don't apply.
-  $return = $widgets;
-  if (NULL !== $realm_name) {
-    array_walk($return, 'facetapi_widgets_strip', array('realms', $realm_name));
+  // Applies access callbacks if variables were passed.
+  if (!empty($variables)) {
+    $widgets = array_filter($widgets, 'facetapi_widgets_filter');
   }
-  if (NULL !== $query_type) {
-    array_walk($return, 'facetapi_widgets_strip', array('query types', $query_type));
-  }
-  return array_filter($return);
+
+  return $widgets;
 }
 
 /**
- * Strips widgets that don't apply to either the realm or the query type.
- * Useful as a callback for array_walk().
+ * Filters widgets by invoking their access callbacks.
  *
- * @param &$widget_info
- *   An array containing the widget info.
- * @param $widget_name
- *   A string containing the machine readable name of the widget.
- * @param $data
- *   An array of data that says which criteria we are filtering on.
+ * @param $widget
+ *   An array containing the widget information.
+ *
+ * @return
+ *   A boolean flagging whether the item should be kept in the array.
  */
-function facetapi_widgets_strip(&$widget_info, $widget_name, $data) {
-  if (!empty($widget_info[$data[0]]) && !in_array($data[1], $widget_info[$data[0]])) {
-    $widget_info = array();
+function facetapi_widgets_filter($widget) {
+  $access = TRUE;
+  facetapi_file_include($widget);
+  foreach ($widget['access callbacks'] as $callback) {
+    $return = call_user_func($callback, $widget['access arguments']);
+    if (isset($return)) {
+      $access = $return;
+    }
   }
+  return $access;
+}
+
+/**
+ * Invokes hook_facetapi_sort_info(), returns all defined sorts.
+ *
+ * @param $reset
+ *   A boolean flagging whether the static should be reset.
+ *
+ * @return
+ *   An associative array of sort definitions keyed by sort name.
+ */
+function facetapi_sorts_get($reset = FALSE) {
+  static $sorts;
+  if (NULL === $sorts || $reset) {
+
+    // Gets realm info from hooks, merges with defaults.
+    $sorts = array();
+    foreach (module_invoke_all('facetapi_sort_info') as $sort_name => $sort) {
+      $defaults = array(
+        'name'     => $sort_name,
+        'title'    => $sort_name,
+        'callback' => '',
+      );
+      $sorts[$sort_name] = array_merge($defaults, $sort);
+    }
+
+    // Invokes alter hook.
+    drupal_alter('facetapi_sort_info', $sorts);
+  }
+  return $sorts;
 }
 
 /**
@@ -672,10 +720,10 @@ function facetapi_facetapi_range_facet_value_alter(array &$value, FacetapiAdapte
  * Processes date queries.
  */
 function facetapi_facetapi_date_facet_value_alter(array &$value, FacetapiAdapter $adapter) {
-  if (preg_match(FACETAPI_REGEX_RANGE, $value['value'], $matches)) {
+  if (preg_match(FACETAPI_REGEX_DATE_RANGE, $value['value'], $matches)) {
     $value['range'] = TRUE;
     $value['start'] = $matches[1];
-    $value['end']   = $matches[2];
+    $value['end']   = $matches[8];
   }
 }
 
@@ -740,8 +788,8 @@ function facetapi_realm_build($searcher, $realm_name) {
       $facet_build = $adapter->getFacet($facet)->build($realm);
 
       // Tries to be smart when merging the render arrays. Crazy things happen
-      // when merging things with the same field alias, like taxonomy terms in
-      // the fieldset realm. We only want to merge the values.
+      // when merging facets with the same field alias such as taxonomy terms in
+      // the fieldset realm. We want to merge only the values.
       foreach (element_children($facet_build) as $child) {
         if (!isset($build[$child])) {
           $build = array_merge_recursive($build, $facet_build);
@@ -838,6 +886,8 @@ function facetapi_facets_sort(array &$facets, $searcher, $realm_name) {
 /**
  * Useful as a uasort() callback to sort structured arrays by weight. Loose
  * backport of the D7 drupal_sort_weight() function.
+ *
+ * @todo Remove in favor of drupal_sort_weight() in D7.
  */
 function facetapi_sort_weight(array $a, array $b) {
   $a_weight = (isset($a['weight'])) ? $a['weight'] : 0;
@@ -1097,8 +1147,7 @@ function facetapi_date_format($date, $gap = FACETAPI_DATE_YEAR) {
  *   A string containing the date, FALSE if the passed date could not be parsed.
  */
 function facetapi_next_date_increment_get($date, $gap) {
-  $pattern = '@(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})@';
-  if (preg_match($pattern, $date, $match)) {
+  if (preg_match(FACETAPI_REGEX_DATE, $date, $match)) {
 
     // Increments the timestamp.
     switch ($gap) {
@@ -1138,10 +1187,11 @@ function facetapi_facetapi_realm_info() {
 
   // Displays each facet in a separate block.
   $realms['block'] = array(
-    'title'       => t('Blocks'),
-    'weight'      => -10,
-    'sortable'    => FALSE,
-    'description' => t(
+    'title'        => t('Blocks'),
+    'display type' => 'list',
+    'weight'       => -10,
+    'sortable'     => FALSE,
+    'description'  => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
       array('@block-page' => url('admin/build/block/list', array('query' => array('destination' => $_GET['q']))))
     ),
@@ -1149,9 +1199,10 @@ function facetapi_facetapi_realm_info() {
 
   // Displays facets in a fieldset below the search form.
   $realms['fieldset'] = array(
-    'title'       => t('Fieldset'),
-    'weight'      => -5,
-    'description' => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
+    'title'        => t('Fieldset'),
+    'display type' => 'form',
+    'weight'       => -5,
+    'description'  => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
   );
 
   return $realms;
@@ -1310,6 +1361,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
       'title'           => t('Author'),
       'description'     => t('Filter by author.'),
       'field'           => 'uid',
+      'data group'      => 'user',
       'map callback'    => 'facetapi_callback_uid_map',
       'file'            => 'facetapi.callbacks.inc',
     );
@@ -1349,6 +1401,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
         $facets[$facet_name] = array(
           'title'           => $voc->name,
           'field'           => 'category',
+          'data group'      => 'taxonomy',
           'map callback'    => 'facetapi_callback_taxonomy_map',
           'values callback' => 'facetapi_callback_taxonomy_values',
           'file'            => 'facetapi.callbacks.inc',
@@ -1373,59 +1426,100 @@ function facetapi_facetapi_facet_info($searcher, $type) {
  * Implementation of hook_facetapi_widget_info().
  */
 function facetapi_facetapi_widget_info() {
-  return array(
-    'facetapi_links' => array(
-      'title'    => t('Links'),
-      'callback' => 'facetapi_widget_links',
-      'realms'   => array('block'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -10,
-    ),
-    /*
-    'facetapi_link_checkboxes' => array(
-      'title'    => t('Links with checkboxes'),
-      'callback' => 'facetapi_widget_checkbox_links',
-      'realms'   => array('block'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -5,
-    ),
-    */
-    'facetapi_checkboxes' => array(
-      'title'    => t('Checkboxes'),
-      'callback' => 'facetapi_widget_checkboxes',
-      'realms'   => array('fieldset'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -10,
-    ),
-    'facetapi_radios' => array(
-      'title'    => t('Radios'),
-      'callback' => 'facetapi_widget_radios',
-      'realms'   => array('fieldset'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -9,
-    ),
-    'facetapi_select' => array(
-      'title'    => t('Select list'),
-      'callback' => 'facetapi_widget_select',
-      'realms'   => array('fieldset'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -8,
-    ),
-    'facetapi_multiselect' => array(
-      'title'    => t('Multiple value select list'),
-      'callback' => 'facetapi_widget_multiselect',
-      'realms'   => array('fieldset'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -7,
-    ),
-    'facetapi_textfield' => array(
-      'title'    => t('Text field'),
-      'callback' => 'facetapi_widget_textfield',
-      'realms'   => array('fieldset'),
-      'file'     => 'facetapi.widget.inc',
-      'weight'   => -6,
-    ),
+  $widgets = array();
+
+  $widgets['facetapi_links'] = array(
+    'title'            => t('Links'),
+    'callback'         => 'facetapi_widget_links',
+    'access callbacks' => array('facetapi_widget_access_type'),
+    'access arguments' => array('type' => 'list'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -10,
   );
+
+  $widgets['facetapi_link_checkboxes'] = array(
+    'title'            => t('Links with checkboxes'),
+    'callback'         => 'facetapi_widget_link_checkboxes',
+    'access callbacks' => array('facetapi_widget_access_type'),
+    'access arguments' => array('type' => 'list'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -9,
+  );
+
+  $widgets['facetapi_checkboxes'] = array(
+    'title'            => t('Checkboxes'),
+    'callback'         => 'facetapi_widget_checkboxes',
+    'access callbacks' => array('facetapi_widget_access_type', 'facetapi_widget_access_values'),
+    'access arguments' => array('type' => 'form'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -10,
+  );
+
+  $widgets['facetapi_radios'] = array(
+    'title'            => t('Radios'),
+    'callback'         => 'facetapi_widget_radios',
+    'access callbacks' => array('facetapi_widget_access_type', 'facetapi_widget_access_values'),
+    'access arguments' => array('type' => 'form'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -9,
+  );
+
+  $widgets['facetapi_select'] = array(
+    'title'            => t('Select list'),
+    'callback'         => 'facetapi_widget_select',
+    'access callbacks' => array('facetapi_widget_access_type', 'facetapi_widget_access_values'),
+    'access arguments' => array('type' => 'form'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -8,
+  );
+
+  $widgets['facetapi_multiselect'] = array(
+    'title'            => t('Multiple value select list'),
+    'callback'         => 'facetapi_widget_multiselect',
+    'access callbacks' => array('facetapi_widget_access_type', 'facetapi_widget_access_values'),
+    'access arguments' => array('type' => 'form'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -7,
+  );
+
+  $widgets['facetapi_textfield'] = array(
+    'title'            => t('Text field'),
+    'callback'         => 'facetapi_widget_textfield',
+    'access callbacks' => array('facetapi_widget_access_type'),
+    'access arguments' => array('type' => 'form'),
+    'file'             => 'facetapi.widget.inc',
+    'weight'           => -6,
+  );
+
+  return $widgets;
+}
+
+/**
+ * Implementation of hook_facetapi_sort_info().
+ */
+function facetapi_facetapi_sort_info() {
+  $sorts = array();
+
+  $sorts['none'] = array(
+    'title'    => t('No sort'),
+  );
+
+  $sorts['count'] = array(
+    'title'    => t('Count'),
+    'callback' => 'facetapi_sort_count',
+  );
+
+  $sorts['display'] = array(
+    'title'    => t('Display value'),
+    'callback' => 'facetapi_sort_display',
+  );
+
+  $sorts['indexed'] = array(
+    'title'    => t('Indexed value'),
+    'callback' => 'facetapi_sort_indexed',
+  );
+
+  return $sorts;
 }
 
 /**

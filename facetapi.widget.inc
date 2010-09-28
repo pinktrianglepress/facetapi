@@ -30,7 +30,7 @@ function facetapi_widget_links(array &$build, &$key, &$settings) {
 
   // Converts the array to something that can be read by theme_item_list().
   $build['#theme'] = 'facetapi_item_list';
-  $build[$field_alias]  = facetapi_item_list_build($build[$field_alias]);
+  $build[$field_alias] = facetapi_item_list_build($build[$field_alias]);
 
   // Adds "soft limit" to the javascript settings.
   $searcher = $build['#adapter']->getSearcher();
@@ -49,8 +49,8 @@ function facetapi_widget_links(array &$build, &$key, &$settings) {
  * @param &$settings
  *   An array containing the JavaScript settings.
  */
-function facetapi_widget_checkbox_links(array &$build, &$key) {
-  //
+function facetapi_widget_link_checkboxes(array &$build, &$key, &$settings) {
+  facetapi_widget_links($build, $key, $settings);
 }
 
 /**
@@ -67,6 +67,8 @@ function facetapi_widget_checkboxes(array &$build, &$key, &$settings) {
   $build['#type'] = 'checkboxes';
   $build['#default_value'] = $build['#adapter']->getActiveValues($build['#facet']);
   $build['#options'] = array_map('check_plain', facetapi_form_options_get($build));
+  $build['#prefix'] = '<div class="criterion">';
+  $build['#suffix'] = '</div>';
   unset($build[$build['#facet']['field alias']]);
 }
 
@@ -84,6 +86,8 @@ function facetapi_widget_radios(array &$build, &$key, &$settings) {
   $build['#type'] = 'radios';
   $build['#default_value'] = $build['#adapter']->getActiveValues($build['#facet']);
   $build['#options'] = array_map('check_plain', facetapi_form_options_get($build, TRUE));
+  $build['#prefix'] = '<div class="criterion">';
+  $build['#suffix'] = '</div>';
   unset($build[$build['#facet']['field alias']]);
 }
 
@@ -101,6 +105,8 @@ function facetapi_widget_select(array &$build, &$key, &$settings) {
   $build['#type'] = 'select';
   $build['#default_value'] = $build['#adapter']->getActiveValues($build['#facet']);
   $build['#options'] = facetapi_form_options_get($build, TRUE);
+  $build['#prefix'] = '<div class="criterion">';
+  $build['#suffix'] = '</div>';
   unset($build[$build['#facet']['field alias']]);
 }
 
@@ -119,6 +125,9 @@ function facetapi_widget_multiselect(array &$build, &$key, &$settings) {
   $build['#multiple'] = TRUE;
   $build['#default_value'] = $build['#adapter']->getActiveValues($build['#facet']);
   $build['#options'] = facetapi_form_options_get($build);
+  $build['#prefix'] = '<div class="criterion">';
+  $build['#suffix'] = '</div>';
+  $build['#size'] = 10;
   unset($build[$build['#facet']['field alias']]);
 }
 
@@ -135,6 +144,9 @@ function facetapi_widget_multiselect(array &$build, &$key, &$settings) {
 function facetapi_widget_textfield(array &$build, &$key, &$settings) {
   $build['#type'] = 'textfield';
   $build['#default_value'] = drupal_implode_tags($build['#adapter']->getActiveValues($build['#facet']));
+  $build['#prefix'] = '<div class="criterion">';
+  $build['#suffix'] = '</div>';
+  $build['#size'] = 30;
   unset($build[$build['#facet']['field alias']]);
 }
 
@@ -350,4 +362,40 @@ function facetapi_form_options_get(&$build, $all_option = FALSE) {
   }
 
   return $options;
+}
+
+/**
+ * Allows widget to be used only in certain display types.
+ *
+ * @param $variables
+ *   An array of variables containing the adapter, realm, and facet definitions.
+ */
+function facetapi_widget_access_type($variables) {
+  if ($variables['realm']['display type'] != $variables['type']) {
+    return FALSE;
+  }
+}
+
+/**
+ * Allows widget to only the facets with default values.
+ *
+ * @param $variables
+ *   An array of variables containing the adapter, realm, and facet definitions.
+ */
+function facetapi_widget_access_values($variables) {
+  if (empty($variables['facet']['values callback'])) {
+    return FALSE;
+  }
+}
+
+/**
+ * Allows widget to only the facets with default values.
+ *
+ * @param $variables
+ *   An array of variables containing the adapter, realm, and facet definitions.
+ */
+function facetapi_widget_access_group($variables) {
+  if ($variables['facet']['data group'] != $variables['group']) {
+    return FALSE;
+  }
 }
