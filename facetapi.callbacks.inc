@@ -163,8 +163,28 @@ function facetapi_callback_language_values(array $facet) {
  * @return
  *   An array of values passed as options to the form element.
  */
-function facetapi_values_type(array $facet) {
+function facetapi_callback_type_values(array $facet) {
   return array_map('check_plain', node_get_types('names'));
+}
+
+/**
+ * Returns all user names.
+ *
+ * @param $facet
+ *   An array containing the facet definition.
+ *
+ * @return
+ *   An array of values passed as options to the form element.
+ */
+function facetapi_callback_user_values(array $facet) {
+  $users = array();
+  $sql = "SELECT uid, name FROM {users} WHERE status = 1";
+  if ($result = db_query($sql)) {
+    while ($record = db_fetch_object($result)) {
+      $users[$record->uid] = check_plain($record->name);
+    }
+  }
+  return $users;
 }
 
 /**

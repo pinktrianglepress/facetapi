@@ -83,8 +83,18 @@ function facetapi_widget_checkboxes(array &$build, &$key, &$settings) {
  *   An array containing the JavaScript settings.
  */
 function facetapi_widget_radios(array &$build, &$key, &$settings) {
+
+  // Gets the default value, on;y one can be passed for radio widget.
+  $active_values = $build['#adapter']->getActiveValues($build['#facet']);
+  if (!empty($active_values)) {
+    $build['#default_value'] = array_shift($active_values);
+  }
+  else {
+    $build['#default_value'] = '__all__';
+  }
+
+  // Builds radio element.
   $build['#type'] = 'radios';
-  $build['#default_value'] = $build['#adapter']->getActiveValues($build['#facet']);
   $build['#options'] = array_map('check_plain', facetapi_form_options_get($build, TRUE));
   $build['#prefix'] = '<div class="criterion">';
   $build['#suffix'] = '</div>';
@@ -348,18 +358,20 @@ function facetapi_form_options_get(&$build, $all_option = FALSE) {
   }
   else {
     // @todo The text should be a setting.
-    $options = array('<all>' => t('<All>'));
+    $options = array('__all__' => t('<All>'));
   }
 
   // Builds options.
   if (!empty($build['#facet']['values callback']) && function_exists($build['#facet']['values callback'])) {
-    $options = array_merge($options, $build['#facet']['values callback']($build['#facet']));
+    $options += $build['#facet']['values callback']($build['#facet']);
   }
   else {
     foreach ($build[$field_alias] as $value => $item) {
       $options[$value] = $item['#value'];
     }
   }
+
+  //var_dump($options);
 
   return $options;
 }

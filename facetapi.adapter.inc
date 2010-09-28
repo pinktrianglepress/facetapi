@@ -460,7 +460,7 @@ class FacetapiFacet {
     // @todo Realm should provide a default widget.
     $widgets = facetapi_widgets_get();
     if (!$widget_name = facetapi_setting_get('widget', $searcher, $realm['name'], $this->_facet['name'])) {
-      $widget_name = 'facetapi_links';
+      $widget_name = $realm['default widget'];
     }
 
     // Initializes JavaScript settings.

@@ -332,13 +332,14 @@ function facetapi_realms_get($reset = FALSE) {
     $realms = array();
     foreach (module_invoke_all('facetapi_realm_info') as $realm_name => $realm) {
       $defaults = array(
-        'name'         => $realm_name,
-        'title'        => $realm_name,
-        'description'  => '',
-        'display type' => 'form',
-        'weight'       => 0,
-        'sortable'     => TRUE,
-        'ui'           => TRUE,
+        'name'           => $realm_name,
+        'title'          => $realm_name,
+        'description'    => '',
+        'display type'   => 'form',
+        'default widget' => '',
+        'weight'         => 0,
+        'sortable'       => TRUE,
+        'ui'             => TRUE,
       );
       $realms[$realm_name] = array_merge($defaults, $realm);
     }
@@ -1187,11 +1188,12 @@ function facetapi_facetapi_realm_info() {
 
   // Displays each facet in a separate block.
   $realms['block'] = array(
-    'title'        => t('Blocks'),
-    'display type' => 'list',
-    'weight'       => -10,
-    'sortable'     => FALSE,
-    'description'  => t(
+    'title'          => t('Blocks'),
+    'display type'   => 'list',
+    'weight'         => -10,
+    'sortable'       => FALSE,
+    'default widget' => 'facetapi_links',
+    'description'    => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
       array('@block-page' => url('admin/build/block/list', array('query' => array('destination' => $_GET['q']))))
     ),
@@ -1199,10 +1201,11 @@ function facetapi_facetapi_realm_info() {
 
   // Displays facets in a fieldset below the search form.
   $realms['fieldset'] = array(
-    'title'        => t('Fieldset'),
-    'display type' => 'form',
-    'weight'       => -5,
-    'description'  => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
+    'title'          => t('Fieldset'),
+    'display type'   => 'form',
+    'weight'         => -5,
+    'default widget' => 'facetapi_textfield',
+    'description'    => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
   );
 
   return $realms;
@@ -1320,7 +1323,7 @@ function facetapi_search_form_submit($form, &$form_state) {
     if (!empty($form_state['values']['processed_facets'])) {
       foreach ($form_state['values']['processed_facets'] as $facet) {
         foreach ($facet['values'] as $value) {
-          if ('<all>' != $value) {
+          if ('__all__' != $value) {
             $qstring[$facet['field alias']][$value] = $value;
           }
         }
@@ -1353,7 +1356,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
       'title'           => t('Content type'),
       'description'     => t('Filter by content type.'),
       'map callback'    => 'facetapi_callback_type_map',
-      'values callback' => 'facetapi_values_type',
+      'values callback' => 'facetapi_callback_type_values',
       'file'            => 'facetapi.callbacks.inc',
     );
 
@@ -1363,6 +1366,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
       'field'           => 'uid',
       'data group'      => 'user',
       'map callback'    => 'facetapi_callback_uid_map',
+      'values callback' => 'facetapi_callback_user_values',
       'file'            => 'facetapi.callbacks.inc',
     );
 
