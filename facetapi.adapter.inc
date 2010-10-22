@@ -38,11 +38,6 @@ abstract class FacetapiAdapter {
   protected $_facets = array();
 
   /**
-   * An array of enabled sorts.
-   */
-  protected $_sorts = array();
-
-  /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param $searcher
@@ -473,7 +468,7 @@ class FacetapiFacet {
       $this->_sorts[$sort_name]['order']  = variable_get($order_var, 0);
     }
     uasort($this->_sorts, 'facetapi_sort_weight');
-    $this->sort($build[$field_alias]);
+    $this->_sort($build[$field_alias]);
 
     // Gets the widget from the settings.
     // @todo Realm should provide a default widget.
@@ -680,19 +675,19 @@ class FacetapiFacet {
    * @param &$build
    *   An array containing the render array.
    */
-  public function sort(&$build) {
+  protected function _sort(&$build) {
     foreach (element_children($build) as $value) {
       if (!empty($build[$value]['#item_children'])) {
-        $this->sort($build[$value]['#item_children']);
+        $this->_sort($build[$value]['#item_children']);
       }
     }
-    uasort($build, array($this, 'sortCallback'));
+    uasort($build, array($this, '_sortCallback'));
   }
 
   /**
    * Callback for uasort() that applies each sort.
    */
-  public function sortCallback(array $a, array $b) {
+  protected function _sortCallback(array $a, array $b) {
     $return = 0;
     foreach ($this->_sorts as $sort) {
       if ($return = $sort['callback']($a, $b)) {
