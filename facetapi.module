@@ -181,6 +181,10 @@ function facetapi_theme() {
       'arguments' => array('form' => NULL),
       'file'      => 'facetapi.admin.inc',
     ),
+    'facetapi_facet_settings_form' => array(
+      'arguments' => array('form' => NULL),
+      'file'      => 'facetapi.admin.inc',
+    ),
     'facetapi_item_list' => array(
       'arguments' => array('variables' => array()),
       'file'      => 'facetapi.theme.inc',
@@ -566,9 +570,10 @@ function facetapi_sorts_get($reset = FALSE) {
     $sorts = array();
     foreach (module_invoke_all('facetapi_sort_info') as $sort_name => $sort) {
       $defaults = array(
-        'name'     => $sort_name,
-        'title'    => $sort_name,
-        'callback' => '',
+        'name'        => $sort_name,
+        'title'       => $sort_name,
+        'callback'    => '',
+        'description' => '',
       );
       $sorts[$sort_name] = array_merge($defaults, $sort);
     }
@@ -1231,15 +1236,9 @@ function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
  */
 function facetapi_form_block_admin_display_form_alter(&$form, &$form_state) {
   if (!empty($_REQUEST['destination'])) {
-    $form['#submit'][] = 'facetapi_block_admin_display_form_submit';
+    //$form['#submit'][] = 'facetapi_block_admin_display_form_submit';
+    //$form['#redirect'] = $_REQUEST['destination'];
   }
-}
-
-/**
- * Processes facetapi_block_admin_display_form form submissions.
- */
-function facetapi_block_admin_display_form_submit(&$form, &$form_state) {
-
 }
 
 /**
@@ -1504,23 +1503,28 @@ function facetapi_facetapi_widget_info() {
 function facetapi_facetapi_sort_info() {
   $sorts = array();
 
-  $sorts['none'] = array(
-    'title'    => t('No sort'),
+  $sorts['active'] = array(
+    'title'    => t('Facet active'),
+    'callback' => 'facetapi_sort_active',
+    'description' => t('Sorts by whether the facet is active or not.'),
   );
 
   $sorts['count'] = array(
     'title'    => t('Count'),
     'callback' => 'facetapi_sort_count',
+    'description' => t('Sort by the facet count.'),
   );
 
   $sorts['display'] = array(
     'title'    => t('Display value'),
     'callback' => 'facetapi_sort_display',
+    'description' => t('Sort by the value displayed to the user.'),
   );
 
   $sorts['indexed'] = array(
     'title'    => t('Indexed value'),
     'callback' => 'facetapi_sort_indexed',
+    'description' => t('Sort by the raw value stored in the index.'),
   );
 
   return $sorts;

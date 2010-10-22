@@ -234,6 +234,9 @@ function facetapi_admin_settings_form_submit(&$form, &$form_state) {
 function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
 
+  // Captures Identifier for facet specific settings.
+  $identifier = "{$adapter->getSearcher()}:{$realm['name']}:{$facet['name']}";
+
   $form['global'] = array(
     '#type' => 'fieldset',
     '#title' => t('Global settings'),
@@ -299,16 +302,13 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
   $widgets = facetapi_widgets_get($varialbes);
   uasort($widgets, 'facetapi_sort_weight');
 
-  // Builds options.
+  // Builds select options for widgets.
   $options = array();
   foreach ($widgets as $widget_name => $definition) {
     $options[$widget_name] = $definition['title'];
   }
 
-  $widget_var = sprintf(
-    'facetapi:widget:%s:%s:%s',
-    $adapter->getSearcher(), $realm['name'], $facet['name']
-  );
+  $widget_var = "facetapi:widget:$identifier";
   $form['realm'][$widget_var] = array(
     '#type' => 'select',
     '#title' => t('Display widget'),
@@ -316,35 +316,139 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#options' => $options,
   );
 
-  $sort_var = sprintf(
-    'facetapi:sort:%s:%s:%s',
-    $adapter->getSearcher(), $realm['name'], $facet['name']
-  );
-  $form['realm'][$sort_var] = array(
-    '#type' => 'select',
-    '#title' => t('Sort order'),
-    '#default_value' => variable_get($sort_var, 0),
-    '#options' => array(
-      'count'        => t('Count'),
-      'display:asc'  => t('Display value, ascending'),
-      'display:desc' => t('Display value, descending'),
-      'raw:asc'      => t('Raw indexed value, ascending'),
-      'raw:desc'     => t('Raw indexed value, descending'),
-    ),
-    '#description' => t('The sort order of facet links in this block. <em>Count</em>, which is the default, will show facets with the most results first. <em>Display value</em> will sort alphabetically, either ascending or descending, but the value displayed to the user. <em>Raw indexed value</em> sorts by the raw value stored in the search index, usually a machine readable ID.')
-  );
-
-  $slimit_var = sprintf(
-    'facetapi:soft_limit:%s:%s:%s',
-    $adapter->getSearcher(), $realm['name'], $facet['name']
-  );
+  $slimit_var = "facetapi:soft_limit:$identifier";
   $form['realm'][$slimit_var] = array(
     '#type' => 'select',
     '#title' => t('Soft limit'),
     '#default_value' => variable_get($slimit_var, 10),
-    '#options' => drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
-    '#description' => t('Limits the number of displayed facets via JavaScript.')
+    '#options' => array(0 => t('No limit')) + drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
+    '#description' => t('Limits the number of displayed facets via JavaScript.'),
   );
+
+  // Initializes the sorting table.
+  $form['realm']['sort'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Sorting options'),
+    '#description' => t('Determine how facet items are sorted. Selecting the checkbox activates the associated sort, and the sorts are applied from the top down. Click and drag the rows to change the order the sorts are applied.'),
+    'table' => array('#theme' => 'facetapi_facet_settings_form'),
+  );
+
+  // Builds checkbox options for sorts.
+  $options = array();
+  foreach (facetapi_sorts_get() as $sort_name => $sort_info) {
+    $options[$sort_name] = $sort_info['title'];
+  }
+
+  $sort_var = "facetapi:sort:$identifier";
+  $form['realm']['sort']['table']['sort'][$sort_var] = array(
+    '#type' => 'checkboxes',
+    '#options' => $options,
+    '#default_value' => variable_get($sort_var, array()),
+  );
+
+  foreach ($options as $sort_name => $sort_title) {
+    $order_var = "facetapi:sort_order:$identifier:$sort_name";
+    $form['realm']['sort']['table']['sort_order'][$order_var] = array(
+      '#type' => 'select',
+      '#title' => '',
+      '#options' => array(
+        SORT_DESC => t('Descending'),
+        SORT_ASC => t('Ascending'),
+      ),
+      '#default_value' => variable_get($order_var, SORT_DESC),
+    );
+  }
+
+  foreach ($options as $sort_name => $sort_title) {
+    $weight_var = "facetapi:sort_weight:$identifier:$sort_name";
+    $form['realm']['sort']['table']['sort_weight'][$weight_var] = array(
+      '#type' => 'weight',
+      '#title' => '',
+      '#delta' => 50,
+      '#default_value' => variable_get($weight_var, 0),
+      '#attributes' => array('class' => 'facetapi-sort-weight'),
+    );
+  }
 
   return system_settings_form($form);
 }
+
+/**
+ * Themes the facet sort form into a draggable table.
+ *
+ * @param $form
+ *   A FAPI array containing a fieldset.
+ * @return
+ *   A themed form element.
+ */
+function theme_facetapi_facet_settings_form($form) {
+  $output = '';
+
+  // Gets all sort definitions.
+  $sorts = facetapi_sorts_get();
+
+  // Initializes table headers.
+  $headers = array();
+  $headers[] = array('data' => '', 'class' => 'checkbox');
+  $headers[] = t('Type');
+  $headers[] = t('Order');
+  $headers[] = t('Description');
+  $headers[] = t('Weight');
+
+  // Builds table rows.
+  $rows = array();
+  foreach (element_children($form['sort']) as $sort_var) {
+
+    // Pulls information from variable, iterates over available sorts.
+    list($module, $variable, $searcher, $realm_name, $facet_name) = explode(':', $sort_var);
+    foreach (element_children($form['sort'][$sort_var]) as $option) {
+
+      // Captures longer variable names for code readability.
+      $weight_var = "facetapi:sort_weight:$searcher:$realm_name:$facet_name:$option";
+      $order_var  = "facetapi:sort_order:$searcher:$realm_name:$facet_name:$option";
+
+      // Extracts the titile form the checkbox, hides title.
+      $title = $form['sort'][$sort_var][$option]['#title'];
+      $form['sort'][$sort_var][$option]['#title'] = '';
+
+      // Builds the table rows.
+      $rows[] = array(
+        'weight' => $form['sort_weight'][$weight_var]['#default_value'],
+        'class' => 'draggable',
+        'data' => array(
+          array(
+            'data' => drupal_render($form['sort'][$sort_var][$option]),
+            'class' => 'checkbox',
+          ),
+          array(
+            'data' => check_plain($title),
+          ),
+          array(
+            'data' => drupal_render($form['sort_order'][$order_var]),
+          ),
+          array(
+            'data' => filter_xss($sorts[$option]['description']),
+          ),
+          array(
+            'data' => drupal_render($form['sort_weight'][$weight_var]),
+            'class' => 'dropbox',
+          ),
+        ),
+      );
+    }
+  }
+
+  // Sorts rows by weight.
+  // @todo Replace with drupal_sort_weight() in D7.
+  usort($rows, 'facetapi_sort_weight');
+
+  // Builds the sort options table.
+  $table_id = "facetapi-sort-$searcher-$realm_name-$facet_name";
+  drupal_add_tabledrag($table_id, 'order', 'sibling', 'facetapi-sort-weight');
+  $form['#value'] = theme('table', $headers, $rows, array('id' => $table_id));
+
+  // Renders and returns table.
+  $output .= drupal_render($form);
+  return $output;
+}
+
