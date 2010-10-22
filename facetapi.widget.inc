@@ -17,6 +17,7 @@
  *   An array containing the JavaScript settings.
  */
 function facetapi_widget_links(array &$build, &$key, &$settings) {
+  drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
 
   // Captures facet information for code readability,
   $facet_name  = $build['#facet']['name'];
@@ -50,6 +51,7 @@ function facetapi_widget_links(array &$build, &$key, &$settings) {
  *   An array containing the JavaScript settings.
  */
 function facetapi_widget_link_checkboxes(array &$build, &$key, &$settings) {
+  drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.checkboxes.js');
   facetapi_widget_links($build, $key, $settings);
 }
 

@@ -453,22 +453,10 @@ class FacetapiFacet {
       'id'    => "facetapi-facet-$searcher-{$realm['name']}-{$this->_facet['name']}",
     );
 
-    // Captures enabled sorts, applies each sort.
-    // @todo Make this an API function.
-    $identifier = "$searcher:{$realm['name']}:{$this->_facet['name']}";
-    $sort_var = "facetapi:sort:$identifier";
-    $this->_sorts = array_intersect_key(
-      facetapi_sorts_get(),
-      array_filter(variable_get($sort_var, array()))
-    );
-    foreach ($this->_sorts as $sort_name => $sort_info) {
-      $weight_var = "facetapi:sort_weight:$identifier:$sort_name";
-      $order_var  = "facetapi:sort_order:$identifier:$sort_name";
-      $this->_sorts[$sort_name]['weight'] = variable_get($weight_var, 0);
-      $this->_sorts[$sort_name]['order']  = variable_get($order_var, 0);
-    }
-    uasort($this->_sorts, 'facetapi_sort_weight');
+    // Applies sorting algorithms.
+    $this->_sorts = facetapi_facet_sorts_get($searcher, $realm['name'], $this->_facet['name']);
     $this->_sort($build[$field_alias]);
+    unset($this->_sorts);
 
     // Gets the widget from the settings.
     // @todo Realm should provide a default widget.

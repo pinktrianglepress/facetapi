@@ -234,8 +234,9 @@ function facetapi_admin_settings_form_submit(&$form, &$form_state) {
 function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
 
-  // Captures Identifier for facet specific settings.
+  // Captures Identifier for facet specific settings, gets available sorts.
   $identifier = "{$adapter->getSearcher()}:{$realm['name']}:{$facet['name']}";
+  $sorts = facetapi_sorts_get();
 
   $form['global'] = array(
     '#type' => 'fieldset',
@@ -335,7 +336,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
 
   // Builds checkbox options for sorts.
   $options = array();
-  foreach (facetapi_sorts_get() as $sort_name => $sort_info) {
+  foreach ($sorts as $sort_name => $sort_info) {
     $options[$sort_name] = $sort_info['title'];
   }
 
@@ -365,7 +366,7 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,
-      '#default_value' => variable_get($weight_var, 0),
+      '#default_value' => variable_get($weight_var, $sorts[$sort_name]['weight']),
       '#attributes' => array('class' => 'facetapi-sort-weight'),
     );
   }

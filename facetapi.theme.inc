@@ -15,18 +15,21 @@
  * @todo Remove in Drupal 7.
  */
 function theme_facetapi_item_list($element) {
+  $output = '';
+
   $field_alias = $element['#facet']['field alias'];
+  if (!empty($element[$field_alias])) {
+    // Themes title, initializes attributes if necessary.
+    $title = theme('facetapi_title', $element['#title']);
+    if (empty($element['#attributes'])) {
+      $element['#attributes'] = array();
+    }
 
-  // Themes title, initializes attributes if necessary.
-  $title = theme('facetapi_title', $element['#title']);
-  if (empty($element['#attributes'])) {
-    $element['#attributes'] = array();
+    // Themes the item list.
+    $output .= '<div'. drupal_attributes($element['#attributes']) .'>';
+    $output .= theme('item_list', $element[$field_alias], $title);
+    $output .= '</div>';
   }
-
-  // Themes the item list.
-  $output  = '<div'. drupal_attributes($element['#attributes']) .'>';
-  $output .= theme('item_list', $element[$field_alias], $title);
-  $output .= '</div>';
 
   return $output;
 }
