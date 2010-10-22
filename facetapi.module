@@ -1233,11 +1233,15 @@ function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
 
 /**
  * Implementation of hook_FORM_ID_form_alter().
+ *
+ * @see block_admin_display_form()
  */
 function facetapi_form_block_admin_display_form_alter(&$form, &$form_state) {
   if (!empty($_REQUEST['destination'])) {
-    //$form['#submit'][] = 'facetapi_block_admin_display_form_submit';
-    //$form['#redirect'] = $_REQUEST['destination'];
+    global $theme_key;
+    $path = 'admin/build/block';
+    $options = array('query' => array('destination' => $_REQUEST['destination']));
+    $form['#action'] = arg(4) ? url("$path/list/$theme_key", $options) : url($path, $options);
   }
 }
 
