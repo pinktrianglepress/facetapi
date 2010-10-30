@@ -403,6 +403,14 @@ function facetapi_facets_get($searcher, $type) {
 
       // Merges facet definition into defaults.
       $facets[$facet_name] = array_merge($defaults, $facet);
+
+      // Checks whether facet is flat or hierarchical, adds to requirements.
+      if (!$facets[$facet_name]['hierarchy callback']) {
+        $facets[$facet_name]['widget reqs'][] = 'flat';
+      }
+      else {
+        $facets[$facet_name]['widget reqs'][] = 'hierarchical';
+      }
     }
 
     // Invokes alter hook to allow modules to modify facet definitions.
@@ -1468,6 +1476,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
       'map callback'    => 'facetapi_callback_type_map',
       'values callback' => 'facetapi_callback_type_values',
       'widget reqs'     => array('has default values'),
+      'default widgets' => array('facetapi_checkboxes'),
       'file'            => 'facetapi.callbacks.inc',
     );
 
@@ -1486,6 +1495,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
       'title'           => t('Language'),
       'description'     => t('Filter by language.'),
       'widget reqs'     => array('has default values'),
+      'default widgets' => array('facetapi_checkboxes'),
       'map callback'    => 'facetapi_callback_language_map',
       'values callback' => 'facetapi_callback_language_values',
       'file'            => 'facetapi.callbacks.inc',
@@ -1576,7 +1586,7 @@ function facetapi_facetapi_widget_info() {
   $widgets['facetapi_checkboxes'] = array(
     'title'       => t('Checkboxes'),
     'callback'    => 'facetapi_widget_checkboxes',
-    'widget reqs' => array('form', 'has default values'),
+    'widget reqs' => array('form', 'has default values', 'flat'),
     'file'        => 'facetapi.widget.inc',
     'weight'      => -10,
   );
@@ -1584,7 +1594,7 @@ function facetapi_facetapi_widget_info() {
   $widgets['facetapi_radios'] = array(
     'title'       => t('Radios'),
     'callback'    => 'facetapi_widget_radios',
-    'widget reqs' => array('form', 'has default values'),
+    'widget reqs' => array('form', 'has default values', 'flat'),
     'file'        => 'facetapi.widget.inc',
     'weight'      => -9,
   );

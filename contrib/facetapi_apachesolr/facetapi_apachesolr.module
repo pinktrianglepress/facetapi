@@ -28,6 +28,15 @@ function facetapi_apachesolr_menu() {
 }
 
 /**
+ * Implementation of hook_menu_alter().
+ */
+function facetapi_apachesolr_menu_alter(&$items) {
+  //kpr($items);
+  $items['admin/settings/apachesolr/enabled-filters']['access arguments'] = FALSE;
+  $items['admin/settings/apachesolr/facets']['weight'] = -9;
+}
+
+/**
  * Implementation of hook_facetapi_adapter_info().
  */
 function facetapi_apachesolr_facetapi_adapter_info() {
@@ -194,4 +203,20 @@ function facetapi_apachesolr_form_facetapi_facet_settings_form_alter(&$form, &$f
     $breadcrumb[] = l(t('Facets'), 'admin/settings/apachesolr/facets');
     drupal_set_breadcrumb($breadcrumb);
   }
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ *
+ * Hides Apache Solr core facet settings.
+ */
+function facetapi_apachesolr_form_apachesolr_settings_alter(&$form, &$form_state) {
+  $form['apachesolr_facetstyle'] = array(
+    '#type'  => 'value',
+    '#value' => $form['apachesolr_facetstyle']['#default_value'],
+  );
+  $form['apachesolr_search_browse'] = array(
+    '#type'  => 'value',
+    '#value' => $form['apachesolr_search_browse']['#default_value'],
+  );
 }
