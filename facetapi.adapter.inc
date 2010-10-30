@@ -448,12 +448,14 @@ class FacetapiFacet {
     $this->_sort($build[$field_alias]);
     unset($this->_sorts);
 
-    // Gets the widget from the settings.
-    // @todo Realm should provide a default widget.
-    $widgets = facetapi_widgets_get();
-    if (!$widget_name = facetapi_setting_get('widget', $searcher, $realm['name'], $this->_facet['name'])) {
-      $widget_name = $realm['default widget'];
-    }
+    // Gets available widgets.
+    $widgets = facetapi_widgets_get(array(
+      'realm' => $realm,
+      'facet' => $this->_facet,
+    ));
+
+    // Gets widget from settings, finds default if necessary.
+    $widget_name = facetapi_facet_widget_get($widgets, $searcher, $realm, $this->_facet);
 
     // Initializes JavaScript settings.
     $facet_settings = array(

@@ -385,6 +385,7 @@ function facetapi_facets_get($searcher, $type) {
         'query type'         => 'term',
         'data group'         => FALSE,
         'widget reqs'        => array(),
+        'default widgets'    => array(),
         'weight'             => 0,
         'map callback'       => FALSE,
         'hierarchy callback' => FALSE,
@@ -511,18 +512,15 @@ function facetapi_widgets_get(array $variables = array(), $reset = FALSE) {
       $module_widgets = module_invoke($module, 'facetapi_widget_info');
       foreach ($module_widgets as $widget_name => $widget_info) {
         $defaults = array(
-          'title'               => t('Widget'),
-          'callback'            => 'facetapi_links_widget_callback',
-          'widget reqs' => array('multiple'),
-          'variables'           => array(),
-          'weight'              => 0,
-          'file'                => '',
-          'file path'           => drupal_get_path('module', $module),
+          'title'       => t('Widget'),
+          'callback'    => 'facetapi_links_widget_callback',
+          'widget reqs' => array(),
+          'variables'   => array(),
+          'weight'      => 0,
+          'file'        => '',
+          'file path'   => drupal_get_path('module', $module),
         );
         $widgets[$widget_name] = array_merge($defaults, $widget_info);
-        $widgets[$widget_name]['variables'] = array_merge(
-          $variables, $widgets[$widget_name]['variables']
-        );
       }
     }
 
@@ -530,12 +528,19 @@ function facetapi_widgets_get(array $variables = array(), $reset = FALSE) {
     drupal_alter('facetapi_widget_info', $widgets);
   }
 
-  // Applies access callbacks if variables were passed.
+  // If variables passed, returns widgets the facet has access to.
   if (!empty($variables)) {
-    $widgets = array_filter($widgets, 'facetapi_widgets_filter');
+    $return = $widgets;
+    foreach ($widgets as $widget_name => $widget_info) {
+      $return[$widget_name]['variables'] = array_merge(
+        $variables, $widgets[$widget_name]['variables']
+      );
+    }
+    return array_filter($return, 'facetapi_widgets_filter');
   }
-
-  return $widgets;
+  else {
+    return $widgets;
+  }
 }
 
 /**
@@ -549,8 +554,8 @@ function facetapi_widgets_get(array $variables = array(), $reset = FALSE) {
  */
 function facetapi_widgets_filter($widget) {
   // Captures variables for code readability.
-  $realm_reqs  = $widget['variables']['realm']['widget reqs'];
-  $facet_reqs  = $widget['variables']['facet']['widget reqs'];
+  $realm_reqs = $widget['variables']['realm']['widget reqs'];
+  $facet_reqs = $widget['variables']['facet']['widget reqs'];
 
   // Gets what requirements we have, what are required, which ones are common.
   $reqs     = array_unique(array_merge($realm_reqs, $facet_reqs));
@@ -561,6 +566,36 @@ function facetapi_widgets_filter($widget) {
   sort($required);
   sort($common);
   return ($common == $required);
+}
+
+/**
+ * Finds a facet's selected widget given the searcher and realm.
+ *
+ * @param $widgets
+ *   An array of widget definitions.
+ * @param $searcher
+ *   A string containing the machine readable name of the searcher module.
+ * @param $realm
+ *   An array containing the full realm definition.
+ * @param $facet
+ *   An array containing the full realm definition.
+ *
+ * @return
+ *   A string containing the default widget.
+ */
+function facetapi_facet_widget_get(array $widgets, $searcher, array $realm, array $facet) {
+  if (!$widget_name = facetapi_setting_get('widget', $searcher, $realm['name'], $facet['name'])) {
+    foreach ($facet['default widgets'] as $default_widget) {
+      if (isset($widgets[$default_widget])) {
+        $widget_name = $default_widget;
+        break;
+      }
+    }
+    if (!$widget_name) {
+      $widget_name = $realm['default widget'];
+    }
+  }
+  return $widget_name;
 }
 
 /**
@@ -604,7 +639,7 @@ function facetapi_sorts_get($reset = FALSE) {
  * @param $realm
  *   An array containing the full realm definition.
  * @param $facet
- *   An array containing the fill realm definition.
+ *   An array containing the full realm definition.
  *
  * @return
  *   An array of enabled sort definitions.
@@ -1495,6 +1530,7 @@ function facetapi_facetapi_facet_info($searcher, $type) {
           'field'           => 'category',
           'data group'      => 'taxonomy',
           'widget reqs'     => array('has default values'),
+          'default widgets' => array('facetapi_multiselect'),
           'map callback'    => 'facetapi_callback_taxonomy_map',
           'values callback' => 'facetapi_callback_taxonomy_values',
           'file'            => 'facetapi.callbacks.inc',

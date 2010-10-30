@@ -110,6 +110,8 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       certain data groups.
  *     - widget reqs: Requirements for widgets, limits which widget can be
  *       applied to the facet.
+ *     - default widgets: An array of widgets the facet attempts to find before
+ *       applying the realm's global default.
  *     - weight: The default weight of the facet when built.
  *     - map callback: Callback function that maps raw values stored in the =
  *       search backend to something human readable, for example user IDs to

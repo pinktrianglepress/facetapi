@@ -284,15 +284,11 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#collapsible' => TRUE,
   );
 
-  // Variables passed to facetapi_widgets_get().
-  $varialbes = array(
-    'adapter' => $adapter,
-    'realm'   => $realm,
-    'facet'   => $facet,
-  );
-
   // Gets widgets, sorts.
-  $widgets = facetapi_widgets_get($varialbes);
+  $widgets = facetapi_widgets_get(array(
+    'realm' => $realm,
+    'facet' => $facet,
+  ));
   uasort($widgets, 'facetapi_sort_weight');
 
   // Builds select options for widgets.
@@ -302,10 +298,11 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
   }
 
   $widget_var = "facetapi:widget:$identifier";
+  $default = facetapi_facet_widget_get($widgets, $adapter->getSearcher(), $realm, $facet);
   $form['realm'][$widget_var] = array(
     '#type' => 'select',
     '#title' => t('Display widget'),
-    '#default_value' => variable_get($widget_var, 'facetapi_links'),
+    '#default_value' => variable_get($widget_var, $default),
     '#options' => $options,
   );
 
