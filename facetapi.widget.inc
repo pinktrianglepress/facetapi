@@ -373,43 +373,5 @@ function facetapi_form_options_get(&$build, $all_option = FALSE) {
     }
   }
 
-  //var_dump($options);
-
   return $options;
-}
-
-/**
- * Allows widget to be used only in certain display types.
- *
- * @param $variables
- *   An array of variables containing the adapter, realm, and facet definitions.
- */
-function facetapi_widget_access_type($variables) {
-  if ($variables['realm']['display type'] != $variables['type']) {
-    return FALSE;
-  }
-}
-
-/**
- * Allows widget to only the facets with default values.
- *
- * @param $variables
- *   An array of variables containing the adapter, realm, and facet definitions.
- */
-function facetapi_widget_access_values($variables) {
-  if (empty($variables['facet']['values callback'])) {
-    return FALSE;
-  }
-}
-
-/**
- * Allows widget to only the facets with default values.
- *
- * @param $variables
- *   An array of variables containing the adapter, realm, and facet definitions.
- */
-function facetapi_widget_access_group($variables) {
-  if ($variables['facet']['data group'] != $variables['group']) {
-    return FALSE;
-  }
 }

@@ -19,24 +19,19 @@
  */
 function facetapi_admin_settings_form(&$form_state, $searcher) {
   $form = array();
-  $type = facetapi_adapter_load($searcher)->getType();
+
+  // Stores necessary information.
+  $form['#searcher'] = $searcher;
+  $form['#type']     = facetapi_adapter_load($searcher)->getType();
+  $form['#realms']   = facetapi_realms_get();
+  $form['#facets']   = facetapi_facets_get($searcher, $form['#type']);
 
   // Common url() function options that will redirect form submissions in linked
   // pages back to this form.
   $url_options = array('query' => array('destination' => $_GET['q']));
 
-  // Values that must persist.
-  $form['storage'] = array(
-    '#type' => 'value',
-    '#value' => array(
-      'searcher' => $searcher,
-      'realms' => facetapi_realms_get(),
-      'facets' => facetapi_facets_get($searcher, $type),
-    ),
-  );
-
   // Adds description, submit handler if there are facets.
-  if (!empty($form['storage']['#value']['facets'])) {
+  if (!empty($form['#facets'])) {
     $form['description']['#value'] = t(
       'This page provides a drag-and-drop interface to enable certian facets in each realm and control the order they are shown on the page.  <em>Realms</em> are groups of facets that are displayed in a similar fashion on the search page. Since rendering is handled by the relam, a single facet may be displayed in different ways, for exmaple a form element or a list of clickable links. Like the core search, users need the <em>use advanced search</em> <a href="@permissions-page">permissions</a> to be able to use the facets.',
       array('@permissions-page' => url('admin/user/permissions', $url_options))
@@ -44,12 +39,12 @@ function facetapi_admin_settings_form(&$form_state, $searcher) {
   }
 
   // Iterates over realms, builds form for each realm.
-  foreach ($form['storage']['#value']['realms'] as $realm_name => $realm) {
-    if (!empty($form['storage']['#value']['facets'])) {
+  foreach ($form['#realms'] as $realm_name => $realm) {
+    if (!empty($form['#facets'])) {
 
-      // Gets facets, formats options array.
+      // Sorts facets, builds options for checkbox.
       $options = array();
-      $sorted_facets = $form['storage']['#value']['facets'];
+      $sorted_facets = $form['#facets'];
       facetapi_facets_sort($sorted_facets, $searcher, $realm_name);
       foreach ($sorted_facets as $facet_name => $facet) {
         $options[$facet_name] = '';
@@ -102,7 +97,7 @@ function facetapi_admin_settings_form(&$form_state, $searcher) {
     }
     else {
       $form['facets'] = array(
-        '#value' => t('No facets are available to this module.'),
+        '#value' => t('No facets are available for this searcher.'),
       );
       return $form;
     }
@@ -125,8 +120,6 @@ function facetapi_admin_settings_form(&$form_state, $searcher) {
  *   A themed form element.
  */
 function theme_facetapi_admin_settings_form($form) {
-  // Gets storage items for code readability.
-  $storage = $form['storage']['#value'];
 
   // Initializes table headers.
   $headers = array();
@@ -150,7 +143,7 @@ function theme_facetapi_admin_settings_form($form) {
         $row = array();
 
         // Gets full facet definition from storage.
-        $facet = $storage['facets'][$facet_name];
+        $facet = $form['#facets'][$facet_name];
 
         // Builds out all rows except for the weight column.
         $row['data'] = array(
@@ -167,14 +160,14 @@ function theme_facetapi_admin_settings_form($form) {
           array(
             'data' => l(t('Configure'), sprintf(
               'admin/settings/%s/facetapi/%s/%s',
-              $storage['searcher'], $realm_name, $facet_name
+              $form['#searcher'], $realm_name, $facet_name
             )),
           ),
         );
 
         // Adds weight column if realm is "sortable".
-        if ($storage['realms'][$realm_name]['sortable']) {
-          $weight_var = sprintf('facetapi:facet_weight:%s:%s:%s', $storage['searcher'], $realm_name, $facet_name);
+        if ($form['#realms'][$realm_name]['sortable']) {
+          $weight_var = sprintf('facetapi:facet_weight:%s:%s:%s', $form['#searcher'], $realm_name, $facet_name);
           $row['class'] = 'draggable';
           $row['data'][] = array(
             'data' => drupal_render($form['weight'][$realm_name][$weight_var]),
@@ -188,11 +181,11 @@ function theme_facetapi_admin_settings_form($form) {
     }
 
     // Builds the CSS ID for the table.
-    $table_id = sprintf('facetapi-%s-%s-table', $storage['searcher'], $realm_name);
+    $table_id = sprintf('facetapi-%s-%s-table', $form['#searcher'], $realm_name);
 
     // Adds tabledrag if sortable, otherwise removes weight header.
     $row_headers = $headers;
-    if ($storage['realms'][$realm_name]['sortable']) {
+    if ($form['#realms'][$realm_name]['sortable']) {
       drupal_add_tabledrag($table_id, 'order', 'sibling', 'facetapi-facet-weight');
     }
     else {
@@ -234,9 +227,8 @@ function facetapi_admin_settings_form_submit(&$form, &$form_state) {
 function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
 
-  // Captures Identifier for facet specific settings, gets available sorts.
+  // Captures Identifier for facet specific settings.
   $identifier = "{$adapter->getSearcher()}:{$realm['name']}:{$facet['name']}";
-  $sorts = facetapi_sorts_get();
 
   $form['global'] = array(
     '#type' => 'fieldset',
@@ -326,6 +318,11 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
     '#description' => t('Limits the number of displayed facets via JavaScript.'),
   );
 
+
+  // Gets all sort definitions, sorts active for this facet.
+  $sorts        = facetapi_sorts_get();
+  $active_sorts = facetapi_facet_sorts_get($adapter, $realm, $facet);
+
   // Initializes the sorting table.
   $form['realm']['sort'] = array(
     '#type' => 'fieldset',
@@ -344,10 +341,11 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
   $form['realm']['sort']['table']['sort'][$sort_var] = array(
     '#type' => 'checkboxes',
     '#options' => $options,
-    '#default_value' => variable_get($sort_var, array()),
+    '#default_value' => variable_get($sort_var, drupal_map_assoc(array_keys($active_sorts))),
   );
 
   foreach ($options as $sort_name => $sort_title) {
+    $default = isset($active_sorts[$sort_name]) ? $active_sorts[$sort_name]['order'] : SORT_DESC;
     $order_var = "facetapi:sort_order:$identifier:$sort_name";
     $form['realm']['sort']['table']['sort_order'][$order_var] = array(
       '#type' => 'select',
@@ -356,17 +354,23 @@ function facetapi_facet_settings_form(&$form_state, FacetapiAdapter $adapter, ar
         SORT_DESC => t('Descending'),
         SORT_ASC => t('Ascending'),
       ),
-      '#default_value' => variable_get($order_var, SORT_DESC),
+      '#default_value' => variable_get($order_var, $default),
     );
   }
 
   foreach ($options as $sort_name => $sort_title) {
+    if (isset($active_sorts[$sort_name])) {
+      $default = $active_sorts[$sort_name]['weight'];
+    }
+    else {
+      $default = $sorts[$sort_name]['weight'];
+    }
     $weight_var = "facetapi:sort_weight:$identifier:$sort_name";
     $form['realm']['sort']['table']['sort_weight'][$weight_var] = array(
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,
-      '#default_value' => variable_get($weight_var, $sorts[$sort_name]['weight']),
+      '#default_value' => variable_get($weight_var, $default),
       '#attributes' => array('class' => 'facetapi-sort-weight'),
     );
   }

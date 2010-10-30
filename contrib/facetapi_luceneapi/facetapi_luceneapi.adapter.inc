@@ -199,13 +199,6 @@ class FacetapiLuceneapiAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Applies a default sort to the facet items.
-   */
-  public function sortDefault(array &$facet_items) {
-    uasort($facet_items, 'facetapi_sort_count');
-  }
-
-  /**
    * Returns the search keys.
    */
   public function getSearchKeys() {

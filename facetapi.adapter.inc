@@ -134,16 +134,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Applies the default sort to the facets. If facets are already sorted by
-   * getFacetCounts(), the adapter doesn't have to override this method.
-   *
-   * @param &$facet_items
-   *   An array of facet items.
-   */
-  public function sortDefault(array &$facet_items) {
-  }
-
-  /**
    * Sets the searcher module.
    *
    * @param $searcher
@@ -454,7 +444,7 @@ class FacetapiFacet {
     );
 
     // Applies sorting algorithms.
-    $this->_sorts = facetapi_facet_sorts_get($searcher, $realm['name'], $this->_facet['name']);
+    $this->_sorts = facetapi_facet_sorts_get($this->_adapter, $realm, $this->_facet);
     $this->_sort($build[$field_alias]);
     unset($this->_sorts);
 
@@ -673,7 +663,8 @@ class FacetapiFacet {
   }
 
   /**
-   * Callback for uasort() that applies each sort.
+   * Callback for uasort() that applies each sort in the order specified in the
+   * admin interface.
    */
   protected function _sortCallback(array $a, array $b) {
     $return = 0;
