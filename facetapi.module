@@ -473,7 +473,7 @@ function facetapi_enabled_facets_get($searcher, $realm_name = NULL, $reset = FAL
       $enabled_facets = array();
       foreach ($realm_names as $_realm_name) {
         $enabled_facets = array_merge($enabled_facets, array_filter(
-          (array)facetapi_setting_get('facet_status', $searcher, $_realm_name)
+          (array) facetapi_setting_get('facet_status', $searcher, $_realm_name)
         ));
       }
 
@@ -565,7 +565,7 @@ function facetapi_widgets_filter($widget) {
   $realm_reqs = $widget['variables']['realm']['widget reqs'];
   $facet_reqs = $widget['variables']['facet']['widget reqs'];
 
-  // Gets what requirements we have, what are required, which ones are common.
+  // Gets what requirements we have, what's required, which ones are common.
   $reqs     = array_unique(array_merge($realm_reqs, $facet_reqs));
   $required = array_unique($widget['widget reqs']);
   $common   = array_intersect($reqs, $required);
@@ -1635,7 +1635,7 @@ function facetapi_facetapi_sort_info() {
   $sorts['active'] = array(
     'title'       => t('Facet active'),
     'callback'    => 'facetapi_sort_active',
-    'description' => t('Sorts by whether the facet is active or not.'),
+    'description' => t('Sort by whether the facet is active or not.'),
     'weight'      => -50,
   );
 
