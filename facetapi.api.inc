@@ -52,12 +52,12 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *   An associative array containing:
  *   - name: The machine readable name of the realm.
  *     - title: Human readable name of the realm, i.e. label.
- *     - display type: Discribes the general type of display, for example "form"
- *       or "list".
  *     - description: The realm description.
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
  *       user interface.
+ *     - widget reqs: Requirements for widgets, limits which widget can be
+ *       applied to the facet.
  *     - ui: A boolean that flags whether the realm should have a user
  *       interface.
  *
@@ -108,6 +108,8 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       example, taxonomy terms use "taxonomy", while user data uses "user".
  *       Some widgets rescrict which facets can use them by white listing
  *       certain data groups.
+ *     - widget reqs: Requirements for widgets, limits which widget can be
+ *       applied to the facet.
  *     - weight: The default weight of the facet when built.
  *     - map callback: Callback function that maps raw values stored in the =
  *       search backend to something human readable, for example user IDs to

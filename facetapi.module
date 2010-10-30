@@ -336,15 +336,14 @@ function facetapi_realms_get($reset = FALSE) {
     $realms = array();
     foreach (module_invoke_all('facetapi_realm_info') as $realm_name => $realm) {
       $defaults = array(
-        'name'                => $realm_name,
-        'title'               => $realm_name,
-        'description'         => '',
-        'display type'        => 'form',
-        'default widget'      => '',
-        'widget reqs' => array(),
-        'weight'              => 0,
-        'sortable'            => TRUE,
-        'ui'                  => TRUE,
+        'name'           => $realm_name,
+        'title'          => $realm_name,
+        'description'    => '',
+        'default widget' => '',
+        'widget reqs'    => array(),
+        'weight'         => 0,
+        'sortable'       => TRUE,
+        'ui'             => TRUE,
       );
       $realms[$realm_name] = array_merge($defaults, $realm);
     }
@@ -1399,7 +1398,6 @@ function facetapi_facetapi_realm_info() {
   // Displays each facet in a separate block.
   $realms['block'] = array(
     'title'          => t('Blocks'),
-    'display type'   => 'list',
     'weight'         => -10,
     'sortable'       => FALSE,
     'default widget' => 'facetapi_links',
@@ -1413,7 +1411,6 @@ function facetapi_facetapi_realm_info() {
   // Displays facets in a fieldset below the search form.
   $realms['fieldset'] = array(
     'title'          => t('Fieldset'),
-    'display type'   => 'form',
     'weight'         => -5,
     'default widget' => 'facetapi_textfield',
     'widget reqs'    => array('form'),
