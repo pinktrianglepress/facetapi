@@ -182,6 +182,23 @@ function hook_facetapi_query_QUERY_TYPE_prepare(FacetapiAdapter $adapter, array 
 }
 
 /**
+ * Gets facet data from the backend and returns an initialized render array of
+ * facet items.
+ *
+ * @param $adapter
+ *   A FacetapiAdapter object containing the adapter.
+ * @param $facet
+ *   An array containing the full realm definition.
+ * @param &$data
+ *
+ * @return
+ *   An initialized render array of facet itmes.
+ */
+function hook_facetapi_facet_QUERY_TYPE_build(FacetapiAdapter $adapter, array $facet) {
+}
+
+
+/**
  * Allows modules to parse and extract information from facet values passed
  * through query string.
  *

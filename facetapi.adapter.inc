@@ -54,35 +54,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Fetches facet data via the appropriate fetch*() method.
-   *
-   * @param $facet
-   *   An array containing the full facet definition.
-   *
-   * @return
-   *   An array containing the facet data.
-   */
-  public function fetch(array $facet) {
-    if (!empty($facet['query type'])) {
-      $method = 'fetch'. join('', array_map('ucfirst', explode('_', $facet['query type'])));
-      if (method_exists($this, $method)) {
-        return $this->$method($facet);
-      }
-    }
-    return $this->fetchTerm($facet);
-  }
-
-  /**
-   * The default method used to retrieve facet data.
-   *
-   * @param $facet
-   *   An array containing the full facet definition.
-   * @return
-   *   An array of facet data.
-   */
-  abstract public function fetchTerm(array $facet);
-
-  /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
    *
    * @return
@@ -547,7 +518,15 @@ class FacetapiFacet {
     );
 
     // Builds render arrays for each item.
-    $items = (NULL !== $this->_facet['field']) ? $this->_adapter->fetch($this->_facet) : array();
+    if (NULL !== $this->_facet['field']) {
+      $hook  = "facetapi_facet_{$this->_facet['query type']}_build";
+      $items = (array) module_invoke(
+        $this->_adapter->getModule(), $hook, $this->_adapter, $this->_facet
+      );
+    }
+    else {
+      $items = array();
+    }
     foreach (element_children($items) as $value) {
       // @todo Use #markup in D7.
       $item_defaults = array(
