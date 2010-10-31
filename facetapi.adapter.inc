@@ -399,19 +399,19 @@ class FacetapiFacet {
 
     // Initializes render array.
     $build = array(
-      '#title'       => $this->_facet['title'],
+      '#title' => $this->_facet['title'],
       '#description' => $this->_facet['description'],
-      '#weight'      => $this->_facet['weight'],
-      '#adapter'     => $this->_adapter,
-      '#realm_name'  => $realm['name'],
-      '#facet'       => $this->_facet,
-      $field_alias   => $this->_build,
+      '#weight' => $this->_facet['weight'],
+      '#adapter' => $this->_adapter,
+      '#realm_name' => $realm['name'],
+      '#facet' => $this->_facet,
+      $field_alias => $this->_build,
     );
 
     // Adds identifiers to facet.
     $build['#attributes'] = array(
       'class' => "facetapi-facet-{$this->_facet['name']}",
-      'id'    => "facetapi-facet-$searcher-{$realm['name']}-{$this->_facet['name']}",
+      'id' => "facetapi-facet-$searcher-{$realm['name']}-{$this->_facet['name']}",
     );
 
     // Applies sorting algorithms.
@@ -430,11 +430,11 @@ class FacetapiFacet {
 
     // Initializes JavaScript settings.
     $facet_settings = array(
-      'searcher'  => $searcher,
-      'type'      => $this->_adapter->getType(),
+      'searcher' => $searcher,
+      'type' => $this->_adapter->getType(),
       'realmName' => $realm['name'],
       'facetName' => $this->_facet['name'],
-      'widget'    => $widget_name,
+      'widget' => $widget_name,
       'queryType' => $this->_facet['query type'],
     );
 
@@ -487,7 +487,7 @@ class FacetapiFacet {
     $hook = 'facetapi_value_'. $this->_facet['query type'];
     foreach ($data as $key => $value) {
       $this->_active[$value] = array(
-        'pos'   => $key,
+        'pos' => $key,
         'value' => $value,
       );
       drupal_alter($hook, $this->_active[$value], $this->_adapter);
@@ -508,12 +508,12 @@ class FacetapiFacet {
     // Build array defaults.
     // @todo Use #markup in D7.
     $defaults = array(
-      '#type'          => 'markup',
-      '#value'         => '',
+      '#type' => 'markup',
+      '#value' => '',
       '#indexed_value' => '',
-      '#count'         => 0,
-      '#active'        => 0,
-      '#item_parents'  => array(),
+      '#count' => 0,
+      '#active' => 0,
+      '#item_parents' => array(),
       '#item_children' => array(),
     );
 
@@ -530,9 +530,9 @@ class FacetapiFacet {
     foreach (element_children($items) as $value) {
       // @todo Use #markup in D7.
       $item_defaults = array(
-        '#value'          => $value,
-        '#indexed_value'  => $value,
-        '#active'         => $this->itemActive($value),
+        '#value' => $value,
+        '#indexed_value' => $value,
+        '#active' => $this->itemActive($value),
       );
 
       // This seems silly, but it maintains the references to the child items

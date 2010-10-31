@@ -56,8 +56,8 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
  *       user interface.
- *     - widget reqs: Requirements for widgets, limits which widget can be
- *       applied to the facet.
+ *     - widget requirements: Requirements for widgets, limits which widget can
+ *       be applied to the facet.
  *     - ui: A boolean that flags whether the realm should have a user
  *       interface.
  *
@@ -108,8 +108,8 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       example, taxonomy terms use "taxonomy", while user data uses "user".
  *       Some widgets rescrict which facets can use them by white listing
  *       certain data groups.
- *     - widget reqs: Requirements for widgets, limits which widget can be
- *       applied to the facet.
+ *     - widget requirements: Requirements for widgets, limits which widget can
+ *       be applied to the facet.
  *     - default widgets: An array of widgets the facet attempts to find before
  *       applying the realm's global default.
  *     - weight: The default weight of the facet when built.

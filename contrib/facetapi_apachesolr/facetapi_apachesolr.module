@@ -14,14 +14,14 @@ function facetapi_apachesolr_menu() {
   $items = array();
 
   $items['admin/settings/apachesolr/facets'] = array(
-    'title'            => 'Facets',
-    'page callback'    => 'drupal_get_form',
-    'page arguments'   => array('facetapi_admin_settings_form', 'apachesolr_search'),
+    'title' => 'Facets',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_admin_settings_form', 'apachesolr_search'),
     'access arguments' => array('administer search'),
-    'type'             => MENU_LOCAL_TASK,
-    'file'             => 'facetapi.admin.inc',
-    'file path'        => drupal_get_path('module', 'facetapi'),
-    'weight'           => -9,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'facetapi.admin.inc',
+    'file path' => drupal_get_path('module', 'facetapi'),
+    'weight' => -9,
   );
 
   return $items;
@@ -41,8 +41,8 @@ function facetapi_apachesolr_facetapi_adapter_info() {
   return array(
     'apachesolr_search' => array(
       'class' => 'FacetapiApachesolrAdapter',
-      'type'  => 'node',
-      'file'  => 'facetapi_apachesolr.adapter.inc',
+      'type' => 'node',
+      'file' => 'facetapi_apachesolr.adapter.inc',
     ),
   );
 }
@@ -306,11 +306,11 @@ function facetapi_apachesolr_form_facetapi_facet_settings_form_alter(&$form, &$f
  */
 function facetapi_apachesolr_form_apachesolr_settings_alter(&$form, &$form_state) {
   $form['apachesolr_facetstyle'] = array(
-    '#type'  => 'value',
+    '#type' => 'value',
     '#value' => $form['apachesolr_facetstyle']['#default_value'],
   );
   $form['apachesolr_search_browse'] = array(
-    '#type'  => 'value',
+    '#type' => 'value',
     '#value' => $form['apachesolr_search_browse']['#default_value'],
   );
 }
