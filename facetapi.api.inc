@@ -56,8 +56,8 @@ function hook_facetapi_adapter_info_alter(&$adapters) {
  *     - weight: The default weight of the realm, defaults to 0.
  *     - sortable: Whether or not the facet weights can be set in the Facet API
  *       user interface.
- *     - widget requirements: Requirements for widgets, limits which widget can
- *       be applied to the facet.
+ *     - widget requirements: An array of requirements applied to all facets in
+ *       the realm.
  *     - ui: A boolean that flags whether the realm should have a user
  *       interface.
  *
@@ -108,8 +108,7 @@ function hook_facetapi_realm_info_alter(array &$realms) {
  *       example, taxonomy terms use "taxonomy", while user data uses "user".
  *       Some widgets rescrict which facets can use them by white listing
  *       certain data groups.
- *     - widget requirements: Requirements for widgets, limits which widget can
- *       be applied to the facet.
+ *     - widget requirements: An array of requirements the facet satisfies.
  *     - default widgets: An array of widgets the facet attempts to find before
  *       applying the realm's global default.
  *     - weight: The default weight of the facet when built.
@@ -222,8 +221,8 @@ function hook_facetapi_value_QUERY_TYPE_alter(array &$value, FacetapiAdapter $ad
  *   - name: The machine readable name of the widget.
  *     - title: Human readable name of the widget.
  *     - callback: Callback function used to theme the facets.
- *     - access callbacks: An array of callbacks that restrict whether or not a
- *       facet has access to use it.
+ *     - widget requirements: An array of requrements that must be met for a
+ *       facet to use the widget.
  *     - weight: The weight of the widget when displayed in forms.
  *
  * @ingroup hooks

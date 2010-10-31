@@ -31,7 +31,7 @@ function facetapi_apachesolr_menu() {
  * Implementation of hook_menu_alter().
  */
 function facetapi_apachesolr_menu_alter(&$items) {
-  $items['admin/settings/apachesolr/enabled-filters']['access arguments'] = FALSE;
+  $items['admin/settings/apachesolr/enabled-filters']['access callback'] = FALSE;
 }
 
 /**
