@@ -484,7 +484,7 @@ class FacetapiFacet {
 
     // Allows hooks to add additional information to the active item. For
     // example, range queries extract the start and end values from the item.
-    $hook = 'facetapi_'. $this->_facet['query type'] .'_facet_value';
+    $hook = 'facetapi_value_'. $this->_facet['query type'];
     foreach ($data as $key => $value) {
       $this->_active[$value] = array(
         'pos'   => $key,
@@ -519,7 +519,7 @@ class FacetapiFacet {
 
     // Builds render arrays for each item.
     if (NULL !== $this->_facet['field']) {
-      $hook  = "facetapi_facet_{$this->_facet['query type']}_build";
+      $hook  = 'facetapi_facet_'. $this->_facet['query type'] .'_build';
       $items = (array) module_invoke(
         $this->_adapter->getModule(), $hook, $this->_adapter, $this->_facet
       );

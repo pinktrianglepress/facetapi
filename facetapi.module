@@ -819,11 +819,11 @@ function facetapi_setting_set($setting, $value) {
 }
 
 /**
- * Implementation of hook_facetapi_QUERY_TYPE_facet_value_alter().
+ * Implementation of hook_facetapi_value_QUERY_TYPE_alter().
  *
  * Processes range queries.
  */
-function facetapi_facetapi_range_facet_value_alter(array &$value, FacetapiAdapter $adapter) {
+function facetapi_facetapi_value_range_alter(array &$value, FacetapiAdapter $adapter) {
   if (preg_match(FACETAPI_REGEX_RANGE, $value['value'], $matches)) {
     $value['range'] = TRUE;
     $value['start'] = $matches[1];
@@ -832,11 +832,11 @@ function facetapi_facetapi_range_facet_value_alter(array &$value, FacetapiAdapte
 }
 
 /**
- * Implementation of hook_facetapi_QUERY_TYPE_facet_value_alter().
+ * Implementation of hook_facetapi_value_QUERY_TYPE_alter().
  *
  * Processes date queries.
  */
-function facetapi_facetapi_date_facet_value_alter(array &$value, FacetapiAdapter $adapter) {
+function facetapi_facetapi_value_date_alter(array &$value, FacetapiAdapter $adapter) {
   if (preg_match(FACETAPI_REGEX_DATE_RANGE, $value['value'], $matches)) {
     $value['range'] = TRUE;
     $value['start'] = $matches[1];

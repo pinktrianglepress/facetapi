@@ -200,7 +200,8 @@ function hook_facetapi_facet_QUERY_TYPE_build(FacetapiAdapter $adapter, array $f
 
 /**
  * Allows modules to parse and extract information from facet values passed
- * through query string.
+ * through query string. For example, range queries can extract the start and
+ * end values from the raw range.
  *
  * @param &$value
  *   An array containing information about the value extracted from the query
@@ -210,7 +211,7 @@ function hook_facetapi_facet_QUERY_TYPE_build(FacetapiAdapter $adapter, array $f
  *
  * @ingroup hooks
  */
-function hook_facetapi_QUERY_TYPE_facet_value_alter(array &$value, FacetapiAdapter $adapter) {
+function hook_facetapi_value_QUERY_TYPE_alter(array &$value, FacetapiAdapter $adapter) {
 }
 
 /**
