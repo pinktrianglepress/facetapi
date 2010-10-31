@@ -86,9 +86,9 @@ function facetapi_apachesolr_apachesolr_prepare_query($query, &$params, $caller)
 }
 
 /**
- * Implementation of hook_facetapi_query_TYPE_process().
+ * Implementation of hook_facetapi_query_QUERY_TYPE_prepare().
  */
-function facetapi_apachesolr_facetapi_query_term_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
+function facetapi_apachesolr_facetapi_query_term_prepare(FacetapiAdapter $adapter, array $facet, &$params, $query) {
   $searcher = $adapter->getSearcher();
 
   // Adds the operator parameter.
@@ -102,9 +102,9 @@ function facetapi_apachesolr_facetapi_query_term_process(FacetapiAdapter $adapte
 }
 
 /**
- * Implementation of hook_facetapi_query_TYPE_process().
+ * Implementation of hook_facetapi_query_QUERY_TYPE_prepare().
  */
-function facetapi_apachesolr_facetapi_query_date_process(FacetapiAdapter $adapter, array $facet, &$params, $query) {
+function facetapi_apachesolr_facetapi_query_date_prepare(FacetapiAdapter $adapter, array $facet, &$params, $query) {
   $searcher = $adapter->getSearcher();
 
   // Gets the data range in formats that Solr understands.
@@ -131,7 +131,7 @@ function facetapi_apachesolr_facetapi_query_date_process(FacetapiAdapter $adapte
  * @return
  *   An array containing the gap and range information.
  *
- * @todo integrate this into facetapi_apachesolr_facetapi_date_range_process()
+ * @todo integrate this into facetapi_apachesolr_facetapi_date_range_prepare()
  *       once we have a "range limit callback".
  */
 function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {

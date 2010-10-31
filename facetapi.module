@@ -849,7 +849,7 @@ function facetapi_facetapi_date_facet_value_alter(array &$value, FacetapiAdapter
  *
  * Query type hooks are generally used to process facet data and apply filters
  * to the query for the selectd items. The query type is set in the facet
- * definition, and the adapter module's hook_facetapi_query_TYPE_process()
+ * definition, and the adapter module's hook_facetapi_query_QUERY_TYPE_prepare()
  * implementation is invoked for each facet being built by the adapter.
  *
  * @param $searcher
@@ -865,7 +865,7 @@ function facetapi_query_type_hooks_invoke($searcher, &$data) {
   if ($adapter = facetapi_adapter_load($searcher)) {
     $facets = facetapi_enabled_facets_get($searcher);
     foreach ($facets as $facet) {
-      $hook = 'facetapi_query_'. $facet['query type'] .'_process';
+      $hook = 'facetapi_query_'. $facet['query type'] .'_prepare';
       if (module_hook($adapter->getModule(), $hook)) {
         $function = $adapter->getModule() .'_'. $hook;
         $args = func_get_args();

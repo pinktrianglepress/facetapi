@@ -165,6 +165,23 @@ function hook_facetapi_facets_alter(&$build, FacetapiAdapter $adapter, array $re
 }
 
 /**
+ * Allows the adatper to set up the facet queries.
+ *
+ * @param $adapter
+ *   A FacetapiAdapter object containing the adapter.
+ * @param $facet
+ *   An array containing the full realm definition.
+ * @param &$data
+ *   A mixed value containing any data that needs to be altered.  For example,
+ *   this may be the "params" array for Apache Solr or the query object for
+ *   Search Lucene API.
+ * @param ...
+ *   Any additional parameters passed by the adapter.
+ */
+function hook_facetapi_query_QUERY_TYPE_prepare(FacetapiAdapter $adapter, array $facet, &$data) {
+}
+
+/**
  * Allows modules to parse and extract information from facet values passed
  * through query string.
  *
