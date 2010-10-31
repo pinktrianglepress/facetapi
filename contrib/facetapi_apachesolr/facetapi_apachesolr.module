@@ -14,14 +14,14 @@ function facetapi_apachesolr_menu() {
   $items = array();
 
   $items['admin/settings/apachesolr/facets'] = array(
-    'title' => 'Facets',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_admin_settings_form', 'apachesolr_search'),
+    'title'            => 'Facets',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('facetapi_admin_settings_form', 'apachesolr_search'),
     'access arguments' => array('administer search'),
-    'type' => MENU_LOCAL_TASK,
-    'file' => 'facetapi.admin.inc',
-    'file path' => drupal_get_path('module', 'facetapi'),
-    'weight' => 10,
+    'type'             => MENU_LOCAL_TASK,
+    'file'             => 'facetapi.admin.inc',
+    'file path'        => drupal_get_path('module', 'facetapi'),
+    'weight'           => -9,
   );
 
   return $items;
@@ -32,7 +32,6 @@ function facetapi_apachesolr_menu() {
  */
 function facetapi_apachesolr_menu_alter(&$items) {
   $items['admin/settings/apachesolr/enabled-filters']['access arguments'] = FALSE;
-  $items['admin/settings/apachesolr/facets']['weight'] = -9;
 }
 
 /**
@@ -42,8 +41,8 @@ function facetapi_apachesolr_facetapi_adapter_info() {
   return array(
     'apachesolr_search' => array(
       'class' => 'FacetapiApachesolrAdapter',
-      'type' => 'node',
-      'file' => 'facetapi_apachesolr.adapter.inc',
+      'type'  => 'node',
+      'file'  => 'facetapi_apachesolr.adapter.inc',
     ),
   );
 }

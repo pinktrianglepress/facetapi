@@ -74,21 +74,21 @@ function facetapi_menu() {
 
   // Configuration page for a facet.
   $items['admin/settings/%facetapi_adapter/facetapi/%facetapi_realm/%facetapi_facet'] = array(
-    'title' => 'Facet configuration settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_settings_form', 2, 4, 5),
-    'load arguments' => array(2),
+    'title'            => 'Facet configuration settings',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('facetapi_facet_settings_form', 2, 4, 5),
+    'load arguments'   => array(2),
     'access arguments' => array('administer search'),
-    'type' => MENU_CALLBACK,
-    'file' => 'facetapi.admin.inc',
+    'type'             => MENU_CALLBACK,
+    'file'             => 'facetapi.admin.inc',
   );
 
   // Default tab for the facet configuration pages.
   $items['admin/settings/%facetapi_adapter/facetapi/%facetapi_realm/%facetapi_facet/edit'] = array(
-    'title' => 'Edit',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title'          => 'Edit',
+    'type'           => MENU_DEFAULT_LOCAL_TASK,
     'load arguments' => array(2),
-    'weight' => -40,
+    'weight'         => -40,
   );
 
   return $items;
@@ -560,7 +560,7 @@ function facetapi_widgets_get(array $variables = array(), $reset = FALSE) {
  * @return
  *   A boolean flagging whether the item should be kept in the array.
  */
-function facetapi_widgets_filter($widget) {
+function facetapi_widgets_filter(array $widget) {
   // Captures variables for code readability.
   $realm_reqs = $widget['variables']['realm']['widget reqs'];
   $facet_reqs = $widget['variables']['facet']['widget reqs'];
@@ -764,7 +764,7 @@ function facetapi_facet_status_set($searcher, $realm_name, $facet_name, $enabled
   foreach ($realm_names as $realm_name) {
 
     // Gets current variable, toggles status for the facet, sets the variable.
-    $facets = (array)facetapi_setting_get('facet_status', $searcher, $realm_name);
+    $facets = (array) facetapi_setting_get('facet_status', $searcher, $realm_name);
     $facets[$facet_name] = ($enabled) ? $facet_name : 0;
     facetapi_setting_set('facet_status', $facets, $searcher, $realm_name);
 
@@ -1356,16 +1356,16 @@ function facetapi_form_search_form_alter(&$form, &$form_state) {
     }
 
     $form['facets'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Faceted search'),
+      '#type'        => 'fieldset',
+      '#title'       => t('Faceted search'),
       '#collapsible' => TRUE,
-      '#collapsed' => $collapsed,
-      '#attributes' => array('class' => 'search-advanced'),
+      '#collapsed'   => $collapsed,
+      '#attributes'  => array('class' => 'search-advanced'),
     );
     $form['facets'] = array_merge($form['facets'], $elements);
     $form['facets']['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Search'),
+      '#type'   => 'submit',
+      '#value'  => t('Search'),
       '#prefix' => '<div class="action">',
       '#suffix' => '</div>',
       '#weight' => 100,
