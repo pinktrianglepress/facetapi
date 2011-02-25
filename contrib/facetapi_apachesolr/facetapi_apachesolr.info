@@ -1,4 +1,3 @@
-; $Id$
 name = Apache Solr Search Integration Facet Adapter
 description = "The Apache Solr Search Integration module's implementation of the the Facet API."
 dependencies[] = facetapi

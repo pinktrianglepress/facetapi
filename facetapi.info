@@ -1,4 +1,3 @@
-; $Id$
 name = Facet API
 description = "An abstracted facet API that can be used by various search backens."
 package = Search

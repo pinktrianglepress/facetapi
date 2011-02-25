@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * Iterates over facets, performs facet initialization.

@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * Initialization method for facets in the block realm.

@@ -1,4 +1,3 @@
-// $Id$
 
 facetapi.addCheckbox = function() {
   // Put href in context scope to be visible in the anonymous function.
