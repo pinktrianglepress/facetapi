@@ -285,7 +285,11 @@ function facetapi_get_facet_info($searcher, $type) {
 function facetapi_get_facet_settings($searcher, $realm_name, $facet_name) {
   ctools_include('export');
   $name = $searcher . ':' . $realm_name . ':' . $facet_name;
-  return ctools_export_crud_load('facetapi', $name);
+  if (!$settings = ctools_export_crud_load('facetapi', $name)) {
+    $settings = ctools_export_crud_new('facetapi');
+    $settings->name = $name;
+  }
+  return $settings;
 }
 
 /**
@@ -386,7 +390,7 @@ function facetapi_facetapi_realm_info() {
     'widget requirements' => array('list'),
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
-      array('@block-page' => url('admin/build/block/list', array('query' => array('destination' => $_GET['q']))))
+      array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
     ),
   );
 

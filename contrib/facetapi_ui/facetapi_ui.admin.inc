@@ -38,23 +38,17 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
     $settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name);
 
     // Gets weight, appends to facet_info array for sorting.
-    $weight = (isset($settings->settings['weight'])) ? $settings->settings['weight'] : 0;
-    $form['table']['#facetapi']['facet_info'][$facet_name]['weight'] = $weight;
+    $form['table']['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
 
     $form['table']['weight:' . $facet_name] = array(
       '#type' => 'select',
       '#options' => drupal_map_assoc(range(-50, 50)),
-      '#default_value' => $weight,
+      '#default_value' => $settings->settings['weight'],
       '#attributes' => array('class' => array('facetapi-facet-weight')),
     );
 
     $options[$facet_name] = '';
-    if (isset($settings->settings['enabled'])) {
-      $default_value[$facet_name] = $settings->settings['enabled'];
-    }
-    else {
-      $default_value[$facet_name] = 0;
-    }
+    $default_value[$facet_name] = $settings->settings['enabled'];
   }
 
   // Sorts by the weight appended above.
@@ -92,16 +86,9 @@ function facetapi_ui_realm_settings_form_submit($form, &$form_state) {
   $facet_info = $form['table']['#facetapi']['facet_info'];
 
   foreach ($facet_info as $facet_name => $facet) {
-    // Loads facet settings, sets defaults.
-    if (!$settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name)) {
-      $settings = ctools_export_crud_new('facetapi');
-      $settings->name = $searcher . ':' . $realm_name . ':' . $facet_name;
-      $settings->settings = array();
-    }
-
+    $settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name);
     $settings->settings['enabled'] = $form_state['values']['enabled_facets'][$facet_name];
     $settings->settings['weight'] = $form_state['values']['weight:' . $facet_name];
-
     if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
       drupal_set_message(t('Error saving settings.'), 'error');
     }
@@ -206,7 +193,7 @@ function facetapi_ui_facet_settings_form($form, &$form_state, $adapter, array $r
   $form['global']['operator'] = array(
     '#type' => 'radios',
     '#title' => t('Operator'),
-    '#default_value' => isset($settings->settings['operator']) ? $settings->settings['operator'] : FACETAPI_OPERATOR_AND,
+    '#default_value' => $settings->settings['operator'],
     '#options' => array(
       FACETAPI_OPERATOR_AND => t('AND'),
       FACETAPI_OPERATOR_OR => t('OR'),
@@ -217,7 +204,7 @@ function facetapi_ui_facet_settings_form($form, &$form_state, $adapter, array $r
   $form['global']['hard_limit'] = array(
     '#type' => 'select',
     '#title' => t('Hard limit'),
-    '#default_value' => isset($settings->settings['operator']) ? $settings->settings['operator'] : 20,
+    '#default_value' => $settings->settings['hard_limit'],
     '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Display no more than this number of facet items.')
   );
@@ -252,14 +239,14 @@ function facetapi_ui_facet_settings_form($form, &$form_state, $adapter, array $r
   $form['realm']['widget'] = array(
     '#type' => 'select',
     '#title' => t('Display widget'),
-    '#default_value' => isset($settings->settings['widget']) ? $settings->settings['widget'] : 'facetapi_links',
+    '#default_value' => $settings->settings['widget'],
     '#options' => $widget_options,
   );
 
   $form['realm']['soft_limit'] = array(
     '#type' => 'select',
     '#title' => t('Soft limit'),
-    '#default_value' => isset($settings->settings['soft_limit']) ? $settings->settings['soft_limit'] : 50,
+    '#default_value' => $settings->settings['soft_limit'],
     '#options' => array(0 => t('No limit')) + drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Limits the number of displayed facets via JavaScript.'),
   );
