@@ -83,10 +83,10 @@ define('FACETAPI_REGEX_DATE_RANGE', '/^\[('. trim(FACETAPI_REGEX_DATE, '/^$') .'
 function facetapi_adapter_load($searcher) {
   $adapters = drupal_static(__FUNCTION__, array());
   if (!isset($adapters[$searcher]) || $reset) {
-    $definitions = facetapi_get_adapter_info();
-    if (isset($definitions[$searcher])) {
-      $adapters[$searcher] = new $definitions[$searcher]['class'](
-        $searcher, $definitions[$searcher]['type'], $definitions[$searcher]['module']
+    $adapter_info = facetapi_get_adapter_info();
+    if (isset($adapter_info[$searcher])) {
+      $adapters[$searcher] = new $adapter_info[$searcher]['class'](
+        $searcher, $adapter_info[$searcher]['type'], $adapter_info[$searcher]['module']
       );
     }
     else {
@@ -107,8 +107,8 @@ function facetapi_adapter_load($searcher) {
  *   valid.
  */
 function facetapi_realm_load($realm_name) {
-  $realms = facetapi_get_realms();
-  return (isset($realms[$realm_name])) ? $realms[$realm_name] : FALSE;
+  $realm_info = facetapi_get_realm_info();
+  return (isset($realm_info[$realm_name])) ? $realm_info[$realm_name] : FALSE;
 }
 
 /**
@@ -118,8 +118,8 @@ function facetapi_realm_load($realm_name) {
  * where this needs to be called repeatedly. Use facetapi_enabled_facets_get()
  * as an alternative.
  *
- * @param $realm_name
- *   A string containing the machine readable name of the realm.
+ * @param $facet_name
+ *   A string containing the machine readable name of the facet.
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
  *
@@ -129,9 +129,9 @@ function facetapi_realm_load($realm_name) {
  */
 function facetapi_facet_load($facet_name, $searcher) {
   if ($adapter = facetapi_adapter_load($searcher)) {
-    $facets = facetapi_get_facets($searcher, $adapter->getType());
-    if (isset($facets[$facet_name])) {
-      return $facets[$facet_name];
+    $facet_info = facetapi_get_facet_info($searcher, $adapter->getType());
+    if (isset($facet_info[$facet_name])) {
+      return $facet_info[$facet_name];
     }
   }
   return FALSE;
@@ -288,6 +288,83 @@ function facetapi_get_facet_settings($searcher, $realm_name, $facet_name) {
   return ctools_export_crud_load('facetapi', $name);
 }
 
+/**
+ * Invokes hook_facetapi_sort_info(), returns all defined sorts.
+ *
+ * @return
+ *   An associative array of sort definitions keyed by sort name.
+ */
+function facetapi_get_sort_info() {
+  $sorts = drupal_static(__FUNCTION__);
+  if (NULL === $sorts) {
+
+    // Gets realm info from hooks, merges with defaults.
+    $sorts = module_invoke_all('facetapi_sort_info');
+    foreach ($sorts as $sort_name => $sort) {
+      $sorts[$sort_name] += array(
+        'name' => $sort_name,
+        'title' => $sort_name,
+        'callback' => '',
+        'description' => '',
+        'weight' => 0,
+      );
+    }
+
+    // Invokes alter hook.
+    drupal_alter('facetapi_sort_info', $sorts);
+  }
+  return $sorts;
+}
+
+/**
+ * Invokes hook_facetapi_widget_info(), returns all defined widgets.
+ *
+ * @param $variables
+ *   An array of variables passed to the restriction callbacks. By default it
+ *   contains the adapter, realm definition, and facet definition. If the array
+ *   is empty, all widgets will be returned.
+ *
+ * @return
+ *   An associative array of widget definitions keyed by widget name.
+ */
+function facetapi_get_widget_info(array $variables = array()) {
+  $widget_info = drupal_static(__FUNCTION__);
+  if (NULL === $widget_info) {
+
+    // Gets widgets from hooks, merges with defaults.
+    foreach (module_implements('facetapi_widget_info') as $module) {
+      $module_widgets = module_invoke($module, 'facetapi_widget_info');
+      foreach ($module_widgets as $widget_name => $widget) {
+        $widget_info[$widget_name] = $widget + array(
+          'label' => t('Widget'),
+          'callback' => 'facetapi_links_widget_callback',
+          'widget requirements' => array(),
+          'variables' => array(),
+          'weight' => 0,
+          'module' => $module,
+        );
+      }
+    }
+
+    // Allows modules to alter the widget defintions.
+    drupal_alter('facetapi_widget_info', $widget_info);
+  }
+
+  // If variables passed, returns widgets the facet has access to.
+  if (!empty($variables)) {
+    $return = $widget_info;
+    foreach ($widget_info as $widget_name => $widget) {
+      $return[$widget_name]['variables'] = array_merge(
+        $variables, $widget_info[$widget_name]['variables']
+      );
+    }
+    return array_filter($return, 'facetapi_filter_widgets');
+  }
+  else {
+    return $widgets;
+  }
+}
+
 ////
 ////
 //// Facet API hook implementations
@@ -395,4 +472,131 @@ function facetapi_facetapi_facet_info($searcher, $type) {
   }
 
   return $facets;
+}
+
+/**
+ * Implementation of hook_facetapi_sort_info().
+ */
+function facetapi_facetapi_sort_info() {
+  $sorts = array();
+
+  $sorts['active'] = array(
+    'label' => t('Facet active'),
+    'callback' => 'facetapi_sort_active',
+    'description' => t('Sort by whether the facet is active or not.'),
+    'weight' => -50,
+  );
+
+  $sorts['count'] = array(
+    'label' => t('Count'),
+    'callback' => 'facetapi_sort_count',
+    'description' => t('Sort by the facet count.'),
+    'weight' => -49,
+  );
+
+  $sorts['display'] = array(
+    'label' => t('Display value'),
+    'callback' => 'facetapi_sort_display',
+    'description' => t('Sort by the value displayed to the user.'),
+    'weight' => -48,
+  );
+
+  $sorts['indexed'] = array(
+    'label' => t('Indexed value'),
+    'callback' => 'facetapi_sort_indexed',
+    'description' => t('Sort by the raw value stored in the index.'),
+    'weight' => -47,
+  );
+
+  return $sorts;
+}
+
+/**
+ * Implements hook_facetapi_widget_info().
+ */
+function facetapi_facetapi_widget_info() {
+  $widgets = array();
+
+  $widgets['facetapi_links'] = array(
+    'label' => t('Links'),
+    'callback' => 'facetapi_widget_links',
+    'widget requirements' => array('list'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -10,
+  );
+
+  $widgets['facetapi_link_checkboxes'] = array(
+    'label' => t('Links with checkboxes'),
+    'callback' => 'facetapi_widget_link_checkboxes',
+    'widget requirements' => array('list'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -9,
+  );
+
+  $widgets['facetapi_checkboxes'] = array(
+    'label' => t('Checkboxes'),
+    'callback' => 'facetapi_widget_checkboxes',
+    'widget requirements' => array('form', 'has default values', 'flat'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -10,
+  );
+
+  $widgets['facetapi_radios'] = array(
+    'label' => t('Radios'),
+    'callback' => 'facetapi_widget_radios',
+    'widget requirements' => array('form', 'has default values', 'flat'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -9,
+  );
+
+  $widgets['facetapi_select'] = array(
+    'label' => t('Select list'),
+    'callback' => 'facetapi_widget_select',
+    'widget requirements' => array('form', 'has default values'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -8,
+  );
+
+  $widgets['facetapi_multiselect'] = array(
+    'label' => t('Multiple value select list'),
+    'callback' => 'facetapi_widget_multiselect',
+    'widget requirements' => array('form', 'has default values'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -7,
+  );
+
+  $widgets['facetapi_textfield'] = array(
+    'label' => t('Text field'),
+    'callback' => 'facetapi_widget_textfield',
+    'widget requirements' => array('form'),
+    'file' => 'facetapi.widget.inc',
+    'weight' => -6,
+  );
+
+  return $widgets;
+}
+
+/**
+ * Filters widgets by invoking their access callbacks.
+ *
+ * @param $widget
+ *   An array containing the widget info.
+ *
+ * @return
+ *   A boolean flagging whether the item should be kept in the array.
+ */
+function facetapi_filter_widgets(array $widget) {
+  // Captures variables for code readability.
+  $realm_reqs = $widget['variables']['realm']['widget requirements'];
+  $facet_reqs = $widget['variables']['facet']['widget requirements'];
+
+  // Gets what requirements we have, what's required, which ones are common.
+  $reqs     = array_unique(array_merge($realm_reqs, $facet_reqs));
+  $required = array_unique($widget['widget requirements']);
+  $common   = array_intersect($reqs, $required);
+
+  // Makes sure all requirements are met.
+  sort($required);
+  sort($common);
+  return ($common == $required);
 }
