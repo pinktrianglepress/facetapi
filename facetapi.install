@@ -9,51 +9,36 @@
  * Implementation of hook_schema().
  */
 function facetapi_schema() {
-  $schema = array();
-
-  $schema['cache_facetapi'] = array(
-    'description' => 'Cached Facet API data.',
+  $schema['facetapi'] = array(
+    'description' => 'Facet configurations.',
+    'export' => array(
+      'key' => 'name',
+      'identifier' => 'searcher',
+      'default hook' => 'facetapi_default_facet_settings',
+      'status' => 'facetapi_facet_status',
+      'api' => array(
+        'owner' => 'facetapi',
+        'api' => 'facetapi',
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+      'export callback' => 'facetapi_export_facet_settings',
+    ),
     'fields' => array(
-      'cid' => array(
-        'description' => 'Primary Key: Unique cache ID.',
+      'name' => array(
+        'description' => 'The machine readable name of the facet.',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 64,
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
-      'data' => array(
-        'description' => 'A collection of data to cache.',
-        'type' => 'blob',
-        'not null' => FALSE,
-        'size' => 'big'
-      ),
-      'expire' => array(
-        'description' => 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0
-      ),
-      'created' => array(
-        'description' => 'A Unix timestamp indicating when the cache entry was created.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0
-      ),
-      'headers' => array(
-        'description' => 'Any custom HTTP headers to be added to cached data.',
+      'settings' => array(
+        'description' => 'Serialized storage of general settings.',
         'type' => 'text',
-        'not null' => FALSE
-      ),
-      'serialized' => array(
-        'description' => 'A flag to indicate whether content is serialized (1) or not (0).',
-        'type' => 'int',
-        'size' => 'small',
-        'not null' => TRUE,
-        'default' => 0
+        'serialize' => TRUE,
       ),
     ),
-    'indexes' => array('expire' => array('expire')),
-    'primary key' => array('cid'),
+    'primary key' => array('name'),
   );
 
   return $schema;
@@ -63,7 +48,7 @@ function facetapi_schema() {
  * Implementation of hook_install().
  */
 function facetapi_install() {
-  drupal_install_schema('facetapi');
+  // Nothing to do...
 }
 
 /**
@@ -71,11 +56,4 @@ function facetapi_install() {
  */
 function facetapi_uninstall() {
   drupal_uninstall_schema('facetapi');
-
-  // Removes all variables that start with "facetapi:"
-  if ($result = db_query("SELECT name FROM {variable} WHERE name LIKE 'facetapi:%%'")) {
-    while ($row = db_fetch_object($result)) {
-      variable_del($row->name);
-    }
-  }
 }

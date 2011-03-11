@@ -1,7 +1,0 @@
-name = Apache Solr Search Integration Facet Adapter
-description = "The Apache Solr Search Integration module's implementation of the the Facet API."
-dependencies[] = facetapi
-dependencies[] = apachesolr
-dependencies[] = apachesolr_search
-package = Search
-core = "6.x"

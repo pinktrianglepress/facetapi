@@ -1,6 +1,0 @@
-name = Search Lucene API Facet Adapter
-description = "The Search Lucene API module's implementation of the the Facet API."
-dependencies[] = facetapi
-dependencies[] = luceneapi
-package = Search
-core = "6.x"
