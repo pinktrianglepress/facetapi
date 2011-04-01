@@ -14,27 +14,27 @@ abstract class FacetapiAdapter {
   /**
    * The machine readable name of the searcher module.
    */
-  protected $_searcher;
+  protected $searcher;
 
   /**
-   * The type of content indexed by $this->_searcher.
+   * The type of content indexed by $this->searcher.
    */
-  protected $_type;
+  protected $type;
 
   /**
    * The module that defines the adapter.
    */
-  protected $_module;
+  protected $module;
 
   /**
    * The search keys.
    */
-  protected $_keys;
+  protected $keys;
 
   /**
    * An array of FacetapiFacet objects.
    */
-  protected $_facets = array();
+  protected $facets = array();
 
   /**
    * Constructor, sets searcher and type of content being indexed.
@@ -53,10 +53,10 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns a boolean flagging whether $this->_searcher executed a search.
+   * Returns a boolean flagging whether $this->searcher executed a search.
    *
    * @return
-   *   A boolean flagging whether $this->_searcher executed a search.
+   *   A boolean flagging whether $this->searcher executed a search.
    *
    * @todo Generic search API should provide consistent functionality.
    */
@@ -113,7 +113,7 @@ abstract class FacetapiAdapter {
    *   An instance of this class.
    */
   public function setSearcher($searcher) {
-    $this->_searcher = $searcher;
+    $this->searcher = $searcher;
     return $this;
   }
 
@@ -124,31 +124,31 @@ abstract class FacetapiAdapter {
    *   A string containing the machine readable name of the searcher module.
    */
   public function getSearcher() {
-    return $this->_searcher;
+    return $this->searcher;
   }
 
   /**
-   * Sets the type of content indexed by $this->_searcher.
+   * Sets the type of content indexed by $this->searcher.
    *
    * @param $type
-   *   A string containing the type of content indexed by $this->_searcher.
+   *   A string containing the type of content indexed by $this->searcher.
    *
    * @return
    *   An instance of this class.
    */
   public function setType($type) {
-    $this->_type = $type;
+    $this->type = $type;
     return $this;
   }
 
   /**
-   * Returns the type of content indexed by $this->_searcher.
+   * Returns the type of content indexed by $this->searcher.
    *
    * @return
-   *   A string containing the type of content indexed by $this->_searcher.
+   *   A string containing the type of content indexed by $this->searcher.
    */
   public function getType() {
-    return $this->_type;
+    return $this->type;
   }
 
   /**
@@ -160,7 +160,7 @@ abstract class FacetapiAdapter {
    *   An instance of this class.
    */
   public function setModule($module) {
-    $this->_module = $module;
+    $this->module = $module;
     return $this;
   }
 
@@ -178,14 +178,14 @@ abstract class FacetapiAdapter {
    * Sets the search keys.
    */
   public function setSearchKeys($keys) {
-    $this->_keys = $keys;
+    $this->keys = $keys;
   }
 
   /**
    * Gets the search keys.
    */
   public function getSearchKeys() {
-    return $this->_keys;
+    return $this->keys;
   }
 
   /**
@@ -198,10 +198,10 @@ abstract class FacetapiAdapter {
    *   A FacetapiFacet object.
    */
   public function getFacet(array $facet) {
-    if (!isset($this->_facets[$facet['name']])) {
-      $this->_facets[$facet['name']] = new FacetapiFacet($this, $facet);
+    if (!isset($this->facets[$facet['name']])) {
+      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet);
     }
-    return $this->_facets[$facet['name']];
+    return $this->facets[$facet['name']];
   }
 }
 
@@ -213,22 +213,22 @@ class FacetapiFacet {
   /**
    * A FacetapiAdapter object.
    */
-  protected $_adapter;
+  protected $adapter;
 
   /**
    * An array containing the facet definition.
    */
-  protected $_facet;
+  protected $facet;
 
   /**
    * An array of active facets items.
    */
-  protected $_active;
+  protected $active;
 
   /**
    * The build array for the facet items.
    */
-  protected $_build;
+  protected $build;
 
   /**
    * Constructor, sets adapter and facet definition.
@@ -252,7 +252,7 @@ class FacetapiFacet {
    *   An instance of this class.
    */
   public function setAdapter(FacetapiAdapter $adapter) {
-    $this->_adapter = $adapter;
+    $this->adapter = $adapter;
     return $this;
   }
 
@@ -263,7 +263,7 @@ class FacetapiFacet {
    *   The FacetapiAdapter class.
    */
   public function getAdapter() {
-    return $this->_adapter;
+    return $this->adapter;
   }
 
   /**
@@ -273,7 +273,7 @@ class FacetapiFacet {
    *   An instance of this class.
    */
   public function setFacet(array $facet) {
-    $this->_facet = $facet;
+    $this->facet = $facet;
     return $this;
   }
 
@@ -284,7 +284,7 @@ class FacetapiFacet {
    *   An array containing the facet definition.
    */
   public function getFacet() {
-    return $this->_facet;
+    return $this->facet;
   }
 
   /**
@@ -294,10 +294,10 @@ class FacetapiFacet {
    *   An array of active items.
    */
   public function getActiveItems() {
-    if (!isset($this->_active)) {
+    if (!isset($this->active)) {
       $this->processActiveItems();
     }
-    return $this->_active;
+    return $this->active;
   }
 
   /**
@@ -308,11 +308,11 @@ class FacetapiFacet {
    *   An array containing the facet values keyed by position.
    */
   public function getActiveValues() {
-    if (!isset($this->_active)) {
+    if (!isset($this->active)) {
       $this->processActiveItems();
     }
     $values = array();
-    foreach ($this->_active as $value => $item) {
+    foreach ($this->active as $value => $item) {
       $values[$item['pos']] = $value;
     }
     if (!empty($values)) {
@@ -335,7 +335,7 @@ class FacetapiFacet {
    *   An integer, 1 if the item is active, 0 if it is inactive.
    */
   public function itemActive($value) {
-    return (int) isset($this->_active[$value]);
+    return (int) isset($this->active[$value]);
   }
 
   /**
@@ -353,13 +353,13 @@ class FacetapiFacet {
   public function getQueryString(array $values, $active) {
 
     // Gets field alias for readability.
-    $field_alias = $this->_facet['field alias'];
+    $field_alias = $this->facet['field alias'];
 
     // Builds array of query string variables.
     $qstring = $_GET;
     foreach ($values as $value) {
-      if ($active && isset($this->_active[$value])) {
-        unset($qstring[$field_alias][$this->_active[$value]['pos']]);
+      if ($active && isset($this->active[$value])) {
+        unset($qstring[$field_alias][$this->active[$value]['pos']]);
       }
       elseif (!$active) {
         if (!isset($qstring[$field_alias])) {
@@ -387,58 +387,58 @@ class FacetapiFacet {
   public function build(array $realm) {
 
     // Builds render array for facet items if necessary.
-    if (!isset($this->_build)) {
-      $this->_build = $this->buildItems();
-      $this->processHierarchy($this->_build)->processQueryStrings($this->_build);
+    if (!isset($this->build)) {
+      $this->build = $this->buildItems();
+      $this->processHierarchy($this->build)->processQueryStrings($this->build);
     }
 
     // Gets searcher since we use it a lot, gets field alias for readability.
-    $searcher = $this->_adapter->getSearcher();
-    $field_alias = $this->_facet['field alias'];
+    $searcher = $this->adapter->getSearcher();
+    $field_alias = $this->facet['field alias'];
 
     // Initializes render array.
     $build = array(
-      '#title' => $this->_facet['title'],
-      '#description' => $this->_facet['description'],
-      '#weight' => $this->_facet['weight'],
-      '#adapter' => $this->_adapter,
+      '#title' => $this->facet['title'],
+      '#description' => $this->facet['description'],
+      '#weight' => $this->facet['weight'],
+      '#adapter' => $this->adapter,
       '#realm_name' => $realm['name'],
-      '#facet' => $this->_facet,
-      $field_alias => $this->_build,
+      '#facet' => $this->facet,
+      $field_alias => $this->build,
     );
 
     // Adds identifiers to facet.
     $build['#attributes'] = array(
-      'class' => "facetapi-facet-{$this->_facet['name']}",
-      'id' => "facetapi-facet-$searcher-{$realm['name']}-{$this->_facet['name']}",
+      'class' => "facetapi-facet-{$this->facet['name']}",
+      'id' => "facetapi-facet-$searcher-{$realm['name']}-{$this->facet['name']}",
     );
 
     // Applies sorting algorithms.
-    $this->_sorts = facetapi_facet_sorts_get($this->_adapter, $realm, $this->_facet);
-    $this->_sort($build[$field_alias]);
-    unset($this->_sorts);
+    $this->sorts = facetapi_facet_sorts_get($this->adapter, $realm, $this->facet);
+    $this->sort($build[$field_alias]);
+    unset($this->sorts);
 
     // Gets available widgets.
     $widgets = facetapi_widgets_get(array(
       'realm' => $realm,
-      'facet' => $this->_facet,
+      'facet' => $this->facet,
     ));
 
     // Gets widget from settings, finds default if necessary.
-    $widget_name = facetapi_facet_widget_get($widgets, $searcher, $realm, $this->_facet);
+    $widget_name = facetapi_facet_widget_get($widgets, $searcher, $realm, $this->facet);
 
     // Initializes JavaScript settings.
     $facet_settings = array(
       'searcher' => $searcher,
-      'type' => $this->_adapter->getType(),
+      'type' => $this->adapter->getType(),
       'realmName' => $realm['name'],
-      'facetName' => $this->_facet['name'],
+      'facetName' => $this->facet['name'],
       'widget' => $widget_name,
-      'queryType' => $this->_facet['query type'],
+      'queryType' => $this->facet['query type'],
     );
 
     // Passes render array, JavaScript settings to widget.
-    $key = $this->_facet['field alias'];
+    $key = $this->facet['field alias'];
     if (NULL !== $widget_name && isset($widgets[$widget_name])) {
       $build['#widget'] = $widgets[$widget_name];
       if (facetapi_file_include($build['#widget'])) {
@@ -460,15 +460,15 @@ class FacetapiFacet {
    *   An instance of this class.
    */
   public function processActiveItems() {
-    $this->_active = array();
+    $this->active = array();
 
     // Bails if the facet isn't enabled in any realm.
-    if (!facetapi_facet_enabled($this->_adapter->getSearcher(), NULL, $this->_facet['name'])) {
+    if (!facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
       return $this;
     }
 
     // Gets active items from query string, normalizes to an array.
-    $field_alias = $this->_facet['field alias'];
+    $field_alias = $this->facet['field alias'];
     if (isset($_GET[$field_alias])) {
       if (is_array($_GET[$field_alias])) {
         $data = $_GET[$field_alias];
@@ -483,13 +483,13 @@ class FacetapiFacet {
 
     // Allows hooks to add additional information to the active item. For
     // example, range queries extract the start and end values from the item.
-    $hook = 'facetapi_value_'. $this->_facet['query type'];
+    $hook = 'facetapi_value_'. $this->facet['query type'];
     foreach ($data as $key => $value) {
-      $this->_active[$value] = array(
+      $this->active[$value] = array(
         'pos' => $key,
         'value' => $value,
       );
-      drupal_alter($hook, $this->_active[$value], $this->_adapter);
+      drupal_alter($hook, $this->active[$value], $this->adapter);
     }
 
     return $this;
@@ -517,10 +517,10 @@ class FacetapiFacet {
     );
 
     // Builds render arrays for each item.
-    if (NULL !== $this->_facet['field']) {
-      $hook  = 'facetapi_facet_' . $this->_facet['query type'] . '_build';
+    if (NULL !== $this->facet['field']) {
+      $hook  = 'facetapi_facet_' . $this->facet['query type'] . '_build';
       $items = (array) module_invoke(
-        $this->_adapter->getModule(), $hook, $this->_adapter, $this->_facet
+        $this->adapter->getModule(), $hook, $this->adapter, $this->facet
       );
     }
     else {
@@ -541,8 +541,8 @@ class FacetapiFacet {
     }
 
     // Maps the IDs to human readable values via the mapping callback.
-    if (!empty($this->_facet['map callback']) && function_exists($this->_facet['map callback'])) {
-      $map = call_user_func($this->_facet['map callback'], array_keys($build));
+    if (!empty($this->facet['map callback']) && function_exists($this->facet['map callback'])) {
+      $map = call_user_func($this->facet['map callback'], array_keys($build));
       array_walk($build, 'facetapi_ids_replace', $map);
     }
 
@@ -561,8 +561,8 @@ class FacetapiFacet {
   public function processHierarchy(&$build) {
 
     // Builds the hierarchy information if the hierarchy callback is defined.
-    if (!empty($this->_facet['hierarchy callback']) && !empty($build)) {
-      $parents = $this->_facet['hierarchy callback'](array_keys($build));
+    if (!empty($this->facet['hierarchy callback']) && !empty($build)) {
+      $parents = $this->facet['hierarchy callback'](array_keys($build));
       foreach ($parents as $value => $parents) {
         foreach ($parents as $parent) {
           if (isset($build[$parent]) && isset($build[$value])) {
@@ -592,7 +592,7 @@ class FacetapiFacet {
     } while ($active);
 
     // Strips children whose parents are inactive.
-    $build = array_filter($build, 'facetapi_inactive_parent_filter');
+    $build = array_filter($build, 'facetapi_filter_inactive_parent');
 
     // Returns instance of this class.
     return $this;
@@ -616,7 +616,7 @@ class FacetapiFacet {
       // parent deactivated the children as well.
       if (!empty($item['#active']) && !empty($item['#item_children'])) {
         $this->processQueryStrings($item['#item_children']);
-        $values = array_merge(facetapi_child_values_get($item['#item_children']), $values);
+        $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
       }
 
       // Formats query string for facet item, sets theme function.
@@ -633,22 +633,22 @@ class FacetapiFacet {
    * @param &$build
    *   An array containing the render array.
    */
-  protected function _sort(&$build) {
+  protected function sort(&$build) {
     foreach (element_children($build) as $value) {
       if (!empty($build[$value]['#item_children'])) {
-        $this->_sort($build[$value]['#item_children']);
+        $this->sort($build[$value]['#item_children']);
       }
     }
-    uasort($build, array($this, '_sortCallback'));
+    uasort($build, array($this, 'sortCallback'));
   }
 
   /**
    * Callback for uasort() that applies each sort in the order specified in the
    * admin interface.
    */
-  protected function _sortCallback(array $a, array $b) {
+  protected function sortCallback(array $a, array $b) {
     $return = 0;
-    foreach ($this->_sorts as $sort) {
+    foreach ($this->sorts as $sort) {
       if ($return = $sort['callback']($a, $b)) {
         if (SORT_DESC == $sort['order']) {
           $return *= -1;
@@ -699,7 +699,7 @@ function facetapi_map_query($sql, array $ids, $type = 'int') {
  * @param $map
  *   An array containing the mapped values.
  */
-function facetapi_ids_replace(array &$item, $key, array $map) {
+function facetapi_replace_ids(array &$item, $key, array $map) {
   if (isset($map[$key])) {
     $item['#value'] = $map[$key];
   }
@@ -715,11 +715,11 @@ function facetapi_ids_replace(array &$item, $key, array $map) {
  * @return
  *   An array containing the values of all descendants.
  */
-function facetapi_child_values_get(array $build) {
+function facetapi_get_child_values(array $build) {
   $values = array_keys($build);
   foreach ($build as $item) {
     if (!empty($item['#item_children'])) {
-      $values = array_merge(facetapi_child_values_get($item['#item_children']), $values);
+      $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
     }
   }
   return $values;
@@ -735,7 +735,7 @@ function facetapi_child_values_get(array $build) {
  * @return
  *   A boolean flagging whether the value should remain in the array.
  */
-function facetapi_inactive_parent_filter(array $build) {
+function facetapi_filter_inactive_parent(array $build) {
   return empty($build['#item_parents']);
 }
 

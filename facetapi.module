@@ -2,7 +2,7 @@
 
 /**
  * @file
- * An abstracted facet API that can be used by various search backens.
+ * An abstracted facet API that can be used by various search backends.
  */
 
 /**
@@ -595,9 +595,9 @@ function facetapi_filter_widgets(array $widget) {
   $facet_reqs = $widget['variables']['facet']['widget requirements'];
 
   // Gets what requirements we have, what's required, which ones are common.
-  $reqs     = array_unique(array_merge($realm_reqs, $facet_reqs));
+  $reqs = array_unique(array_merge($realm_reqs, $facet_reqs));
   $required = array_unique($widget['widget requirements']);
-  $common   = array_intersect($reqs, $required);
+  $common = array_intersect($reqs, $required);
 
   // Makes sure all requirements are met.
   sort($required);
