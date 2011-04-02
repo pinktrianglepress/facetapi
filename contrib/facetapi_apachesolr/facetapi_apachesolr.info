@@ -3,4 +3,5 @@ description = Apache Solr's implementation of the Facet API.
 package = Search
 core = 7.x
 configure = admin/config/search/apachesolr/facets
-files[] = facetapi_apachesolr.adapter.inc
+files[] = plugins/facetapi/adapter.inc
+files[] = plugins/facetapi/query_types.inc

@@ -6,227 +6,35 @@
  */
 
 /**
- * Abstract class extended by search backends that retrieves facet information
- * from the database.
- */
-abstract class FacetapiAdapter {
-
-  /**
-   * The machine readable name of the searcher module.
-   */
-  protected $searcher;
-
-  /**
-   * The type of content indexed by $this->searcher.
-   */
-  protected $type;
-
-  /**
-   * The module that defines the adapter.
-   */
-  protected $module;
-
-  /**
-   * The search keys.
-   */
-  protected $keys;
-
-  /**
-   * An array of FacetapiFacet objects.
-   */
-  protected $facets = array();
-
-  /**
-   * Constructor, sets searcher and type of content being indexed.
-   *
-   * @param $searcher
-   *   A string containing the machine readable name of the searcher module.
-   * @param $type
-   *   A string containing the type of content indexed by $searcher.
-   * @param $module
-   *   A string containing the module that defined the adapter.
-   */
-  public function __construct($searcher, $type, $module) {
-    $this->setSearcher($searcher)
-      ->setType($type)
-      ->setModule($module);
-  }
-
-  /**
-   * Returns a boolean flagging whether $this->searcher executed a search.
-   *
-   * @return
-   *   A boolean flagging whether $this->searcher executed a search.
-   *
-   * @todo Generic search API should provide consistent functionality.
-   */
-  abstract public function searchExecuted();
-
-  /**
-   * Returns a facet's active items.
-   *
-   * @param $facet
-   *   An array containing the facet definition.
-   *
-   * @return
-   *   An array containing the active items.
-   */
-  public function getActiveItems(array $facet) {
-    return $this->getFacet($facet)->getActiveItems();
-  }
-
-  /**
-   * Returns an array of the facet's active item values.
-   *
-   * @param $facet
-   *   An array containing the facet definition.
-   *
-   * @return
-   *   An array containing the facet values keyed by position.
-   */
-  public function getActiveValues(array $facet) {
-    return $this->getFacet($facet)->getActiveValues();
-  }
-
-  /**
-   * Tests whether a facet item is active by passing it's value.
-   *
-   * @param $facet
-   *   An array containing the facet definition.
-   * @param $value
-   *   A string containing the facet value.
-   *
-   * @return
-   *   An integer, 1 if the facet is active, 0 if the facet is not active.
-   */
-  public function itemActive($facet, $value) {
-    return $this->getFacet($facet)->itemActive($value);
-  }
-
-  /**
-   * Sets the searcher module.
-   *
-   * @param $searcher
-   *   A string containing the machine readable name of the searcher module.
-   *
-   * @return
-   *   An instance of this class.
-   */
-  public function setSearcher($searcher) {
-    $this->searcher = $searcher;
-    return $this;
-  }
-
-  /**
-   * Returns the searcher module.
-   *
-   * @return
-   *   A string containing the machine readable name of the searcher module.
-   */
-  public function getSearcher() {
-    return $this->searcher;
-  }
-
-  /**
-   * Sets the type of content indexed by $this->searcher.
-   *
-   * @param $type
-   *   A string containing the type of content indexed by $this->searcher.
-   *
-   * @return
-   *   An instance of this class.
-   */
-  public function setType($type) {
-    $this->type = $type;
-    return $this;
-  }
-
-  /**
-   * Returns the type of content indexed by $this->searcher.
-   *
-   * @return
-   *   A string containing the type of content indexed by $this->searcher.
-   */
-  public function getType() {
-    return $this->type;
-  }
-
-  /**
-   * Sets the module that defines the adapter.
-   *
-   * @param $module
-   *   A string containing the module that defines the adapter.
-   * @return
-   *   An instance of this class.
-   */
-  public function setModule($module) {
-    $this->module = $module;
-    return $this;
-  }
-
-  /**
-   * Returns the module that defines the adapter.
-   *
-   * @return
-   *   A string containing the module that defines the adapter.
-   */
-  public function getModule() {
-    return $this->_module;
-  }
-
-  /**
-   * Sets the search keys.
-   */
-  public function setSearchKeys($keys) {
-    $this->keys = $keys;
-  }
-
-  /**
-   * Gets the search keys.
-   */
-  public function getSearchKeys() {
-    return $this->keys;
-  }
-
-  /**
-   * Returns an instance of FacetapiFacet for a facet.
-   *
-   * @param $facet
-   *   An array containing the facet definition.
-   *
-   * @return
-   *   A FacetapiFacet object.
-   */
-  public function getFacet(array $facet) {
-    if (!isset($this->facets[$facet['name']])) {
-      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet);
-    }
-    return $this->facets[$facet['name']];
-  }
-}
-
-/**
  * Stores facet data, provides methods that build the facet's render array.
  */
 class FacetapiFacet {
 
   /**
    * A FacetapiAdapter object.
+   *
+   * @var FacetapiAdapter
    */
   protected $adapter;
 
   /**
    * An array containing the facet definition.
+   *
+   * @var array
    */
   protected $facet;
 
   /**
    * An array of active facets items.
+   *
+   * @var array
    */
   protected $active;
 
   /**
    * The build array for the facet items.
+   *
+   * @var array
    */
   protected $build;
 
@@ -243,12 +51,12 @@ class FacetapiFacet {
   }
 
   /**
-   * Sets adapter class.
+   * Sets adapter object.
    *
-   * @param $adapter
-   *   A FacetapiAdapter object.
+   * @param FacetapiAdapter $adapter
+   *   The Facet API adapter object.
    *
-   * @return
+   * @return FacetapiFacet
    *   An instance of this class.
    */
   public function setAdapter(FacetapiAdapter $adapter) {
@@ -257,19 +65,19 @@ class FacetapiFacet {
   }
 
   /**
-   * Returns the adapter class.
+   * Returns the adapter object.
    *
-   * @return
-   *   The FacetapiAdapter class.
+   * @return FacetapiAdapter
+   *   The adapter object.
    */
   public function getAdapter() {
     return $this->adapter;
   }
 
   /**
-   * Sets facet definition.
+   * Sets the facet definition.
    *
-   * @return
+   * @return FacetapiFacet
    *   An instance of this class.
    */
   public function setFacet(array $facet) {
@@ -278,9 +86,9 @@ class FacetapiFacet {
   }
 
   /**
-   * Sets facet definition.
+   * Returns the facet definition.
    *
-   * @return
+   * @return array
    *   An array containing the facet definition.
    */
   public function getFacet() {
@@ -290,8 +98,8 @@ class FacetapiFacet {
   /**
    * Returns the facet's active items.
    *
-   * @return
-   *   An array of active items.
+   * @return array
+   *   The facet's active items.
    */
   public function getActiveItems() {
     if (!isset($this->active)) {
@@ -301,11 +109,12 @@ class FacetapiFacet {
   }
 
   /**
-   * Returns an array of the facet's active item values, most useful as a form
-   * element's default value.
+   * Returns an array of the facet's active item values.
    *
-   * @return
-   *   An array containing the facet values keyed by position.
+   * This value is useful as a form element's default value.
+   *
+   * @return array
+   *   The facet values keyed by position.
    */
   public function getActiveValues() {
     if (!isset($this->active)) {
@@ -328,11 +137,11 @@ class FacetapiFacet {
    * is used by the Facet API's custom sorting functions. It ends up being less
    * code to compare integers than booleans.
    *
-   * @param $value
-   *   A string containing the facet item's value.
+   * @param string $value
+   *   The facet item's value.
    *
    * @return
-   *   An integer, 1 if the item is active, 0 if it is inactive.
+   *   Returns 1 if the item is active, 0 if it is inactive.
    */
   public function itemActive($value) {
     return (int) isset($this->active[$value]);
@@ -414,18 +223,18 @@ class FacetapiFacet {
     );
 
     // Applies sorting algorithms.
-    $this->sorts = facetapi_facet_sorts_get($this->adapter, $realm, $this->facet);
+    $this->sorts = facetapi_get_facet_sorts($this->adapter, $realm, $this->facet);
     $this->sort($build[$field_alias]);
     unset($this->sorts);
 
     // Gets available widgets.
-    $widgets = facetapi_widgets_get(array(
+    $widgets = facetapi_get_widget_info(array(
       'realm' => $realm,
       'facet' => $this->facet,
     ));
 
     // Gets widget from settings, finds default if necessary.
-    $widget_name = facetapi_facet_widget_get($widgets, $searcher, $realm, $this->facet);
+    $widget_name = facetapi_get_facet_widget($widgets, $searcher, $realm, $this->facet);
 
     // Initializes JavaScript settings.
     $facet_settings = array(
@@ -505,10 +314,8 @@ class FacetapiFacet {
     $build = array();
 
     // Build array defaults.
-    // @todo Use #markup in D7.
     $defaults = array(
-      '#type' => 'markup',
-      '#value' => '',
+      '#markup' => '',
       '#indexed_value' => '',
       '#count' => 0,
       '#active' => 0,
@@ -518,18 +325,14 @@ class FacetapiFacet {
 
     // Builds render arrays for each item.
     if (NULL !== $this->facet['field']) {
-      $hook  = 'facetapi_facet_' . $this->facet['query type'] . '_build';
-      $items = (array) module_invoke(
-        $this->adapter->getModule(), $hook, $this->adapter, $this->facet
-      );
+      $build = $this->adapter->getFacetQuery($this->facet)->build();
     }
     else {
       $items = array();
     }
     foreach (element_children($items) as $value) {
-      // @todo Use #markup in D7.
       $item_defaults = array(
-        '#value' => $value,
+        '#markup' => $value,
         '#indexed_value' => $value,
         '#active' => $this->itemActive($value),
       );

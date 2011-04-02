@@ -12,23 +12,23 @@ function facetapi_ui_menu() {
   $items = array();
 
   // Builds the realm settings forms for each searcher.
-  foreach (facetapi_get_adapter_info() as $searcher => $adapter_info) {
+  foreach (facetapi_get_searcher_info() as $searcher => $searcher_info) {
 
     $first = TRUE;
     foreach (facetapi_get_realm_info() as $realm_name => $realm) {
       if ($first) {
         $first = FALSE;
 
-        $items[$adapter_info['path'] . '/facets'] = array(
+        $items[$searcher_info['path'] . '/facets'] = array(
           'title' => 'Facets',
           'page callback' => 'drupal_get_form',
-          'page arguments' => array('facetapi_ui_realm_settings_form', 'apachesolr_search', $realm_name),
+          'page arguments' => array('facetapi_ui_realm_settings_form', $searcher, $realm_name),
           'access arguments' => array('administer search'),
           'type' => MENU_LOCAL_TASK,
           'file' => 'facetapi_ui.admin.inc',
         );
 
-        $items[$adapter_info['path'] . '/facets/' . $realm_name] = array(
+        $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'type' => MENU_DEFAULT_LOCAL_TASK,
           'weight' => $realm['weight'],
@@ -37,10 +37,10 @@ function facetapi_ui_menu() {
       }
       else {
 
-        $items[$adapter_info['path'] . '/facets/' . $realm_name] = array(
+        $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'page callback' => 'drupal_get_form',
-          'page arguments' => array('facetapi_ui_realm_settings_form', 'apachesolr_search', $realm_name),
+          'page arguments' => array('facetapi_ui_realm_settings_form', $searcher, $realm_name),
           'access arguments' => array('administer search'),
           'type' => MENU_LOCAL_TASK,
           'file' => 'facetapi_ui.admin.inc',

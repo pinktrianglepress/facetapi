@@ -3,4 +3,6 @@ description = An abstracted facet API that can be used by various search backend
 dependencies[] = ctools
 package = Search
 core = 7.x
+files[] = facetapi.abstract.inc
 files[] = facetapi.adapter.inc
+files[] = plugins/facetapi/widgets.inc

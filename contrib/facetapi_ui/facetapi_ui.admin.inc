@@ -17,7 +17,9 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
   $realm_info = facetapi_get_realm_info();
   $realm = $realm_info[$realm_name];
 
-  $facet_info = facetapi_get_facet_info($searcher, $adapter->getType());
+  // @todo Pull from the backend.
+
+  $facet_info = facetapi_get_facet_info($searcher);
 
   $form['description'] = array(
     '#markup' => filter_xss_admin($realm['description']),
@@ -48,7 +50,7 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
     );
 
     $options[$facet_name] = '';
-    $default_value[$facet_name] = $settings->settings['enabled'];
+    $default_value[$facet_name] = empty($settings->enabled) ? 0: $facet_name;
   }
 
   // Sorts by the weight appended above.
@@ -85,9 +87,14 @@ function facetapi_ui_realm_settings_form_submit($form, &$form_state) {
   $realm_name = $form['table']['#facetapi']['realm']['name'];
   $facet_info = $form['table']['#facetapi']['facet_info'];
 
+  // Builds settings object, saves to database.
   foreach ($facet_info as $facet_name => $facet) {
     $settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name);
-    $settings->settings['enabled'] = $form_state['values']['enabled_facets'][$facet_name];
+    $settings->name = "$searcher:$realm_name:$facet_name";
+    $settings->searcher = $searcher;
+    $settings->realm = $realm_name;
+    $settings->facet = $facet_name;
+    $settings->enabled = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
     $settings->settings['weight'] = $form_state['values']['weight:' . $facet_name];
     if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
       drupal_set_message(t('Error saving settings.'), 'error');
@@ -168,12 +175,16 @@ function facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, $op)
 /**
  *
  */
-function facetapi_ui_facet_settings_form($form, &$form_state, $adapter, array $realm, array $facet) {
+function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
   $searcher = $adapter->getSearcher();
   if (!$settings = facetapi_get_facet_settings($searcher, $realm['name'], $facet['name'])) {
     $settings = ctools_export_crud_new('facetapi');
     $settings->name = $searcher . ':' . $realm['name'] . ':' . $facet['name'];
+    $settings->searcher = $searcher;
+    $settings->realm = $realm['name'];
+    $settings->facet = $facet['name'];
+    $settings->enabled = 0;
     $settings->settings = array();
   }
 
@@ -314,11 +325,11 @@ function facetapi_ui_facet_settings_form($form, &$form_state, $adapter, array $r
     '#value' => t('Save configuration'),
   );
 
-  $adapter_info = facetapi_get_adapter_info();
+  $searcher_info = facetapi_get_searcher_info();
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => $adapter_info[$searcher]['path'] . '/facets/' . $realm['name'],
+    '#href' => $searcher_info[$searcher]['path'] . '/facets/' . $realm['name'],
   );
 
   return $form;

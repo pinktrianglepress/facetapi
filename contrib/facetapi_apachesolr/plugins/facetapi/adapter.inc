@@ -8,7 +8,7 @@
 /**
  * Facet API adapter for the Apache Solr Search Integration module.
  */
-class FacetapiApachesolrAdapter extends FacetapiAdapter {
+class FacetapiApachesolrFacetapiAdapter extends FacetapiAdapter {
 
   /**
    * Returns a boolean flagging whether $this->_searcher executed a search.
@@ -21,14 +21,28 @@ class FacetapiApachesolrAdapter extends FacetapiAdapter {
    * Returns the search keys.
    */
   public function getSearchKeys() {
-    if (NULL === $this->_keys) {
+    if (NULL === $this->keys) {
       if ($query = apachesolr_current_query()) {
         return $query->get_query_basic();
       }
     }
     else {
-      return $this->_keys;
+      return $this->keys;
     }
-    return NULL;
+  }
+
+  /**
+   *
+   */
+  public function addFacet(array $facet, $query) {
+    parent::addFacet($facet, $query);
+
+    $queries = array();
+    foreach ($this->getActiveItems($facet) as $value => $item) {
+      $queries[] = $facet['field alias'] . ':' . $value;
+    }
+    if (!empty($queries)) {
+      $query->params['fq'][$facet['field alias']] = $queries;
+    }
   }
 }
