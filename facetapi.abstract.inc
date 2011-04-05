@@ -454,6 +454,7 @@ class FacetapiFacet {
       $settings->enabled = 0;
       $settings->settings = array(
         'weight' => 0,
+        'operator' => FACETAPI_OPERATOR_AND,
         'hard_limit' => 50,
         'soft_limit' => 20,
         'widget' => 'links',

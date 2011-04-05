@@ -185,7 +185,13 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
 
   // Orders the sorts by weight.
   foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
-    $weight = $settings->settings['sort_weight'][$sort_name];
+    // @todo Figure out a better default system.
+    if (isset($settings->settings['sort_weight'][$sort_name])) {
+      $weight = $settings->settings['sort_weight'][$sort_name];
+    }
+    else {
+      $weight = 0;
+    }
     $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
     $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
   }
@@ -282,6 +288,13 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
   foreach ($form['#facetapi']['sort_info'] as $sort_name => $sort) {
     $sort_options[$sort_name] = '';
 
+    // @todo Figure out a better default system.
+    if (isset($settings->settings['sort_order'][$sort_name])) {
+      $default_value = $settings->settings['sort_order'][$sort_name];
+    }
+    else {
+      $default_value = SORT_ASC;
+    }
     $form['realm']['sort']['table']['sort_order:' . $sort_name] = array(
       '#type' => 'select',
       '#title' => '',
@@ -289,14 +302,21 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
         SORT_DESC => t('Descending'),
         SORT_ASC => t('Ascending'),
       ),
-      '#default_value' => $settings->settings['sort_order'][$sort_name],
+      '#default_value' => $default_value,
     );
 
+    // @todo Figure out a better default system.
+    if (isset($settings->settings['sort_weight'][$sort_name])) {
+      $default_value = $settings->settings['sort_weight'][$sort_name];
+    }
+    else {
+      $default_value = 0;
+    }
     $form['realm']['sort']['table']['sort_weight:'. $sort_name] = array(
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,
-      '#default_value' => $settings->settings['sort_weight'][$sort_name],
+      '#default_value' => $default_value,
       '#attributes' => array('class' => array('facetapi-sort-weight')),
     );
   }
