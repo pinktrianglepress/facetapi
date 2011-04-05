@@ -106,7 +106,8 @@ function facetapi_adapter_load($searcher) {
     $searcher_info = facetapi_get_searcher_info();
     if (isset($searcher_info[$searcher]['adapter'])) {
       ctools_include('plugins');
-      $class = ctools_plugin_load_class('facetapi', 'adapters', $searcher_info[$searcher]['adapter'], 'handler');
+      $id = $searcher_info[$searcher]['adapter'];
+      $class = ctools_plugin_load_class('facetapi', 'adapters', $id, 'handler');
       $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher]) : FALSE;
     }
   }

@@ -16,18 +16,20 @@
  *
  * @see ctools_export_form()
  */
-function luceneapi_ui_export_form($form, &$form_state, $adapter, $realm, $facet) {
+function facetapi_ui_export_form($form, &$form_state, $adapter, $realm, $facet) {
 
   // Adds link to get back to list page.
   $form['back'] = array(
     '#type' => 'link',
-    '#title' => t('Go back to list page'),
-    '#href' => luceneapi_ui_calculate_settings_path($settings->getTable()),
+    '#title' => t('Go back to realm settings page'),
+    '#href' => $adapter->getPath($realm['name']),
   );
 
   // Gets export fieldset from ctools_export_form().
   $title = t('Export configuration');
-  $form = ctools_export_form($form, $form_state, $settings->getExport(), $title);
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  $export = ctools_export_crud_export('facetapi', $settings);
+  $form = ctools_export_form($form, $form_state, $export, $title);
 
   // Adds settings and returns form.
   $form['#settings'] = $settings;

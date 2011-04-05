@@ -66,18 +66,11 @@ abstract class FacetapiQueryType {
 abstract class FacetapiAdapter {
 
   /**
-   * The machine readable name of the searcher.
+   * Searcher information retrieved by the hook.
    *
-   * @var string
+   * @var array
    */
-  protected $searcher;
-
-  /**
-   * The machine readable name of the instance the searcher is connected to.
-   *
-   * @var string
-   */
-  protected $instance;
+  protected $info = array();
 
   /**
    * The search keys passed by the user.
@@ -114,7 +107,7 @@ abstract class FacetapiAdapter {
    *   The searcher definition.
    */
   public function __construct(array $searcher_info) {
-    $this->setSearcher($searcher_info['name'])->setInstance($searcher_info['instance']);
+    $this->info = $searcher_info;
 
     // Registers the query type plugins classes associated with this adapter.
     foreach (ctools_get_plugins('facetapi', 'query_types') as $plugin) {
@@ -126,10 +119,10 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns a boolean flagging whether $this->searcher executed a search.
+   * Returns a boolean flagging whether $this->info['searcher'] executed a search.
    *
    * @return
-   *   A boolean flagging whether $this->searcher executed a search.
+   *   A boolean flagging whether $this->info['searcher'] executed a search.
    *
    * @todo Generic search API should provide consistent functionality.
    */
@@ -177,51 +170,36 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Sets the machine readable name of the searcher.
-   *
-   * @param string $searcher
-   *   The machine readable name of the searcher.
-   *
-   * @return FacetapiAdapter
-   *   An instance of this class.
-   */
-  public function setSearcher($searcher) {
-    $this->searcher = $searcher;
-    return $this;
-  }
-
-  /**
    * Returns the machine readable name of the searcher.
    *
    * @return string
    *   The machine readable name of the searcher.
    */
   public function getSearcher() {
-    return $this->searcher;
+    return $this->info['name'];
   }
 
   /**
-   * Sets the type of content indexed by $this->searcher.
-   *
-   * @param string $type
-   *   The type of content indexed by $this->searcher.
-   *
-   * @return FacetapiAdapter
-   *   An instance of this class.
-   */
-  public function setInstance($instance) {
-    $this->instance = $instance;
-    return $this;
-  }
-
-  /**
-   * Returns the type of content indexed by $this->searcher.
+   * Returns the type of content indexed by $this->info['searcher'].
    *
    * @return
-   *   The type of content indexed by $this->searcher.
+   *   The type of content indexed by $this->info['searcher'].
    */
   public function getInstance() {
-    return $this->instance;
+    return $this->info['instance'];
+  }
+
+  /**
+   * Returns the path to the admin settings for a given realm.
+   *
+   * @param $realm_name
+   *   The name of the realm.
+   *
+   * @return
+   *   The type of content indexed by $this->info['searcher'].
+   */
+  public function getPath($realm_name) {
+    return $this->info['path'] . '/facets/' . $realm_name;
   }
 
   /**
@@ -398,21 +376,8 @@ class FacetapiFacet {
    *   An array containing the facet definition.
    */
   public function __construct(FacetapiAdapter $adapter, array $facet) {
-    $this->setAdapter($adapter)->setFacet($facet);
-  }
-
-  /**
-   * Sets adapter object.
-   *
-   * @param FacetapiAdapter $adapter
-   *   The Facet API adapter object.
-   *
-   * @return FacetapiFacet
-   *   An instance of this class.
-   */
-  public function setAdapter(FacetapiAdapter $adapter) {
     $this->adapter = $adapter;
-    return $this;
+    $this->facet = $facet;
   }
 
   /**
@@ -423,17 +388,6 @@ class FacetapiFacet {
    */
   public function getAdapter() {
     return $this->adapter;
-  }
-
-  /**
-   * Sets the facet definition.
-   *
-   * @return FacetapiFacet
-   *   An instance of this class.
-   */
-  public function setFacet(array $facet) {
-    $this->facet = $facet;
-    return $this;
   }
 
   /**
@@ -498,7 +452,15 @@ class FacetapiFacet {
       $settings->realm = $realm_name;
       $settings->facet = $this->facet['name'];
       $settings->enabled = 0;
-      $settings->settings = array('weight' => 0);
+      $settings->settings = array(
+        'weight' => 0,
+        'hard_limit' => 50,
+        'soft_limit' => 20,
+        'widget' => 'links',
+        'active_sorts' => array(),
+        'sort_weight' => array(),
+        'sort_order' => array(),
+      );
     }
     return $settings;
   }
@@ -819,10 +781,10 @@ class FacetapiFacet {
     foreach ($sorts as $sort_name => &$sort_info) {
       if (empty($defaults)) {
         $sort_info['weight'] = facetapi_setting_get(
-          'sort_weight', $this->searcher, $realm['name'], $this->facet['name'], $sort_name
+          'sort_weight', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
         );
         $sort_info['order'] = facetapi_setting_get(
-          'sort_order', $this->searcher, $realm['name'], $this->facet['name'], $sort_name
+          'sort_order', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
         );
       }
       else {

@@ -36,7 +36,6 @@ class FacetapiApachesolrFacetapiAdapter extends FacetapiAdapter {
    */
   public function addFacet(array $facet, $query) {
     parent::addFacet($facet, $query);
-
     $queries = array();
     foreach ($this->getActiveItems($facet) as $value => $item) {
       $queries[] = $facet['field alias'] . ':' . $value;
