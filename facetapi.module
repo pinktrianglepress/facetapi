@@ -263,28 +263,6 @@ function facetapi_get_facet_info($searcher) {
 }
 
 /**
- * Returns settings associated with a realm.
- *
- * @param $searcher
- *   A string
- * @param $realm_name
- *   A string containing the machine readable name of the realm.
- * @param $facet_name
- *   A string containing the machine readable name of the facet.
- * @return
- *   An object containing the realm settigns, NULL if there are no settings.
- */
-function facetapi_get_facet_settings($searcher, $realm_name, $facet_name) {
-  ctools_include('export');
-  $name = $searcher . ':' . $realm_name . ':' . $facet_name;
-  if (!$settings = ctools_export_crud_load('facetapi', $name)) {
-    $settings = ctools_export_crud_new('facetapi');
-    $settings->name = $name;
-  }
-  return $settings;
-}
-
-/**
  * Invokes hook_facetapi_widget_info(), returns all defined widgets.
  *
  * @param $variables
@@ -370,8 +348,8 @@ function facetapi_get_facet_widget(array $widgets, $searcher, array $realm, arra
  *   An associative array of sort definitions keyed by sort name.
  */
 function facetapi_get_sort_info() {
-  $sorts = &drupal_static(__FUNCTION__);
-  if (NULL === $sorts) {
+  $sort_info = &drupal_static(__FUNCTION__);
+  if (NULL === $sort_info) {
 
     // Gets realm info from hooks, merges with defaults.
     $sort_info = module_invoke_all('facetapi_sort_info');
@@ -386,72 +364,9 @@ function facetapi_get_sort_info() {
     }
 
     // Invokes alter hook.
-    drupal_alter('facetapi_sort_info', $sorts);
+    drupal_alter('facetapi_sort_info', $sort_info);
   }
-  return $sorts;
-}
-
-/**
- * Returns sorts enabled for a facet in a realm. Sort definitions are returned
- * in the order specified in the configurations settings.
- *
- * @param $adapter
- *   A FacetapiAdapter object.
- * @param $realm
- *   An array containing the full realm definition.
- * @param $facet
- *   An array containing the full realm definition.
- *
- * @return
- *   An array of enabled sort definitions.
- *
- * @todo Move to FacetapiFacet object.
- */
-function facetapi_get_facet_sorts(FacetapiAdapter $adapter, array $realm, array $facet) {
-
-  // Gets active sorts.
-  // @todo Get settings from adapter.
-  $searcher = $adapter->getSearcher();
-  /*
-  $active_sorts = (array) facetapi_setting_get(
-    'sort', $searcher, $realm['name'], $facet['name']
-  );
-  */
-  $active_sorts = array();
-
-  // Applies defaults if nothing is set.
-  $defaults = array();
-  if (empty($active_sorts)) {
-    $weight = -50;
-    foreach ($facet['default sorts'] as $sort) {
-      $active_sorts[$sort[0]] = $sort[0];
-      $defaults[$sort[0]] = array(
-        'weight' => $weight++,
-        'order'  => $sort[1],
-      );
-    }
-  }
-
-  // Finalizes sort definitions with settings or defaults.
-  $sorts = array_intersect_key(facetapi_get_sort_info(), array_filter($active_sorts));
-  foreach ($sorts as $sort_name => &$sort_info) {
-    if (empty($defaults)) {
-      $sort_info['weight'] = facetapi_setting_get(
-        'sort_weight', $searcher, $realm['name'], $facet['name'], $sort_name
-      );
-      $sort_info['order'] = facetapi_setting_get(
-        'sort_order', $searcher, $realm['name'], $facet['name'], $sort_name
-      );
-    }
-    else {
-      $sort_info['weight'] = $defaults[$sort_name]['weight'];
-      $sort_info['order']  = $defaults[$sort_name]['order'];
-    }
-  }
-  unset($sort_info);
-  uasort($sorts, 'facetapi_sort_weight');
-
-  return $sorts;
+  return $sort_info;
 }
 
 ////
@@ -705,26 +620,29 @@ function facetapi_filter_widgets(array $widget) {
  * @return array
  */
 function facetapi_get_enabled_facets($searcher, $realm = NULL) {
-  $facets = array();
+  $enabled_facets = &drupal_static(__FUNCTION__);
+  if (NULL === $enabled_facets) {
+    // Builds array of aruments to pass to ctools_export_load_object().
+    $args = array('searcher' => $searcher,  'enabled' => 1);
+    if (NULL !== $realm) {
+      $args['realm'] = $realm;
+    }
 
-  // Builds array of aruments to pass to ctools_export_load_object().
-  $args = array('searcher' => $searcher,  'enabled' => 1);
-  if (NULL !== $realm) {
-    $args['realm'] = $realm;
+    // Loads settings for enabled facets.
+    ctools_include('export');
+    $results = ctools_export_load_object('facetapi', 'conditions', $args);
+
+    // Builds an array keyed by the names of enabled facets.
+    $facets = array();
+    foreach ($results as $result) {
+      $facets[$result->facet] = $result->facet;
+    }
+
+    // Gets facet definitions for all enabled facets.
+    $facet_info = facetapi_get_facet_info($searcher);
+    $enabled_facets = array_intersect_key($facet_info, $facets);
   }
-
-  // Loads settings for enabled facets.
-  ctools_include('export');
-  $results = ctools_export_load_object('facetapi', 'conditions', $args);
-
-  // Builds an array keyed by the names of enabled facets.
-  foreach ($results as $result) {
-    $facets[$result->facet] = $result->facet;
-  }
-
-  // Returns facet definition for enabled facets.
-  $facet_info = facetapi_get_facet_info($searcher);
-  return array_intersect_key($facet_info, $facets);
+  return $enabled_facets;
 }
 
 /**
@@ -750,9 +668,9 @@ function facetapi_facet_enabled($searcher, $realm_name, $facet_name) {
  * Applies facet filters to the query.
  *
  * @param $searcher
- *
+ *   The machine readable name of the searcher.
  * @param stdClass $query
- *
+ *   The query in the backend's native API.
  */
 function facetapi_add_facets($searcher, $query) {
   $adapter = facetapi_adapter_load($searcher);
@@ -762,8 +680,10 @@ function facetapi_add_facets($searcher, $query) {
 }
 
 /**
- * Builds a facet realm, in other words converts the facet values to some
- * normalized value.
+ * Builds a facet realm.
+ *
+ * Converts the facet data into a render array suitable for passing to the
+ * drupal_render() function.
  *
  * @param $searcher
  *   A string containing the machine readable name of the searcher module.
@@ -774,53 +694,8 @@ function facetapi_add_facets($searcher, $query) {
  *   The realm's render array.
  */
 function facetapi_build_realm($searcher, $realm_name) {
-  $build = array();
-
-  // Loads adapter and realm, adds JavaScript, builds render array.
-  if (($adapter = facetapi_adapter_load($searcher)) && ($realm = facetapi_realm_load($realm_name))) {
-    drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
-
-    // Initializes render array.
-    $build['#adapter'] = $adapter;
-    $build['#realm']   = $realm;
-
-    // Builds each facet in the realm, merges into realm's render array.
-    foreach (facetapi_get_enabled_facets($searcher, $realm['name']) as $facet) {
-      $field_alias = $facet['field alias'];
-      $facet_build = $adapter->getFacet($facet)->build($realm);
-
-      // Tries to be smart when merging the render arrays. Crazy things happen
-      // when merging facets with the same field alias such as taxonomy terms in
-      // the fieldset realm. We want to merge only the values.
-      foreach (element_children($facet_build) as $child) {
-        if (!isset($build[$child])) {
-          $build = array_merge_recursive($build, $facet_build);
-        }
-        else {
-          if (isset($build[$child][$field_alias]) && isset($facet_build[$child][$field_alias])) {
-            $build[$child][$field_alias] = array_merge_recursive(
-              $build[$child][$field_alias],
-              $facet_build[$child][$field_alias]
-            );
-          }
-          elseif (isset($build[$child]['#options']) && isset($facet_build[$child]['#options'])) {
-            $build[$child]['#options'] = array_merge_recursive(
-              $build[$child]['#options'],
-              $facet_build[$child]['#options']
-            );
-          }
-          else {
-            $build = array_merge_recursive($build, $facet_build);
-          }
-        }
-      }
-    }
-
-    // Allows modules to alter the entire realm's render array.
-    drupal_alter('facetapi_facets', $build, $adapter, $realm);
-  }
-
-  return $build;
+  $adapter = facetapi_adapter_load($searcher);
+  return ($adapter) ? $adapter->buildRealm($realm_name) : array();
 }
 
 ////
@@ -835,7 +710,7 @@ function facetapi_build_realm($searcher, $realm_name) {
 function facetapi_block_info() {
   $blocks = array();
 
-  // Gets "delta map", iterates over all enabled facets.
+  // Gets delta map, iterates over all enabled facets.
   $map = facetapi_get_delta_map();
   foreach (facetapi_get_searcher_info() as $searcher => $info) {
     $facets = facetapi_get_enabled_facets($searcher, 'block');
@@ -848,7 +723,7 @@ function facetapi_block_info() {
       // Defines the block.
       // @todo Explore more efficient caching options.
       $blocks[$delta] = array(
-        'info' => 'Facet API: '. $info['label'] . ' : ' . $facet['label'],
+        'info' => 'Facet API: ' . $info['label'] . ' : ' . $facet['label'],
         //'cache' => BLOCK_NO_CACHE,
       );
     }
@@ -889,11 +764,9 @@ function facetapi_block_view($delta = '') {
   if (isset($builds[$group][$facet_name])) {
     return array(
       'subject' => NULL,
-      'content' => drupal_render($builds[$group][$facet_name])
+      'content' => drupal_render($builds[$group][$facet_name]),
     );
   }
-
-  return array();
 }
 
 /**
@@ -916,13 +789,15 @@ function facetapi_get_delta_map() {
     else {
       $map = array();
 
-      // Calculates deltas for each facet in each realms for each searcher.
+      // Calculates deltas for each enabled facet in each realm for all
+      // available searchers.
       foreach (facetapi_get_searcher_info() as $searcher => $info) {
         foreach (facetapi_get_realm_info() as $realm) {
           foreach (facetapi_get_enabled_facets($searcher, $realm['name']) as $facet) {
             $string = $searcher . ':' . $realm['name'] . ':' . $facet['name'];
             // NOTE: We don't need drupal_strlen() becuase there will be no UTF8
             // characters in this string, and strlen() is much faster.
+            // @todo Is this a bad assumption?
             $key = (strlen($string) <= 32) ? $string : md5($string);
             $map[$key] = $string;
           }

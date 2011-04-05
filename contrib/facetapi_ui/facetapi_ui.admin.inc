@@ -10,16 +10,14 @@
  */
 function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
 
-  // Gets adapter.
+  // instantiates adapter, loads realm.
   $adapter = facetapi_adapter_load($searcher);
-
-  // Gets realm repositories.
-  $realm_info = facetapi_get_realm_info();
-  $realm = $realm_info[$realm_name];
-
-  // @todo Pull from the backend.
-
-  $facet_info = facetapi_get_facet_info($searcher);
+  $realm = facetapi_realm_load($realm_name);
+  $form['#facetapi'] = array(
+    'adapter' => $adapter,
+    'realm' => $realm,
+    'facet_info' => facetapi_get_facet_info($searcher),
+  );
 
   $form['description'] = array(
     '#markup' => filter_xss_admin($realm['description']),
@@ -27,20 +25,16 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
 
   $form['table'] = array(
     '#theme' => 'facetapi_ui_realm_settings_table',
-    '#facetapi' => array(
-      'searcher' => $searcher,
-      'realm' => $realm,
-      'facet_info' => $facet_info,
-    ),
+    '#facetapi' => &$form['#facetapi'],
   );
 
   // Builds "enabled_facets" options.
   $options = $default_value = array();
-  foreach ($facet_info as $facet_name => $facet) {
-    $settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name);
+  foreach ($form['#facetapi']['facet_info'] as $facet_name => $facet) {
+    $settings = $adapter->getFacet($facet)->getSettings($realm);
 
     // Gets weight, appends to facet_info array for sorting.
-    $form['table']['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
+    $form['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
 
     $form['table']['weight:' . $facet_name] = array(
       '#type' => 'select',
@@ -54,7 +48,7 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
   }
 
   // Sorts by the weight appended above.
-  uasort($form['table']['#facetapi']['facet_info'], 'drupal_sort_weight');
+  uasort($form['#facetapi']['facet_info'], 'drupal_sort_weight');
 
   $form['table']['enabled_facets'] = array(
     '#type' => 'checkboxes',
@@ -83,19 +77,16 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
 function facetapi_ui_realm_settings_form_submit($form, &$form_state) {
 
   // Pulls variables for code readability.
-  $searcher = $form['table']['#facetapi']['searcher'];
-  $realm_name = $form['table']['#facetapi']['realm']['name'];
-  $facet_info = $form['table']['#facetapi']['facet_info'];
+  $adapter = $form['#facetapi']['adapter'];
+  $realm = $form['#facetapi']['realm'];
+  $facet_info = $form['#facetapi']['facet_info'];
 
   // Builds settings object, saves to database.
   foreach ($facet_info as $facet_name => $facet) {
-    $settings = facetapi_get_facet_settings($searcher, $realm_name, $facet_name);
-    $settings->name = "$searcher:$realm_name:$facet_name";
-    $settings->searcher = $searcher;
-    $settings->realm = $realm_name;
-    $settings->facet = $facet_name;
+    $weight = $form_state['values']['weight:' . $facet_name];
+    $settings = $adapter->getFacet($facet)->getSettings($realm);
     $settings->enabled = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
-    $settings->settings['weight'] = $form_state['values']['weight:' . $facet_name];
+    $settings->settings['weight'] = $weight;
     if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
       drupal_set_message(t('Error saving settings.'), 'error');
     }
@@ -109,7 +100,7 @@ function theme_facetapi_ui_realm_settings_table($variables) {
   $output = '';
 
   // Gets variales for code readability.
-  $searcher = $variables['element']['#facetapi']['searcher'];
+  $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
   $realm_name = $variables['element']['#facetapi']['realm']['name'];
 
   $header = array(
@@ -178,15 +169,27 @@ function facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, $op)
 function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
   $searcher = $adapter->getSearcher();
-  if (!$settings = facetapi_get_facet_settings($searcher, $realm['name'], $facet['name'])) {
-    $settings = ctools_export_crud_new('facetapi');
-    $settings->name = $searcher . ':' . $realm['name'] . ':' . $facet['name'];
-    $settings->searcher = $searcher;
-    $settings->realm = $realm['name'];
-    $settings->facet = $facet['name'];
-    $settings->enabled = 0;
-    $settings->settings = array();
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+
+  // Adds LuceneAPI settings, excluded values aren't saved.
+  $form['#facetapi'] = array(
+    'adapter' => $adapter,
+    'realm' => $realm,
+    'facet' => $facet,
+    'sort_info' => array(),
+    'excluded_values' => array(
+      'form_build_id', 'form_token', 'form_id', 'op', 'submit', 'submit_list',
+      'settings__active_tab',
+    ),
+  );
+
+  // Orders the sorts by weight.
+  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
+    $weight = $settings->settings['sort_weight'][$sort_name];
+    $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
+    $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
   }
+  uasort($form['#facetapi']['sort_info'], 'drupal_sort_weight');
 
   $form['global'] = array(
     '#type' => 'fieldset',
@@ -262,12 +265,6 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
     '#description' => t('Limits the number of displayed facets via JavaScript.'),
   );
 
-
-  // Gets all sort definitions, sorts active for this facet.
-  $sort_info = facetapi_get_sort_info();
-  //$active_sorts = facetapi_facet_sorts_get($adapter, $realm, $facet);
-  $active_sorts = array();
-
   // Initializes the sorting table.
   $form['realm']['sort'] = array(
     '#type' => 'fieldset',
@@ -277,17 +274,12 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
 
   $form['realm']['sort']['table'] = array(
     '#theme' => 'facetapi_ui_sort_settings_table',
-    '#facetapi' => array(
-      'adapter' => $adapter,
-      'realm' => $realm,
-      'facet' => $facet,
-      'sort_info' => $sort_info,
-    ),
+    '#facetapi' => &$form['#facetapi'],
   );
 
   // Builds checkbox options for sorts.
   $sort_options = array();
-  foreach ($sort_info as $sort_name => $sort) {
+  foreach ($form['#facetapi']['sort_info'] as $sort_name => $sort) {
     $sort_options[$sort_name] = '';
 
     $form['realm']['sort']['table']['sort_order:' . $sort_name] = array(
@@ -297,22 +289,22 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
         SORT_DESC => t('Descending'),
         SORT_ASC => t('Ascending'),
       ),
-      '#default_value' => SORT_ASC,
+      '#default_value' => $settings->settings['sort_order'][$sort_name],
     );
 
     $form['realm']['sort']['table']['sort_weight:'. $sort_name] = array(
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,
-      '#default_value' => 0,
+      '#default_value' => $settings->settings['sort_weight'][$sort_name],
       '#attributes' => array('class' => array('facetapi-sort-weight')),
     );
   }
 
-  $form['realm']['sort']['table']['sort'] = array(
+  $form['realm']['sort']['table']['active_sorts'] = array(
     '#type' => 'checkboxes',
     '#options' => $sort_options,
-    '#default_value' => array(),
+    '#default_value' => $settings->settings['active_sorts'],
   );
 
   $form['actions'] = array(
@@ -331,6 +323,8 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
     '#title' => t('Cancel'),
     '#href' => $searcher_info[$searcher]['path'] . '/facets/' . $realm['name'],
   );
+
+  $form['#submit'][] = 'facetapi_ui_facet_settings_form_submit';
 
   return $form;
 }
@@ -359,7 +353,7 @@ function theme_facetapi_ui_sort_settings_table($variables) {
       'class' => array('draggable'),
       'data' => array(
         'enabled' => array(
-          'data' => drupal_render($variables['element']['sort'][$sort_name]),
+          'data' => drupal_render($variables['element']['active_sorts'][$sort_name]),
         ),
         'label' => array(
           'data' => check_plain($sort['label']) . "<div class='description'>" . filter_xss($sort['description']) . '</div>',
@@ -379,4 +373,52 @@ function theme_facetapi_ui_sort_settings_table($variables) {
   $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-ui-sort-settings')));
 
   return $output;
+}
+
+/**
+ * Processes facetapi_ui_facet_settings_form submissions.
+ */
+function facetapi_ui_facet_settings_form_submit($form, &$form_state) {
+
+  // Pulls variables for code readability.
+  $adapter = $form['#facetapi']['adapter'];
+  $realm = $form['#facetapi']['realm'];
+  $facet = $form['#facetapi']['facet'];
+
+  // Loads settings, saves all form values as settings other than excluded.
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  $settings->settings = array_merge($settings->settings, array_diff_key(
+    $form_state['values'],
+    array_flip($form['#facetapi']['excluded_values'])
+  ));
+
+  // Converts sort_weight:* and sort_order:* settings to associative arrays.
+  facetapi_ui_combine_settings('sort_weight', $settings);
+  facetapi_ui_combine_settings('sort_order', $settings);
+
+  if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
+    drupal_set_message(t('Error saving settings.'), 'error');
+  }
+}
+
+/**
+ * Combines settings named "setting:*" into a single array of settings.
+ *
+ * This makes it easier to process settings at runtime.
+ *
+ * @param $setting_name
+ *   A string containing the name of the setting.
+ * @param $settings
+ *   An object containing the settings loaded from CTools.
+ */
+function facetapi_ui_combine_settings($setting_name, $settings) {
+  $start = strlen($setting_name) + 1;
+  $settings->settings[$setting_name] = array();
+  foreach ($settings->settings as $name => $value) {
+    if (0 === strpos($name, $setting_name . ':')) {
+      $key = substr($name, $start);
+      unset($settings->settings[$name]);
+      $settings->settings[$setting_name][$key] = $value;
+    }
+  }
 }

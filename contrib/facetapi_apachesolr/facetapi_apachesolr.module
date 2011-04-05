@@ -56,7 +56,7 @@ function facetapi_apachesolr_facetapi_query_types() {
  * Implements hook_menu_alter().
  */
 function facetapi_apachesolr_menu_alter(&$items) {
-  $items['admin/config/search/apachesolr/enabled-filters']['access callback'] = FALSE;
+  //$items['admin/config/search/apachesolr/enabled-filters']['access callback'] = FALSE;
 }
 
 /**

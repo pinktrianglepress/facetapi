@@ -54,7 +54,7 @@ abstract class FacetapiQueryType {
    * Initializes the facet's render array.
    *
    * @return
-   *   The initialized render array,
+   *   The initialized render array.
    */
   abstract public function build();
 }
@@ -265,7 +265,12 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Adds a facet query to the backend.
    *
+   * @param array $facet
+   *   The facet definition.
+   * @param mixed $query
+   *   A mixed value containing the query in the backend's native API.
    */
   public function addFacetQuery(array $facet, $query) {
     if (isset($this->queryTypes[$facet['query type']])) {
@@ -276,11 +281,762 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Returns a registered facet query
    *
+   * @param array $facet
+   *   The facet definition.
+   *
+   * @return FacetapiQueryType
+   *   The instantiated query type plugin.
    */
   public function getFacetQuery(array $facet) {
     if (isset($this->facetQueries[$facet['name']])) {
       return $this->facetQueries[$facet['name']];
     }
   }
+
+  /**
+   * Builds the render array for facets in a realm.
+   *
+   * @param string $realm_name
+   *   The machine readable name of the realm.
+   *
+   * @return array
+   *   The render array.
+   */
+  public function buildRealm($realm_name) {
+    // Bails if realm isn't valid.
+    // @todo Call watchdog()?
+    if (!$realm = facetapi_realm_load($realm_name)) {
+      return array();
+    }
+
+    // Adds JavaScript, initializes render array.
+    drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
+    $build = array(
+      '#adapter' => $adapter,
+      '#realm' => $realm,
+    );
+
+    // Builds each facet in the realm, merges into realm's render array.
+    foreach (facetapi_get_enabled_facets($searcher, $realm['name']) as $facet) {
+      $field_alias = $facet['field alias'];
+      $facet_build = $this->getFacet($facet)->build($realm);
+
+      // Tries to be smart when merging the render arrays. Crazy things happen
+      // when merging facets with the same field alias such as taxonomy terms in
+      // the fieldset realm. We want to merge only the values.
+      foreach (element_children($facet_build) as $child) {
+        if (!isset($build[$child])) {
+          $build = array_merge_recursive($build, $facet_build);
+        }
+        else {
+          if (isset($build[$child][$field_alias]) && isset($facet_build[$child][$field_alias])) {
+            $build[$child][$field_alias] = array_merge_recursive(
+              $build[$child][$field_alias],
+              $facet_build[$child][$field_alias]
+            );
+          }
+          elseif (isset($build[$child]['#options']) && isset($facet_build[$child]['#options'])) {
+            $build[$child]['#options'] = array_merge_recursive(
+              $build[$child]['#options'],
+              $facet_build[$child]['#options']
+            );
+          }
+          else {
+            $build = array_merge_recursive($build, $facet_build);
+          }
+        }
+      }
+    }
+
+    // Allows modules to alter the render array before returning.
+    drupal_alter('facetapi_facets', $build, $this, $realm);
+    return $build;
+  }
+}
+
+/**
+ * Stores facet data, provides methods that build the facet's render array.
+ */
+class FacetapiFacet {
+
+  /**
+   * The FacetapiAdapter object.
+   *
+   * @var FacetapiAdapter
+   */
+  protected $adapter;
+
+  /**
+   * The facet definition.
+   *
+   * @var array
+   */
+  protected $facet;
+
+  /**
+   * An array of active facets items.
+   *
+   * @var array
+   */
+  protected $active = array();
+
+  /**
+   * The build array for the facet items.
+   *
+   * @var array
+   */
+  protected $build = array();
+
+  /**
+   * Constructor, sets adapter and facet definition.
+   *
+   * @param $adapter
+   *   A FacetapiAdapter object.
+   * @param $facet
+   *   An array containing the facet definition.
+   */
+  public function __construct(FacetapiAdapter $adapter, array $facet) {
+    $this->setAdapter($adapter)->setFacet($facet);
+  }
+
+  /**
+   * Sets adapter object.
+   *
+   * @param FacetapiAdapter $adapter
+   *   The Facet API adapter object.
+   *
+   * @return FacetapiFacet
+   *   An instance of this class.
+   */
+  public function setAdapter(FacetapiAdapter $adapter) {
+    $this->adapter = $adapter;
+    return $this;
+  }
+
+  /**
+   * Returns the adapter object.
+   *
+   * @return FacetapiAdapter
+   *   The adapter object.
+   */
+  public function getAdapter() {
+    return $this->adapter;
+  }
+
+  /**
+   * Sets the facet definition.
+   *
+   * @return FacetapiFacet
+   *   An instance of this class.
+   */
+  public function setFacet(array $facet) {
+    $this->facet = $facet;
+    return $this;
+  }
+
+  /**
+   * Returns the facet definition.
+   *
+   * @return array
+   *   An array containing the facet definition.
+   */
+  public function getFacet() {
+    return $this->facet;
+  }
+
+  /**
+   * Returns the facet's active items.
+   *
+   * @return array
+   *   The facet's active items.
+   */
+  public function getActiveItems() {
+    if (!isset($this->active)) {
+      $this->processActiveItems();
+    }
+    return $this->active;
+  }
+
+  /**
+   * Returns the facet's active sorts in the order specified via the GUI.
+   *
+   * @return array
+   *   The facet's active sorts.
+   */
+  public function getActiveSorts() {
+    return array();
+  }
+
+  /**
+   * Gets facet setting for the passed realm.
+   *
+   * @param string|array $realm
+   *   The machine readable name of the realm or realm definition. Pass null to
+   *   get global settings.
+   *
+   * @return
+   *   An object containing the settings.
+   */
+  public function getSettings($realm = NULL) {
+    // Normalizes the realm name.
+    if (empty($realm)) {
+      $realm_name = '';
+    }
+    elseif (is_array($realm)) {
+      $realm_name = $realm['name'];
+    }
+
+    // Loads the settings via the CTools API.
+    ctools_include('export');
+    $name = $this->adapter->getSearcher() . ':' . $realm_name . ':' . $this->facet['name'];
+    if (!$settings = ctools_export_crud_load('facetapi', $name)) {
+      $settings = ctools_export_crud_new('facetapi');
+      $settings->name = $name;
+      $settings->searcher = $this->adapter->getSearcher();
+      $settings->realm = $realm_name;
+      $settings->facet = $this->facet['name'];
+      $settings->enabled = 0;
+      $settings->settings = array('weight' => 0);
+    }
+    return $settings;
+  }
+
+  /**
+   * Returns an array of the facet's active item values.
+   *
+   * This value is useful as a form element's default value.
+   *
+   * @return array
+   *   The facet values keyed by position.
+   */
+  public function getActiveValues() {
+    if (!isset($this->active)) {
+      $this->processActiveItems();
+    }
+    $values = array();
+    foreach ($this->active as $value => $item) {
+      $values[$item['pos']] = $value;
+    }
+    if (!empty($values)) {
+      $values = array_combine($values, $values);
+    }
+    return $values;
+  }
+
+  /**
+   * Tests whether a facet item is active by passing it's value.
+   *
+   * NOTE: This method returns an integer instead of a boolean because the value
+   * is used by the Facet API's custom sorting functions. It ends up being less
+   * code to compare integers than booleans.
+   *
+   * @param string $value
+   *   The facet item's value.
+   *
+   * @return
+   *   Returns 1 if the item is active, 0 if it is inactive.
+   */
+  public function itemActive($value) {
+    return (int) isset($this->active[$value]);
+  }
+
+  /**
+   * Helper function that returns the query string variables for a facet item.
+   *
+   * @param $values
+   *   An array containing the item's values being added to or removed from the
+   *   query string dependent on whether or not the item is active.
+   * @param $active
+   *   An integer flagging whether the item is active or not.
+   *
+   * @reutrn
+   *   An array containing the query string variables.
+   */
+  public function getQueryString(array $values, $active) {
+
+    // Gets field alias for readability.
+    $field_alias = $this->facet['field alias'];
+
+    // Builds array of query string variables.
+    $qstring = $_GET;
+    foreach ($values as $value) {
+      if ($active && isset($this->active[$value])) {
+        unset($qstring[$field_alias][$this->active[$value]['pos']]);
+      }
+      elseif (!$active) {
+        if (!isset($qstring[$field_alias])) {
+          $qstring[$field_alias] = array();
+        }
+        elseif (!is_array($qstring[$field_alias])) {
+          $qstring[$field_alias] = array((string) $qstring[$field_alias]);
+        }
+        $qstring[$field_alias][] = $value;
+      }
+    }
+
+    return $qstring;
+  }
+
+  /**
+   * Returns the facet's render array.
+   *
+   * @param $realm
+   *   An array containing the realm definition.
+   *
+   * @return
+   *   The facet's build array.
+   */
+  public function build(array $realm) {
+
+    // Builds the base render array for this facet across all realms. This
+    // ensures we are only pulling the data from the server once per facet.
+    if (!isset($this->build)) {
+      $this
+        ->initializeBuild()
+        ->processHierarchy()
+        ->processQueryStrings();
+    }
+
+    // Gets searcher since we use it a lot, gets field alias for readability.
+    $searcher = $this->adapter->getSearcher();
+    $field_alias = $this->facet['field alias'];
+
+    // Initializes render array.
+    $build = array(
+      '#title' => $this->facet['title'],
+      '#description' => $this->facet['description'],
+      '#weight' => $this->facet['weight'],
+      '#adapter' => $this->adapter,
+      '#realm_name' => $realm['name'],
+      '#facet' => $this->facet,
+      $field_alias => $this->build,
+    );
+
+    // Adds identifiers to facet.
+    $build['#attributes'] = array(
+      'class' => "facetapi-facet-{$this->facet['name']}",
+      'id' => "facetapi-facet-$searcher-{$realm['name']}-{$this->facet['name']}",
+    );
+
+    // Applies sorting algorithms.
+    $this->sorts = $this->sortFacet($realm);
+
+    // Gets available widgets.
+    $widgets = facetapi_get_widget_info(array(
+      'realm' => $realm,
+      'facet' => $this->facet,
+    ));
+
+    // Gets widget from settings, finds default if necessary.
+    $widget_name = facetapi_get_facet_widget($widgets, $searcher, $realm, $this->facet);
+
+    // Initializes JavaScript settings.
+    $facet_settings = array(
+      'searcher' => $searcher,
+      'type' => $this->adapter->getType(),
+      'realmName' => $realm['name'],
+      'facetName' => $this->facet['name'],
+      'widget' => $widget_name,
+      'queryType' => $this->facet['query type'],
+    );
+
+    // Passes render array, JavaScript settings to widget.
+    $key = $this->facet['field alias'];
+    if (NULL !== $widget_name && isset($widgets[$widget_name])) {
+      $build['#widget'] = $widgets[$widget_name];
+      if (facetapi_file_include($build['#widget'])) {
+        $build['#widget']['callback']($build, $key, $facet_settings);
+      }
+    }
+
+    // Adds JavaScript settings.
+    $settings['facetapi']['facets'][] = $facet_settings;
+    drupal_add_js($settings, 'setting');
+
+    return array($key => $build);
+  }
+
+  /**
+   * Builds the render array for the facet's items.
+   *
+   * @return FacetapiFacet
+   *   An instance of this class.
+   */
+  protected function initializeBuild() {
+
+    // Build array defaults.
+    $defaults = array(
+      '#markup' => '',
+      '#indexed_value' => '',
+      '#count' => 0,
+      '#active' => 0,
+      '#item_parents' => array(),
+      '#item_children' => array(),
+    );
+
+    // Builds render arrays for each item.
+    if (NULL !== $this->facet['field']) {
+      $this->build = $this->adapter->getFacetQuery($this->facet)->build();
+    }
+    else {
+      $items = array();
+    }
+    foreach (element_children($items) as $value) {
+      $item_defaults = array(
+        '#markup' => $value,
+        '#indexed_value' => $value,
+        '#active' => $this->itemActive($value),
+      );
+
+      // This seems silly, but it maintains the references to the child items
+      // stored in the #item_children property.
+      $items[$value] = array_merge($defaults, $item_defaults, $items[$value]);
+      $this->build[$value] = &$items[$value];
+    }
+
+    // Maps the IDs to human readable values via the mapping callback.
+    if (!empty($this->facet['map callback']) && function_exists($this->facet['map callback'])) {
+      $map = call_user_func($this->facet['map callback'], array_keys($this->build));
+      array_walk($this->build, 'facetapi_replace_ids', $map);
+    }
+
+    return $this;
+  }
+
+  /**
+   * Processes hierarchical relationships between the facet items.
+   *
+   * @return FacetapiFacet
+   *   An instance of this class.
+   */
+  protected function processHierarchy() {
+
+    // Builds the hierarchy information if the hierarchy callback is defined.
+    if (!empty($this->facet['hierarchy callback']) && !empty($this->build)) {
+      $parents = $this->facet['hierarchy callback'](array_keys($this->build));
+      foreach ($parents as $value => $parents) {
+        foreach ($parents as $parent) {
+          if (isset($this->build[$parent]) && isset($this->build[$value])) {
+            // Use a reference so we see the updated data.
+            $this->build[$parent]['#item_children'][$value] = &$this->build[$value];
+            $this->build[$value]['#item_parents'][$parent] = $parent;
+          }
+        }
+      }
+    }
+
+    // Tests whether parents have an active child.
+    // @todo: Can we make this more efficient?
+    do {
+      $active = 0;
+      foreach ($this->build as $value => $item) {
+        if ($item['#active'] && !empty($item['#item_parents'])) {
+          // @todo Can we build facets with multiple parents? Core taxonomy
+          // form cannot, so we will need a check here.
+          foreach ($item['#item_parents'] as $parent) {
+            if (!$this->build[$parent]['#active']) {
+              $active = $this->build[$parent]['#active'] = 1;
+            }
+          }
+        }
+      }
+    } while ($active);
+
+    // Strips children whose parents are inactive.
+    $this->build = array_filter($this->build, 'facetapi_filter_inactive_parent');
+
+    // Returns instance of this class.
+    return $this;
+  }
+
+  /**
+   * Initializes the render array's query string variables.
+   *
+   * @return FacetapiFacet
+   *   An instance of this class.
+   */
+  protected function processQueryStrings() {
+    foreach ($this->build as $value => &$item) {
+      $values = array($value);
+
+      // If the item is active an has children, gets the paths for the children.
+      // Merges child values with this facet item's value so that unclicking the
+      // parent deactivated the children as well.
+      if (!empty($item['#active']) && !empty($item['#item_children'])) {
+        $this->processQueryStrings($item['#item_children']);
+        $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
+      }
+
+      // Formats query string for facet item, sets theme function.
+      $item['#query'] = $this->getQueryString($values, $item['#active']);
+    }
+
+    // Returns instance of this calss.
+    return $this;
+  }
+
+  /**
+   * Returns sorts enabled for a facet in a realm.
+   *
+   * Sort definitions are returned in the order specified in the configurations
+   * settings.
+   *
+   * @param $realm
+   *   An array containing the full realm definition.
+   *
+   * @return
+   *   An array of enabled sort definitions.
+   *
+   * @todo Move to FacetapiFacet object.
+   */
+  function sortFacet(array $realm) {
+
+    // Gets active sorts.
+    /*
+    $active_sorts = (array) facetapi_setting_get(
+      'sort', $searcher, $realm['name'], $facet['name']
+    );
+    */
+    $active_sorts = array();
+
+    // Applies defaults if nothing is set.
+    $defaults = array();
+    if (empty($active_sorts)) {
+      $weight = -50;
+      foreach ($this->facet['default sorts'] as $sort) {
+        $active_sorts[$sort[0]] = $sort[0];
+        $defaults[$sort[0]] = array(
+          'weight' => $weight++,
+          'order'  => $sort[1],
+        );
+      }
+    }
+
+    // Finalizes sort definitions with settings or defaults.
+    $this->sorts = array_intersect_key(facetapi_get_sort_info(), array_filter($active_sorts));
+    foreach ($sorts as $sort_name => &$sort_info) {
+      if (empty($defaults)) {
+        $sort_info['weight'] = facetapi_setting_get(
+          'sort_weight', $this->searcher, $realm['name'], $this->facet['name'], $sort_name
+        );
+        $sort_info['order'] = facetapi_setting_get(
+          'sort_order', $this->searcher, $realm['name'], $this->facet['name'], $sort_name
+        );
+      }
+      else {
+        $sort_info['weight'] = $defaults[$sort_name]['weight'];
+        $sort_info['order']  = $defaults[$sort_name]['order'];
+      }
+    }
+    unset($sort_info);
+    uasort($this->sorts, 'facetapi_sort_weight');
+
+    // Applies sorting algorithms.
+    $this->applySorts($this->build[$this->facet['field alias']]);
+    unset($this->sorts);
+  }
+
+  /**
+   * Sorts the facet's build array.
+   *
+   * @param array &$build
+   *   Reference to the render array, allows us to sort one hierarchical level
+   *   at a time.
+   */
+  protected function applySorts(&$build) {
+    foreach (element_children($build) as $value) {
+      if (!empty($build[$value]['#item_children'])) {
+        $this->applySorts($build[$value]['#item_children']);
+      }
+    }
+    uasort($build, array($this, 'sortCallback'));
+  }
+
+  /**
+   * Generic sort callback, useful as a callback to uasort().
+   *
+   * Applies sorts in the order they are specified in the settings.
+   */
+  protected function sortCallback(array $a, array $b) {
+    $return = 0;
+    foreach ($this->sorts as $sort) {
+      if ($return = $sort['callback']($a, $b)) {
+        if (SORT_DESC == $sort['order']) {
+          $return *= -1;
+        }
+        break;
+      }
+    }
+    return $return;
+  }
+
+  /**
+   * Gets active facet items from the query string, stores as a property.
+   *
+   * @return
+   *   An instance of this class.
+   */
+  public function processActiveItems() {
+    $this->active = array();
+
+    // Bails if the facet isn't enabled in any realm.
+    // @todo Is this check superfluous?
+    if (!facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
+      return $this;
+    }
+
+    // Gets active items from query string, normalizes to an array.
+    $field_alias = $this->facet['field alias'];
+    if (isset($_GET[$field_alias])) {
+      if (is_array($_GET[$field_alias])) {
+        $data = $_GET[$field_alias];
+      }
+      else {
+        $data = array((string) $_GET[$field_alias]);
+      }
+    }
+    else {
+      $data = array();
+    }
+
+    // Allows hooks to add additional information to the active item. For
+    // example, range queries extract the start and end values from the item.
+    // @todo This hook is not longer valid.
+    $hook = 'facetapi_value_'. $this->facet['query type'];
+    foreach ($data as $key => $value) {
+      $this->active[$value] = array(
+        'pos' => $key,
+        'value' => $value,
+      );
+      drupal_alter($hook, $this->active[$value], $this->adapter);
+    }
+
+    return $this;
+  }
+}
+
+/**
+ * Helper function to execute a map query. A map query is useful for converting
+ * unique identifiers to human readable values, for example a uid to username.
+ *
+ * @param $sql
+ *   A string containing the SQL query mapping the ID to another value. The
+ *   query must select the "id" and "name" fields.
+ * @param $ids
+ *   An array containing the IDs being mapped.
+ * @param $type
+ *   The Schema API type of the ID field (e.g. 'int', 'text', or 'varchar').
+ *
+ * @return
+ *   An array of mapped IDs.
+ */
+function facetapi_map_query($sql, array $ids, $type = 'int') {
+  $map = array();
+  if (!empty($ids)) {
+    $sql = str_replace('!placeholders', db_placeholders($ids, $type), $sql);
+    if ($result = db_query($sql, $ids)) {
+      while ($record = db_fetch_object($result)) {
+        $map[$record->id] = $record->name;
+      }
+    }
+  }
+  return $map;
+}
+
+
+/**
+ * Replaces ID's with a mapped value, useful as a callback for array_walk().
+ *
+ * @param &$item
+ *   An array containing the facet item.
+ * @param $key
+ *   An integer containing the array key, or the ID being mapped to a value.
+ * @param $map
+ *   An array containing the mapped values.
+ */
+function facetapi_replace_ids(array &$item, $key, array $map) {
+  if (isset($map[$key])) {
+    $item['#value'] = $map[$key];
+  }
+}
+
+/**
+ * Recursive function that returns an array of values for all descendants of a
+ * facet item.
+ *
+ * @param $build
+ *   A render array containing the facet item's children.
+ *
+ * @return
+ *   An array containing the values of all descendants.
+ */
+function facetapi_get_child_values(array $build) {
+  $values = array_keys($build);
+  foreach ($build as $item) {
+    if (!empty($item['#item_children'])) {
+      $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
+    }
+  }
+  return $values;
+}
+
+/**
+ * Callback for array_filter() that strips out all children whose parents are
+ * inactive.
+ *
+ * @param $build
+ *   The facet item's render array.
+ *
+ * @return
+ *   A boolean flagging whether the value should remain in the array.
+ */
+function facetapi_filter_inactive_parent(array $build) {
+  return empty($build['#item_parents']);
+}
+
+/**
+ * Sorts by whether or not a facet is active.
+ */
+function facetapi_sort_active(array $a, array $b) {
+  $a_active = (isset($a['#active'])) ? $a['#active'] : 0;
+  $b_active = (isset($b['#active'])) ? $b['#active'] : 0;
+  if ($a_active == $b_active) {
+    return 0;
+  }
+  return ($a_active < $b_active) ? -1 : 1;
+}
+
+/**
+ * Sorts by facet count.
+ */
+function facetapi_sort_count(array $a, array $b) {
+  $a_count = (isset($a['#count'])) ? $a['#count'] : 0;
+  $b_count = (isset($b['#count'])) ? $b['#count'] : 0;
+  if ($a_count == $b_count) {
+    return 0;
+  }
+  return ($a_count < $b_count) ? -1 : 1;
+}
+
+/**
+ * Sorts by raw indexed value.
+ */
+function facetapi_sort_indexed(array $a, array $b) {
+  $a_value = (isset($a['#indexed_value'])) ? $a['#indexed_value'] : '';
+  $b_value = (isset($b['#indexed_value'])) ? $b['#indexed_value'] : '';
+  if ($a_value == $b_value) {
+    return 0;
+  }
+  return ($a_value < $b_value) ? -1 : 1;
+}
+
+/**
+ * Sorts by display value.
+ */
+function facetapi_sort_display(array $a, array $b) {
+  $a_count = (isset($a['#value'])) ? $a['#value'] : '';
+  $b_count = (isset($b['#value'])) ? $b['#value'] : '';
+  return strcasecmp($a['#value'], $b['#value']);
 }
