@@ -6,7 +6,7 @@
  */
 
 /**
- * Facet settings
+ * Facet settings.
  */
 function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
 
@@ -244,16 +244,19 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
   );
 
   // Gets widgets, sorts.
+  /*
   $widget_info = facetapi_get_widget_info(array(
     'realm' => $realm,
     'facet' => $facet,
   ));
   uasort($widget_info, 'drupal_sort_weight');
+  */
 
   // Builds select options for widgets.
+  ctools_include('plugins');
   $widget_options = array();
-  foreach ($widget_info as $widget_name => $widget) {
-    $widget_options[$widget_name] = $widget['label'];
+  foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
+    $widget_options[$id] = $plugin['handler']['label'];
   }
 
   $form['realm']['widget'] = array(

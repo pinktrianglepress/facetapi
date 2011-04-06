@@ -179,8 +179,6 @@ function facetapi_get_searcher_info() {
 function facetapi_get_realm_info() {
   $realm_info = &drupal_static(__FUNCTION__);
   if (NULL === $realm_info) {
-
-    // Gets realm info from hooks, merges with defaults.
     $realm_info = module_invoke_all('facetapi_realm_info');
     foreach ($realm_info as $realm_name => $realm) {
       $realm_info[$realm_name] += array(
@@ -194,12 +192,9 @@ function facetapi_get_realm_info() {
         'ui' => TRUE,
       );
     }
-
-    // Invokes alter hook, sorts realms by weight.
     drupal_alter('facetapi_realm_info', $realm_info);
     uasort($realm_info, 'drupal_sort_weight');
   }
-
   return $realm_info;
 }
 
@@ -212,134 +207,42 @@ function facetapi_get_realm_info() {
  *   An array containing the facet arrays, FALSE on errors.
  */
 function facetapi_get_facet_info($searcher) {
-  $facets = array();
+  $facet_info = module_invoke_all('facetapi_facet_info', $searcher);
+  foreach ($facet_info as $facet_name => $info) {
+    $facet_info[$facet_name] += array(
+      'name' => $facet_name,
+      'label' => $facet_name,
+      'description' => '',
+      'field' => $facet_name,
+      'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
+      'query type' => 'term',
+      'default widgets' => array(),
+      'weight' => 0,
+      'map callback' => FALSE,
+      'hierarchy callback' => FALSE,
+      'values callback' => FALSE,
+      'min callback' => FALSE,
+      'max callback' => FALSE,
+      'default sorts' => array(
+        array('active', SORT_DESC),
+        array('count', SORT_DESC),
+        array('display', SORT_ASC),
+      ),
+    );
 
-  // Gets facets from hooks and the modules the facets are defined in.
-  foreach (module_implements('facetapi_facet_info') as $module) {
-    $module_facets = module_invoke($module, 'facetapi_facet_info', $searcher);
-    foreach ($module_facets as $facet_name => $facet) {
-
-      // Builds array of default values.
-      $facets[$facet_name] = $facet + array(
-        'name' => $facet_name,
-        'label' => $facet_name,
-        'description' => '',
-        'field' => $facet_name,
-        'field alias' => isset($facet['field']) ? $facet['field'] : $facet_name,
-        'query type' => 'term',
-        'data group' => FALSE,
-        'widget requirements' => array(),
-        'default widgets' => array(),
-        'weight' => 0,
-        'map callback' => FALSE,
-        'hierarchy callback' => FALSE,
-        'values callback' => FALSE,
-        'min callback' => FALSE,
-        'max callback' => FALSE,
-        'file' => '',
-        'file path' => drupal_get_path('module', $module),
-        'default sorts' => array(
-          array('active', SORT_DESC),
-          array('count', SORT_DESC),
-          array('display', SORT_ASC),
-        ),
-      );
-
-      // Checks whether facet is flat or hierarchical, adds to requirements.
-      if (!$facets[$facet_name]['hierarchy callback']) {
-        $facets[$facet_name]['widget requirements'][] = 'flat';
-      }
-      else {
-        $facets[$facet_name]['widget requirements'][] = 'hierarchical';
-      }
+    // Checks whether facet is flat or hierarchical, adds to requirements.
+    if (!$facet_info[$facet_name]['hierarchy callback']) {
+      $facet_info[$facet_name]['widget requirements'][] = 'flat';
     }
-
-    // Invokes alter hook to allow modules to modify facet definitions.
-    drupal_alter('facetapi_facet_info', $facets, $searcher, $type);
-  }
-
-  // Sorts facets by weight, returns facets.
-  uasort($facets, 'drupal_sort_weight');
-  return $facets;
-}
-
-/**
- * Invokes hook_facetapi_widget_info(), returns all defined widgets.
- *
- * @param $variables
- *   An array of variables passed to the restriction callbacks. By default it
- *   contains the adapter, realm definition, and facet definition. If the array
- *   is empty, all widgets will be returned.
- *
- * @return
- *   An associative array of widget definitions keyed by widget name.
- */
-function facetapi_get_widget_info(array $variables = array()) {
-  $widget_info = &drupal_static(__FUNCTION__);
-  if (NULL === $widget_info) {
-
-    // Gets widgets from hooks, merges with defaults.
-    foreach (module_implements('facetapi_widget_info') as $module) {
-      $module_widgets = module_invoke($module, 'facetapi_widget_info');
-      foreach ($module_widgets as $widget_name => $widget) {
-        $widget_info[$widget_name] = $widget + array(
-          'label' => t('Widget'),
-          'callback' => 'facetapi_links_widget_callback',
-          'widget requirements' => array(),
-          'variables' => array(),
-          'weight' => 0,
-          'module' => $module,
-        );
-      }
-    }
-
-    // Allows modules to alter the widget defintions.
-    drupal_alter('facetapi_widget_info', $widget_info);
-  }
-
-  // If variables passed, returns widgets the facet has access to.
-  if (!empty($variables)) {
-    $return = $widget_info;
-    foreach ($widget_info as $widget_name => $widget) {
-      $return[$widget_name]['variables'] = array_merge(
-        $variables, $widget_info[$widget_name]['variables']
-      );
-    }
-    return array_filter($return, 'facetapi_filter_widgets');
-  }
-  else {
-    return $widgets;
-  }
-}
-
-/**
- * Finds a facet's selected widget given the searcher and realm.
- *
- * @param $widgets
- *   An array of widget definitions.
- * @param $searcher
- *   A string containing the machine readable name of the searcher module.
- * @param $realm
- *   An array containing the full realm definition.
- * @param $facet
- *   An array containing the full realm definition.
- *
- * @return
- *   A string containing the default widget.
- */
-function facetapi_get_facet_widget(array $widgets, $searcher, array $realm, array $facet) {
-  if (!$widget_name = facetapi_setting_get('widget', $searcher, $realm['name'], $facet['name'])) {
-    foreach ($facet['default widgets'] as $default_widget) {
-      if (isset($widgets[$default_widget])) {
-        $widget_name = $default_widget;
-        break;
-      }
-    }
-    if (!$widget_name) {
-      $widget_name = $realm['default widget'];
+    else {
+      $facet_info[$facet_name]['widget requirements'][] = 'hierarchical';
     }
   }
-  return $widget_name;
+
+  // Invokes alter hook, sorts and returns.
+  drupal_alter('facetapi_facet_info', $facet_info, $searcher);
+  uasort($facet_info, 'drupal_sort_weight');
+  return $facet_info;
 }
 
 /**
@@ -351,8 +254,6 @@ function facetapi_get_facet_widget(array $widgets, $searcher, array $realm, arra
 function facetapi_get_sort_info() {
   $sort_info = &drupal_static(__FUNCTION__);
   if (NULL === $sort_info) {
-
-    // Gets realm info from hooks, merges with defaults.
     $sort_info = module_invoke_all('facetapi_sort_info');
     foreach ($sort_info as $sort_name => $info) {
       $sort_info[$sort_name] += array(
@@ -363,8 +264,6 @@ function facetapi_get_sort_info() {
         'weight' => 0,
       );
     }
-
-    // Invokes alter hook.
     drupal_alter('facetapi_sort_info', $sort_info);
   }
   return $sort_info;
@@ -388,7 +287,6 @@ function facetapi_facetapi_realm_info() {
     'weight' => -10,
     'sortable' => FALSE,
     'default widget' => 'facetapi_links',
-    'widget requirements' => array('list'),
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fassion similar to the Apache Solr Search Integration module\'s faceted search implementation.',
       array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
@@ -400,7 +298,6 @@ function facetapi_facetapi_realm_info() {
     'label' => t('Fieldset'),
     'weight' => -5,
     'default widget' => 'facetapi_textfield',
-    'widget requirements' => array('form'),
     'description' => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
   );
 
@@ -517,6 +414,20 @@ function facetapi_facetapi_sort_info() {
 }
 
 /**
+ * Implements hook_facetapi_widgets().
+ */
+function facetapi_facetapi_widgets() {
+  return array(
+    'facetapi_links' => array(
+      'handler' => array(
+        'label' => t('Links'),
+        'class' => 'FacetapiWidgetLinks',
+      ),
+    ),
+  );
+}
+
+/**
  * Implements hook_facetapi_widget_info().
  */
 function facetapi_facetapi_widget_info() {
@@ -526,7 +437,6 @@ function facetapi_facetapi_widget_info() {
     'label' => t('Links'),
     'callback' => 'facetapi_widget_links',
     'widget requirements' => array('list'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -10,
   );
 
@@ -534,47 +444,36 @@ function facetapi_facetapi_widget_info() {
     'label' => t('Links with checkboxes'),
     'callback' => 'facetapi_widget_link_checkboxes',
     'widget requirements' => array('list'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -9,
   );
 
   $widgets['facetapi_checkboxes'] = array(
     'label' => t('Checkboxes'),
     'callback' => 'facetapi_widget_checkboxes',
-    'widget requirements' => array('form', 'has default values', 'flat'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -10,
   );
 
   $widgets['facetapi_radios'] = array(
     'label' => t('Radios'),
     'callback' => 'facetapi_widget_radios',
-    'widget requirements' => array('form', 'has default values', 'flat'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -9,
   );
 
   $widgets['facetapi_select'] = array(
     'label' => t('Select list'),
     'callback' => 'facetapi_widget_select',
-    'widget requirements' => array('form', 'has default values'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -8,
   );
 
   $widgets['facetapi_multiselect'] = array(
     'label' => t('Multiple value select list'),
     'callback' => 'facetapi_widget_multiselect',
-    'widget requirements' => array('form', 'has default values'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -7,
   );
 
   $widgets['facetapi_textfield'] = array(
     'label' => t('Text field'),
     'callback' => 'facetapi_widget_textfield',
-    'widget requirements' => array('form'),
-    'file' => 'facetapi.widget.inc',
     'weight' => -6,
   );
 
@@ -620,13 +519,14 @@ function facetapi_filter_widgets(array $widget) {
  *
  * @return array
  */
-function facetapi_get_enabled_facets($searcher, $realm = NULL) {
-  $enabled_facets = &drupal_static(__FUNCTION__);
-  if (NULL === $enabled_facets) {
+function facetapi_get_enabled_facets($searcher, $realm_name = NULL) {
+  $enabled_facets = &drupal_static(__FUNCTION__, array());
+  $cid = $searcher . ':' . (string) $realm_name;
+  if (!isset($enabled_facets[$cid])) {
     // Builds array of aruments to pass to ctools_export_load_object().
     $args = array('searcher' => $searcher,  'enabled' => 1);
-    if (NULL !== $realm) {
-      $args['realm'] = $realm;
+    if (NULL !== $realm_name) {
+      $args['realm'] = $realm_name;
     }
 
     // Loads settings for enabled facets.
@@ -641,9 +541,9 @@ function facetapi_get_enabled_facets($searcher, $realm = NULL) {
 
     // Gets facet definitions for all enabled facets.
     $facet_info = facetapi_get_facet_info($searcher);
-    $enabled_facets = array_intersect_key($facet_info, $facets);
+    $enabled_facets[$cid] = array_intersect_key($facet_info, $facets);
   }
-  return $enabled_facets;
+  return $enabled_facets[$cid];
 }
 
 /**

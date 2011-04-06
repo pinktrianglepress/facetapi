@@ -292,12 +292,12 @@ abstract class FacetapiAdapter {
     // Adds JavaScript, initializes render array.
     drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
     $build = array(
-      '#adapter' => $adapter,
+      '#adapter' => $this,
       '#realm' => $realm,
     );
 
     // Builds each facet in the realm, merges into realm's render array.
-    foreach (facetapi_get_enabled_facets($searcher, $realm['name']) as $facet) {
+    foreach (facetapi_get_enabled_facets($this->info['name'], $realm['name']) as $facet) {
       $field_alias = $facet['field alias'];
       $facet_build = $this->getFacet($facet)->build($realm);
 
@@ -552,10 +552,11 @@ class FacetapiFacet {
    *   The facet's build array.
    */
   public function build(array $realm) {
+    $settings = $this->getSettings($realm);
 
     // Builds the base render array for this facet across all realms. This
     // ensures we are only pulling the data from the server once per facet.
-    if (!isset($this->build)) {
+    if (empty($this->build)) {
       $this
         ->initializeBuild()
         ->processHierarchy()
@@ -568,12 +569,13 @@ class FacetapiFacet {
 
     // Initializes render array.
     $build = array(
-      '#title' => $this->facet['title'],
+      '#title' => $this->facet['label'],
       '#description' => $this->facet['description'],
       '#weight' => $this->facet['weight'],
       '#adapter' => $this->adapter,
       '#realm_name' => $realm['name'],
       '#facet' => $this->facet,
+      '#settings' => $settings,
       $field_alias => $this->build,
     );
 
@@ -586,19 +588,14 @@ class FacetapiFacet {
     // Applies sorting algorithms.
     $this->sorts = $this->sortFacet($realm);
 
-    // Gets available widgets.
-    $widgets = facetapi_get_widget_info(array(
-      'realm' => $realm,
-      'facet' => $this->facet,
-    ));
-
     // Gets widget from settings, finds default if necessary.
-    $widget_name = facetapi_get_facet_widget($widgets, $searcher, $realm, $this->facet);
+    // @todo Implement default widgets.
+    $widget_name = $settings->settings['widget'];
 
     // Initializes JavaScript settings.
-    $facet_settings = array(
+    $js_settings = array(
       'searcher' => $searcher,
-      'type' => $this->adapter->getType(),
+      'instance' => $this->adapter->getInstance(),
       'realmName' => $realm['name'],
       'facetName' => $this->facet['name'],
       'widget' => $widget_name,
@@ -607,16 +604,13 @@ class FacetapiFacet {
 
     // Passes render array, JavaScript settings to widget.
     $key = $this->facet['field alias'];
-    if (NULL !== $widget_name && isset($widgets[$widget_name])) {
-      $build['#widget'] = $widgets[$widget_name];
-      if (facetapi_file_include($build['#widget'])) {
-        $build['#widget']['callback']($build, $key, $facet_settings);
-      }
-    }
+    $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
+    $plugin = new $class();
+    $plugin->execute($build, $key, $js_settings);
 
-    // Adds JavaScript settings.
-    $settings['facetapi']['facets'][] = $facet_settings;
-    drupal_add_js($settings, 'setting');
+    // Adds JavaScript settings in a way that merges with others
+    $merge_settings['facetapi']['facets'][] = $js_settings;
+    drupal_add_js($merge_settings, 'setting');
 
     return array($key => $build);
   }
@@ -779,8 +773,9 @@ class FacetapiFacet {
 
     // Finalizes sort definitions with settings or defaults.
     $this->sorts = array_intersect_key(facetapi_get_sort_info(), array_filter($active_sorts));
-    foreach ($sorts as $sort_name => &$sort_info) {
+    foreach ($this->sorts as $sort_name => &$sort_info) {
       if (empty($defaults)) {
+        // @todo Settings aren't found here anymore.
         $sort_info['weight'] = facetapi_setting_get(
           'sort_weight', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
         );
@@ -794,7 +789,7 @@ class FacetapiFacet {
       }
     }
     unset($sort_info);
-    uasort($this->sorts, 'facetapi_sort_weight');
+    uasort($this->sorts, 'drupal_sort_weight');
 
     // Applies sorting algorithms.
     $this->applySorts($this->build[$this->facet['field alias']]);
