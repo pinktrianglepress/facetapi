@@ -337,7 +337,7 @@ abstract class FacetapiAdapter {
 /**
  * Stores facet data, provides methods that build the facet's render array.
  */
-class FacetapiFacet {
+class FacetapiFacet implements ArrayAccess {
 
   /**
    * The FacetapiAdapter object.
@@ -381,6 +381,57 @@ class FacetapiFacet {
   }
 
   /**
+   * Whether a offset exists
+   *
+   * @param mixed offset
+   *   An offset to check for.
+   *
+   * @return boolean
+   */
+  public function offsetExists ($offset) {
+    return isset($this->facet[$offset]);
+  }
+
+  /**
+   * Returns the value at specified offset.
+   *
+   * @param mixed offset
+   *   The offset to retrieve.
+   *
+   * @return mixed
+   */
+  public function offsetGet ($offset) {
+    return isset($this->facet[$offset]) ? $this->facet[$offset] : NULL;
+  }
+
+  /**
+   * Assigns a value to the specified offset.
+   *
+   * @param mixed offset
+   *   The offset to assign the value to.
+   * @param mixed value
+   *   The value to set.
+   */
+  public function offsetSet ($offset, $value) {
+    if (NULL === $offset) {
+      $this->facet[] = $value;
+    }
+    else {
+      $this->facet[$offset] = $value;
+    }
+  }
+
+  /**
+   * Unsets an offset.
+   *
+   * @param mixed offset
+   *   The offset to unset.
+   */
+  public function offsetUnset ($offset) {
+    unset($this->facet[$offset]);
+  }
+
+  /**
    * Returns the adapter object.
    *
    * @return FacetapiAdapter
@@ -398,6 +449,16 @@ class FacetapiFacet {
    */
   public function getFacet() {
     return $this->facet;
+  }
+
+  /**
+   * Returns the facet definition.
+   *
+   * @return array
+   *   An array containing the facet definition.
+   */
+  public function getBuild() {
+    return $this->build;
   }
 
   /**
@@ -556,67 +617,26 @@ class FacetapiFacet {
 
     // Builds the base render array for this facet across all realms. This
     // ensures we are only pulling the data from the server once per facet.
-    if (empty($this->build)) {
-      $this
-        ->initializeBuild()
-        ->processHierarchy()
-        ->processQueryStrings();
+    if (!$this->build) {
+      $this->initializeBuild()->processHierarchy()->processQueryStrings();
     }
 
-    // Gets searcher since we use it a lot, gets field alias for readability.
-    $searcher = $this->adapter->getSearcher();
-    $field_alias = $this->facet['field alias'];
-
-    // Initializes render array.
-    $build = array(
-      '#title' => $this->facet['label'],
-      '#description' => $this->facet['description'],
-      '#weight' => $this->facet['weight'],
-      '#adapter' => $this->adapter,
-      '#realm_name' => $realm['name'],
-      '#facet' => $this->facet,
-      '#settings' => $settings,
-      $field_alias => $this->build,
-    );
-
-    // Adds identifiers to facet.
-    $build['#attributes'] = array(
-      'class' => "facetapi-facet-{$this->facet['name']}",
-      'id' => "facetapi-facet-$searcher-{$realm['name']}-{$this->facet['name']}",
-    );
-
-    // Applies sorting algorithms.
-    $this->sorts = $this->sortFacet($realm);
-
-    // Gets widget from settings, finds default if necessary.
-    // @todo Implement default widgets.
+    // Instantiates the widget plugins and executes.
     $widget_name = $settings->settings['widget'];
-
-    // Initializes JavaScript settings.
-    $js_settings = array(
-      'searcher' => $searcher,
-      'instance' => $this->adapter->getInstance(),
-      'realmName' => $realm['name'],
-      'facetName' => $this->facet['name'],
-      'widget' => $widget_name,
-      'queryType' => $this->facet['query type'],
-    );
-
-    // Passes render array, JavaScript settings to widget.
-    $key = $this->facet['field alias'];
     $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
-    $plugin = new $class();
-    $plugin->execute($build, $key, $js_settings);
+    $plugin = new $class($realm, $settings, $this);
+    $plugin->execute();
 
-    // Adds JavaScript settings in a way that merges with others
-    $merge_settings['facetapi']['facets'][] = $js_settings;
+    // Adds JavaScript settings in a way that merges with others already set.
+    $merge_settings['facetapi']['facets'][] = $plugin->getJavaScriptSettings();
     drupal_add_js($merge_settings, 'setting');
 
-    return array($key => $build);
+    // Returns array keyed by the FacetapiWidget::$key property.
+    return array($plugin->getKey() => $plugin->getBuild());
   }
 
   /**
-   * Builds the render array for the facet's items.
+   * Builds the render arrays for the items in the facet.
    *
    * @return FacetapiFacet
    *   An instance of this class.
@@ -633,13 +653,15 @@ class FacetapiFacet {
       '#item_children' => array(),
     );
 
-    // Builds render arrays for each item.
-    if (NULL !== $this->facet['field']) {
-      $this->build = $this->adapter->getFacetQuery($this->facet)->build();
-    }
-    else {
+    // Bails if there is no field attached to the facet, in other words if the
+    // facet is simply rendering markup.
+    if (!$this->facet['field']) {
       $this->build = array();
+      return $this;
     }
+
+    // Builds render arrays for each item.
+    $this->build = $this->adapter->getFacetQuery($this->facet)->build();
     foreach (element_children($this->build) as $value) {
       $item_defaults = array(
         '#markup' => $value,
@@ -650,7 +672,7 @@ class FacetapiFacet {
     }
 
     // Maps the IDs to human readable values via the mapping callback.
-    if (!empty($this->facet['map callback']) && function_exists($this->facet['map callback'])) {
+    if ($this->facet['map callback'] && function_exists($this->facet['map callback'])) {
       $map = call_user_func($this->facet['map callback'], array_keys($this->build));
       array_walk($this->build, 'facetapi_replace_ids', $map);
     }
@@ -667,7 +689,7 @@ class FacetapiFacet {
   protected function processHierarchy() {
 
     // Builds the hierarchy information if the hierarchy callback is defined.
-    if (!empty($this->facet['hierarchy callback']) && !empty($this->build)) {
+    if ($this->facet['hierarchy callback'] && $this->build) {
       $parents = $this->facet['hierarchy callback'](array_keys($this->build));
       foreach ($parents as $value => $parents) {
         foreach ($parents as $parent) {
@@ -697,10 +719,8 @@ class FacetapiFacet {
       }
     } while ($active);
 
-    // Strips children whose parents are inactive.
+    // Strips children whose parents are inactive
     $this->build = array_filter($this->build, 'facetapi_filter_inactive_parent');
-
-    // Returns instance of this class.
     return $this;
   }
 
@@ -858,7 +878,7 @@ class FacetapiFacet {
     // Allows hooks to add additional information to the active item. For
     // example, range queries extract the start and end values from the item.
     // @todo This hook is not longer valid.
-    $hook = 'facetapi_value_'. $this->facet['query type'];
+    $hook = 'facetapi_value_' . $this->facet['query type'];
     foreach ($data as $key => $value) {
       $this->active[$value] = array(
         'pos' => $key,
