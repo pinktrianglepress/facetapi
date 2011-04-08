@@ -73,10 +73,10 @@ function facetapi_ctools_plugin_type() {
     'adapters' => array(
       'use hooks' => TRUE,
     ),
-    'widgets' => array(
+    'query_types' => array(
       'use hooks' => TRUE,
     ),
-    'query_types' => array(
+    'widgets' => array(
       'use hooks' => TRUE,
     ),
   );
@@ -248,6 +248,7 @@ function facetapi_get_realm_info() {
  *   An array containing the facet arrays, FALSE on errors.
  */
 function facetapi_get_facet_info($searcher) {
+  $searcher_info = facetapi_get_searcher_info();
   $facet_info = module_invoke_all('facetapi_facet_info', $searcher);
   foreach ($facet_info as $facet_name => $info) {
     $facet_info[$facet_name] += array(
@@ -281,7 +282,7 @@ function facetapi_get_facet_info($searcher) {
   }
 
   // Invokes alter hook, sorts and returns.
-  drupal_alter('facetapi_facet_info', $facet_info, $searcher);
+  drupal_alter('facetapi_facet_info', $facet_info, $searcher_info[$searcher]);
   uasort($facet_info, 'drupal_sort_weight');
   return $facet_info;
 }
@@ -393,7 +394,6 @@ function facetapi_facetapi_facet_info($searcher) {
       'description'=> t('Filter by content type.'),
       'map callback'=> 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
-      'widget requirements'=> array('has default values'),
       'default widgets' => array('facetapi_checkboxes'),
     );
 
@@ -401,16 +401,13 @@ function facetapi_facetapi_facet_info($searcher) {
       'label' => t('Author'),
       'description' => t('Filter by author.'),
       'field' => 'uid',
-      'data group' => 'user',
-      'widget requirements' => array('has default values'),
-      'map callback' => 'facetapi_callback_uid_map',
+      'map callback' => 'facetapi_map_author',
       'values callback' => 'facetapi_callback_user_values',
     );
 
     $facets['language'] = array(
       'label' => t('Language'),
       'description' => t('Filter by language.'),
-      'widget requirements' => array('has default values'),
       'default widgets' => array('facetapi_checkboxes'),
       'map callback' => 'facetapi_callback_language_map',
       'values callback' => 'facetapi_callback_language_values',

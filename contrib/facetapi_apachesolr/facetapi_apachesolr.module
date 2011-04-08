@@ -53,6 +53,15 @@ function facetapi_apachesolr_facetapi_query_types() {
 }
 
 /**
+ * Implements hook_facetapi_facet_info_alter().
+ */
+function facetapi_apachesolr_facetapi_facet_info_alter(&$facet_info, $searcher) {
+  if ('apachesolr' == $searcher['adapter']) {
+    $facet_info['author']['field'] = 'is_uid';
+  }
+}
+
+/**
  * Implements hook_form_FORM_ID_alter().
  *
  * Adds breadcrumb trail for Apache Solr administrative pages.

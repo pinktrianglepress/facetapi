@@ -689,7 +689,7 @@ class FacetapiFacet implements ArrayAccess {
     }
 
     // Maps the IDs to human readable values via the mapping callback.
-    if ($this->facet['map callback'] && function_exists($this->facet['map callback'])) {
+    if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
       $map = call_user_func($this->facet['map callback'], array_keys($this->build));
       array_walk($this->build, 'facetapi_replace_ids', $map);
     }
@@ -920,7 +920,7 @@ class FacetapiFacet implements ArrayAccess {
  */
 function facetapi_replace_ids(array &$item, $key, array $map) {
   if (isset($map[$key])) {
-    $item['#value'] = $map[$key];
+    $item['#markup'] = $map[$key];
   }
 }
 
@@ -1002,3 +1002,31 @@ function facetapi_sort_display(array $a, array $b) {
   $b_count = (isset($b['#value'])) ? $b['#value'] : '';
   return strcasecmp($a['#value'], $b['#value']);
 }
+
+/**
+ * Map callback for node types.
+ */
+function facetapi_map_bundle($values) {
+  $names = node_type_get_names();
+  return array_intersect_key($names, array_flip($values));
+}
+
+/**
+ * Map callback for node authors.
+ */
+function facetapi_map_author($values) {
+  $result = db_select('users', 'u')
+    ->fields('u', array('uid', 'name'))
+    ->condition('uid', $values, 'IN')
+    ->execute();
+
+  $map = array();
+  while ($record = $result->fetchAssoc()) {
+    $map[$record['uid']] = $record['name'];
+  }
+  if (isset($map[0])) {
+    $map[0] = variable_get('anonymous', t('Anonymous'));
+  }
+  return $map;
+}
+
