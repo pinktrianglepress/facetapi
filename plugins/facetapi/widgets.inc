@@ -10,6 +10,13 @@
 abstract class FacetapiWidget {
 
   /**
+   * The facet object.
+   *
+   * @var FacetapiFacet
+   */
+  protected $facet;
+
+  /**
    * The normalized render array.
    *
    * @var array
@@ -40,6 +47,7 @@ abstract class FacetapiWidget {
    *   The facet object.
    */
   public function __construct(array $realm, stdClass $settings, FacetapiFacet $facet) {
+    $this->facet = $facet;
 
     // Captures searcher for code readability.
     $searcher = $facet->getAdapter()->getSearcher();
@@ -125,103 +133,77 @@ abstract class FacetapiWidget {
 class FacetapiWidgetLinks extends FacetapiWidget {
 
   /**
-   * Sets key to facet name since link facets shouldn't be grouped by alias.
-   */
-  public function __construct($build, $key, $js_settings) {
-    parent::__construct($build, $key, $js_settings);
-    $this->key = $this->build['#facet']['name'];
-  }
-
-  /**
    * Renders the links.
    */
   public function execute() {
+    // Sets the key, captures the facet's render array.
     $this->key = $this->build['#facet']['name'];
+    $element = &$this->build[$this->facet['field alias']];
 
-    dsm($this->build);
+    // Sets each item's theme hook, builds item list.
+    $this->setThemeHooks($element);
+    $element = array(
+      '#theme' => 'item_list',
+      '#title' => theme('facetapi_title', array('title' => $this->build['#title'])),
+      '#items' => $this->buildListItems($element),
+    );
 
     /*
     drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
 
-    // Captures facet information for code readability,
-    $facet_name  = $build['#facet']['name'];
-    $field_alias = $build['#facet']['field alias'];
-
-
-
-    // Adds theme functions to each item dependent on whether it is active or not.
-    $this->setThemeHooks($build[$field_alias], 'facetapi_link_active', 'facetapi_link_inactive');
-
-    // Converts the array to something that can be read by theme_item_list().
-    $build['#theme'] = 'facetapi_item_list';
-    $build[$field_alias] = $this->buildItemList($build[$field_alias]);
-
     // Adds "soft limit" to the javascript settings.
     $js_settings['limit'] = $build['#settings']->settings['soft_limit'];
     */
-
-    $this->build = array(
-      '#theme' => 'item_list',
-      '#title' => 'Test',
-      '#items' => array('One', 'Two'),
-    );
-
-
-
   }
 
   /**
-   * Recursive function that sets theme hooks.
+   * Recursive function that sets each item's theme hook.
    *
-   * @param &$build
+   * @param array &$build
    *   A render array containing the facet items.
-   * @param $active_hook
-   *   A string containing the theme hook to use when the facet is active.
-   * @param $inactive_hook
-   *   A string containing the theme hook to use when the facet is inactive.
    */
-  protected function setThemeHooks(array &$build, $active_hook = NULL, $inactive_hook = NULL) {
+  protected function setThemeHooks(array &$build) {
     foreach ($build as $value => &$item) {
-      if (empty($item['#active']) && NULL !== $inactive_hook) {
-        $item['#theme'] = $inactive_hook;
-      }
-      if (!empty($item['#active']) && NULL !== $active_hook) {
-        $item['#theme'] = $active_hook;
-      }
+      $item['#theme'] = ($item['#active']) ? 'facetapi_link_active' : 'facetapi_link_inactive';
       if (!empty($item['#item_children'])) {
-        $this->setThemeHooks($item['#item_children'], $active_hook, $inactive_hook);
+        $this->setThemeHooks($item['#item_children']);
       }
     }
+    return $this;
   }
 
   /**
    * Recursive function that converts the render array into an array that can be
    * passed to theme_item_list().
    *
-   * @param $build
-   *   The render array for the facet's items.
+   * @param array $build
+   *   The facet's render array.
    *
-   * @return
-   *   An array that can be passed the theme_item_list().
-   *
-   * @see theme_item_list()
-   * @see theme_facetapi_item_list()
+   * @return array
+   *   The "items" parameter for theme_item_list().
    */
-  function buildItemList($build) {
+  function buildListItems($build) {
     $items = array();
     foreach ($build as $value => $item) {
       $row = array();
 
-      $options = array(
-        'attributes' => array(),
-        //'query' => drupal_http_build_query($item['#query'], array('q', 'page')),
+      // Initializes variables passed to theme hook.
+      $variables = array(
+        'text' => $item['#markup'],
+        'path' => $_GET['q'],
+        'count' => $item['#count'],
+        'options' => array(
+          'attributes' => array(),
+          'html' => FALSE,
+          //'query'
+        ),
       );
 
       // We don't display children unless the parent is clicked.
       if (!empty($item['#item_children'])) {
         if ($item['#active']) {
           $row['class'] = 'expanded';
-          $row['children'] = $this->buildItemList($item['#item_children']);
+          $row['children'] = $this->buildListItems($item['#item_children']);
         }
         else {
           $row['class'] = 'collapsed';
@@ -230,15 +212,11 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
       // Gets theme hook, adds last minute classes.
       if ($item['#active']) {
-        $options['attributes']['class'] = 'active';
+        $variables['options']['attributes']['class'] = 'active';
       }
 
-      // Themes the link.
-      $row['data'] = theme(
-        $item['#theme'], $item['#markup'], $_GET['q'], $options, $item['#count']
-      );
-
-      // Adds links to array.
+      // Themes the link, adds row to items.
+      $row['data'] = theme($item['#theme'], $variables);
       $items[] = $row;
     }
 

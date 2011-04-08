@@ -41,89 +41,42 @@ function theme_facetapi_item_list($element) {
 
 /**
  * Themes the facet title.
- *
- * @param $title
- *   A string containing the facet title.
- *
- * @return
- *   A string containing the themed title.
  */
-function theme_facetapi_title($title) {
-  return t('Filter by @title:', array('@title' => drupal_strtolower($title)));
+function theme_facetapi_title($variables) {
+  return t('Filter by @title:', array('@title' => drupal_strtolower($variables['title'])));
 }
 
 /**
  * Themes a facet link for a value that is currently being searched.
- *
- * @param $text
- *   A string containing the facet title.
- * @param $path
- *   A string containing the Drupal path being linked to, usually $_GET['q'].
- * @param $options
- *   An associative array of additional options.
- *
- * @return
- *   A string containing the themed link.
- *
- * @see facetapi_l()
  */
-function theme_facetapi_link($text, $path, array $options = array()) {
-  return facetapi_l($text, $path, $options);
+function theme_facetapi_link($variables) {
+  return facetapi_l('', $path, $options);
 }
 
 /**
  * Themes a facet link with an optional count.
- *
- * @param $text
- *   A string containing the facet title.
- * @param $path
- *   A string containing the Drupal path being linked to, usually $_GET['q'].
- * @param $options
- *   An associative array of additional options.
- * @param $count
- *   An optional integer containing the count of the facet item.
- *
- * @return
- *   A string containing the themed link.
- *
- * @see facetapi_l()
  */
-function theme_facetapi_link_inactive($text, $path, array $options = array(), $count = 0) {
-  if ($count) {
-    $text .= ' ' . theme('facetapi_count', $count);
+function theme_facetapi_link_inactive($variables) {
+  if (!empty($variables['count'])) {
+    $variables['text'] .= ' ' . theme('facetapi_count', $variables);
   }
-  return facetapi_l($text, $path, $options);
+  return theme('link', $variables);
 }
 
 /**
  * Themes the count for the facet item.  For example, this number shows how many
  * results will be returned after clicking on a link.
- *
- * @param $count
- *   An integer containing the count.
- *
- * @return
- *   The themes number.
  */
-function theme_facetapi_count($count) {
-  return '(' . check_plain($count) . ')';
+function theme_facetapi_count($variables) {
+  return '(' . check_plain($variables['count']) . ')';
 }
 
 /**
  * Themes a facet link for a value that is currently being searched.
- *
- * @param $text
- *   A string containing the facet title.
- * @param $path
- *   A string containing the Drupal path being linked to, usually $_GET['q'].
- * @param $options
- *   An associative array of additional options.
- *
- * @return
- *   A string containing the themed link.
- *
- * @see facetapi_l()
  */
-function theme_facetapi_link_active($text, $path, array $options = array()) {
-  return facetapi_l('(-) ' . $text, $path, $options);
+function theme_facetapi_link_active($variables) {
+  if (isset($variables['text'])) {
+    $variables['text'] = '(-) ' . $variables['text'];
+  }
+  return theme('link', $variables);
 }
