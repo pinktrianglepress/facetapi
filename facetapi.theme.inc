@@ -24,9 +24,15 @@ function theme_facetapi_item_list($element) {
       $element['#attributes'] = array();
     }
 
+    // Variables to pass to theme('item_list');
+    $variables = array(
+      'title' => $title,
+      'items' => $element[$field_alias],
+    );
+
     // Themes the item list.
     $output .= '<div' . drupal_attributes($element['#attributes']) . '>';
-    $output .= theme('item_list', $element[$field_alias], $title);
+    $output .= theme('item_list', $variables);
     $output .= '</div>';
   }
 

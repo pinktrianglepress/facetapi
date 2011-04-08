@@ -507,7 +507,7 @@ function facetapi_facetapi_widgets() {
  * @return
  *   An HTML string containing a link to the given path.
  */
-function l($text, $path, array $options = array()) {
+function facetapi_l($text, $path, array $options = array()) {
   // Merge in defaults.
   $options += array(
     'attributes' => array(),
@@ -643,7 +643,7 @@ function facetapi_block_view($delta = '') {
   if (isset($builds[$group][$facet_name])) {
     return array(
       'subject' => NULL,
-      'content' => drupal_render($builds[$group][$facet_name]),
+      'content' => $builds[$group][$facet_name],
     );
   }
 }

@@ -57,7 +57,7 @@ function facetapi_ui_menu() {
     'page arguments' => array('facetapi_ui_facet_settings_form', 4, 5, 6),
     'access arguments' => array('administer search'),
     'type' => MENU_CALLBACK,
-     'file' => 'facetapi_ui.admin.inc',
+    'file' => 'facetapi_ui.admin.inc',
   );
 
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(

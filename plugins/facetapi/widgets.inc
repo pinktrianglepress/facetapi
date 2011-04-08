@@ -20,12 +20,24 @@ abstract class FacetapiWidget {
 
 }
 
+/**
+ * Widget that renders facets as a list of clickable links.
+ */
 class FacetapiWidgetLinks extends FacetapiWidget {
 
   /**
+   * Renders the links.
    *
+   * @param &$build
+   *   The render array.
+   * @param &$key
+   *   The element name.
+   * @param &$js_settings
+   *   An array of JavaScript settings.
    */
   public function execute(array &$build, &$key, &$js_settings) {
+
+    /*
     drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
 
     // Captures facet information for code readability,
@@ -39,11 +51,12 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     $this->setThemeHooks($build[$field_alias], 'facetapi_link_active', 'facetapi_link_inactive');
 
     // Converts the array to something that can be read by theme_item_list().
-    $build['#theme'] = 'item_list';
+    $build['#theme'] = 'facetapi_item_list';
     $build[$field_alias] = $this->buildItemList($build[$field_alias]);
 
     // Adds "soft limit" to the javascript settings.
     $js_settings['limit'] = $build['#settings']->settings['soft_limit'];
+    */
   }
 
   /**

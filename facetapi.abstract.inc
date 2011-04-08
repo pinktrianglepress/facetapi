@@ -788,7 +788,7 @@ class FacetapiFacet {
     uasort($this->sorts, 'drupal_sort_weight');
 
     // Applies sorting algorithms.
-    $this->applySorts($this->build[$this->facet['field alias']]);
+    $this->applySorts($this->build);
     unset($this->sorts);
   }
 
