@@ -62,7 +62,7 @@ class FacetapiApachesolrTerm extends FacetapiQueryType {
 /**
  * Plugin for "date" query types.
  */
-class FacetapiApachesolrDate {
+class FacetapiApachesolrDate extends FacetapiQueryType {
 
   /**
    * Returns the query type associated with the plugin.
@@ -84,7 +84,7 @@ class FacetapiApachesolrDate {
     $searcher = $this->adapter->getSearcher();
 
     // Gets the data range in formats that Solr understands.
-    list($start, $end, $gap) = facetapi_apachesolr_date_range($query, $this->facet['field']);
+    list($start, $end, $gap) = $this->getDateRange($query);
 
     $query->params['facet.date'][] = $this->facet['field'];
     $query->params['f.' . $this->facet['field'] . '.facet.date.start'] = $start;
@@ -92,7 +92,8 @@ class FacetapiApachesolrDate {
     $query->params['f.' . $this->facet['field'] . '.facet.date.gap'] = $gap;
 
     // Adds "hard limit" parameter to prevent too many return values.
-    $limit = facetapi_setting_get('hard_limit', $searcher, '', $this->facet['name']);
+    //$limit = facetapi_setting_get('hard_limit', $searcher, '', $this->facet['name']);
+    $limit = 20;
     $query->params['f.' . $this->facet['field'] . '.facet.limit'] = ($limit !== NULL) ? (int) $limit : 20;
   }
 
@@ -105,10 +106,10 @@ class FacetapiApachesolrDate {
   public function build() {
 
     // Initializes build and gets static response.
-    $build = array();
     if (!$response = apachesolr_static_response_cache()) {
       return array();
     }
+    $build = array();
 
     // Gets total number of documents matched in search.
     $total = $response->response->numFound;
@@ -116,7 +117,7 @@ class FacetapiApachesolrDate {
     // Gets the active date facets, starts to builds the "parent - child"
     // relationships.
     $parent = NULL;
-    foreach ($adapter->getActiveItems($this->facet) as $value => $item) {
+    foreach ($this->adapter->getActiveItems($this->facet) as $value => $item) {
 
       // Builds the raw facet "value", the count for selected items will be the
       // total number of rows returned in the query.
@@ -173,73 +174,61 @@ class FacetapiApachesolrDate {
 
     return $build;
   }
-}
 
-/**
- * Gets the range of dates we are using.
- *
- * @param $query
- *   A Solr_Base_Query object.
- * @param $facet_field
- *   A string containing the name of the facet field.
- *
- * @return
- *   An array containing the gap and range information.
- *
- * @todo integrate this into facetapi_apachesolr_facetapi_date_range_prepare()
- *       once we have a "range limit callback".
- */
-function facetapi_apachesolr_date_range(Solr_Base_Query $query, $facet_field) {
+  /**
+   * Gets the range of dates we are using.
+   *
+   * @param $query
+   *   A SolrBaseQuery object.
+   *
+   * @return
+   *   An array containing the gap and range information.
+   */
+  function getDateRange(SolrBaseQuery $query) {
 
-  // Captures adapter, facet.
-  // @todo Do we need some defensive coding here?
-  // @todo Is facet field the facet name or the field alias?
-  $adapter = facetapi_adapter_load('apachesolr_search');
-  $enabled_facets = facetapi_enabled_facets_get('apachesolr_search');
-  $facet = $enabled_facets[$facet_field];
-
-  // Attempts to get next gap from passed date filters.
-  $return = NULL;
-  foreach ($adapter->getActiveItems($facet) as $value => $item) {
-    if ($gap = facetapi_date_gap_get($item['start'], $item['end'])) {
-      $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
-      if ($next_gap == $gap) {
-        $next_gap = NULL;
+    // Attempts to get next gap from passed date filters.
+    $return = NULL;
+    foreach ($this->adapter->getActiveItems($this->facet) as $value => $item) {
+      if ($gap = facetapi_date_gap_get($item['start'], $item['end'])) {
+        $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
+        if ($next_gap == $gap) {
+          $next_gap = NULL;
+        }
+        $return = array(
+          "{$item['start']}/$next_gap",
+          "{$item['end']}+1$next_gap/$next_gap",
+          "+1$next_gap",
+        );
       }
-      $return = array(
-        "{$item['start']}/$next_gap",
-        "{$item['end']}+1$next_gap/$next_gap",
-        "+1$next_gap",
-      );
     }
+
+    // If no filters were passed, get default range.
+    if (NULL === $return) {
+
+      // Builds SQL that gets minimum and maximum values from node table.
+      $minimum = $maximum = FALSE;
+      if (!empty($this->facet['min callback']) && function_exists($this->facet['min callback'])) {
+        $minimum = $this->facet['min callback']($this->facet);
+      }
+      if (!empty($this->facet['max callback']) && function_exists($this->facet['max callback'])) {
+        $maximum = $this->facet['max callback']($this->facet);
+      }
+
+      // Gets the default gap.
+      $gap = FACETAPI_DATE_YEAR;
+      if ($minimum && $maximum) {
+        $gap = facetapi_timestamp_gap_get($minimum, $maximum);
+        $minimum = facetapi_isodate($minimum, $gap);
+        $maximum = facetapi_isodate($maximum, $gap);
+        $return = array(
+          "$minimum/$gap",
+          "$maximum+1$gap/$gap",
+          "+1$gap",
+        );
+      }
+    }
+
+    // Returns the range information.
+    return $return;
   }
-
-  // If no filters were passed, get default range.
-  if (NULL === $return) {
-
-    // Builds SQL that gets minimum and maximum values from node table.
-    $minimum = $maximum = FALSE;
-    if (!empty($facet['min callback']) && function_exists($facet['min callback'])) {
-      $minimum = $facet['min callback']($facet);
-    }
-    if (!empty($facet['max callback']) && function_exists($facet['max callback'])) {
-      $maximum = $facet['max callback']($facet);
-    }
-
-    // Gets the default gap.
-    $gap = FACETAPI_DATE_YEAR;
-    if ($minimum && $maximum) {
-      $gap = facetapi_timestamp_gap_get($minimum, $maximum);
-      $minimum = facetapi_isodate($minimum, $gap);
-      $maximum = facetapi_isodate($maximum, $gap);
-      $return = array(
-        "$minimum/$gap",
-        "$maximum+1$gap/$gap",
-        "+1$gap",
-      );
-    }
-  }
-
-  // Returns the range information.
-  return $return;
 }

@@ -39,7 +39,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     $this->setThemeHooks($build[$field_alias], 'facetapi_link_active', 'facetapi_link_inactive');
 
     // Converts the array to something that can be read by theme_item_list().
-    $build['#theme'] = 'facetapi_item_list';
+    $build['#theme'] = 'item_list';
     $build[$field_alias] = $this->buildItemList($build[$field_alias]);
 
     // Adds "soft limit" to the javascript settings.
@@ -90,7 +90,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
       $options = array(
         'attributes' => array(),
-        'query' => drupal_query_string_encode($item['#query'], array('q', 'page')),
+        //'query' => drupal_http_build_query($item['#query'], array('q', 'page')),
       );
 
       // We don't display children unless the parent is clicked.

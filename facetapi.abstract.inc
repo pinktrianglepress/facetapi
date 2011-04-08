@@ -290,7 +290,7 @@ abstract class FacetapiAdapter {
     }
 
     // Adds JavaScript, initializes render array.
-    drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.js');
+    drupal_add_js(drupal_get_path('module', 'facetapi') . '/js/facetapi.js');
     $build = array(
       '#adapter' => $this,
       '#realm' => $realm,
@@ -435,7 +435,7 @@ class FacetapiFacet {
    */
   public function getSettings($realm = NULL) {
     // Normalizes the realm name.
-    if (empty($realm)) {
+    if (!$realm) {
       $realm_name = '';
     }
     elseif (is_array($realm)) {
@@ -457,7 +457,7 @@ class FacetapiFacet {
         'operator' => FACETAPI_OPERATOR_AND,
         'hard_limit' => 50,
         'soft_limit' => 20,
-        'widget' => 'links',
+        'widget' => 'facetapi_links',
         'active_sorts' => array(),
         'sort_weight' => array(),
         'sort_order' => array(),
@@ -638,19 +638,15 @@ class FacetapiFacet {
       $this->build = $this->adapter->getFacetQuery($this->facet)->build();
     }
     else {
-      $items = array();
+      $this->build = array();
     }
-    foreach (element_children($items) as $value) {
+    foreach (element_children($this->build) as $value) {
       $item_defaults = array(
         '#markup' => $value,
         '#indexed_value' => $value,
         '#active' => $this->itemActive($value),
       );
-
-      // This seems silly, but it maintains the references to the child items
-      // stored in the #item_children property.
-      $items[$value] = array_merge($defaults, $item_defaults, $items[$value]);
-      $this->build[$value] = &$items[$value];
+      $this->build[$value] = array_merge($defaults, $item_defaults, $this->build[$value]);
     }
 
     // Maps the IDs to human readable values via the mapping callback.
