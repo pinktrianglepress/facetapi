@@ -136,6 +136,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
    * Renders the links.
    */
   public function execute() {
+
     // Sets the key, captures the facet's render array.
     $this->key = $this->build['#facet']['name'];
     $element = &$this->build[$this->facet['field alias']];
@@ -150,7 +151,6 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
     /*
     drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
-
     // Adds "soft limit" to the javascript settings.
     $js_settings['limit'] = $build['#settings']->settings['soft_limit'];
     */
@@ -195,7 +195,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         'options' => array(
           'attributes' => array(),
           'html' => FALSE,
-          //'query'
+          'query' => $item['#query'],
         ),
       );
 

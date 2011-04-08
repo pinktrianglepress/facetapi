@@ -57,6 +57,18 @@ abstract class FacetapiQueryType {
    *   The initialized render array.
    */
   abstract public function build();
+
+  /**
+   * Allows additional information to be added to the active items.
+   *
+   * A common use case is extracting the start and end values in a range facet.
+   *
+   * @param array &$active
+   *   The active item.
+   */
+  public function extract(array &$active) {
+    // Nothing to do ...
+  }
 }
 
 /**
@@ -358,7 +370,7 @@ class FacetapiFacet implements ArrayAccess {
    *
    * @var array
    */
-  protected $active = array();
+  protected $activeItems;
 
   /**
    * The build array for the facet items.
@@ -378,6 +390,9 @@ class FacetapiFacet implements ArrayAccess {
   public function __construct(FacetapiAdapter $adapter, array $facet) {
     $this->adapter = $adapter;
     $this->facet = $facet;
+    // Checks which facets are "active".
+    // @todo Is there a way to better lazy-load this?
+    $this->processActiveItems();
   }
 
   /**
@@ -388,7 +403,7 @@ class FacetapiFacet implements ArrayAccess {
    *
    * @return boolean
    */
-  public function offsetExists ($offset) {
+  public function offsetExists($offset) {
     return isset($this->facet[$offset]);
   }
 
@@ -400,7 +415,7 @@ class FacetapiFacet implements ArrayAccess {
    *
    * @return mixed
    */
-  public function offsetGet ($offset) {
+  public function offsetGet($offset) {
     return isset($this->facet[$offset]) ? $this->facet[$offset] : NULL;
   }
 
@@ -412,7 +427,7 @@ class FacetapiFacet implements ArrayAccess {
    * @param mixed value
    *   The value to set.
    */
-  public function offsetSet ($offset, $value) {
+  public function offsetSet($offset, $value) {
     if (NULL === $offset) {
       $this->facet[] = $value;
     }
@@ -427,7 +442,7 @@ class FacetapiFacet implements ArrayAccess {
    * @param mixed offset
    *   The offset to unset.
    */
-  public function offsetUnset ($offset) {
+  public function offsetUnset($offset) {
     unset($this->facet[$offset]);
   }
 
@@ -468,10 +483,7 @@ class FacetapiFacet implements ArrayAccess {
    *   The facet's active items.
    */
   public function getActiveItems() {
-    if (!isset($this->active)) {
-      $this->processActiveItems();
-    }
-    return $this->active;
+    return $this->activeItems;
   }
 
   /**
@@ -536,11 +548,11 @@ class FacetapiFacet implements ArrayAccess {
    *   The facet values keyed by position.
    */
   public function getActiveValues() {
-    if (!isset($this->active)) {
+    if (!isset($this->activeItems)) {
       $this->processActiveItems();
     }
     $values = array();
-    foreach ($this->active as $value => $item) {
+    foreach ($this->activeItems as $value => $item) {
       $values[$item['pos']] = $value;
     }
     if (!empty($values)) {
@@ -563,40 +575,42 @@ class FacetapiFacet implements ArrayAccess {
    *   Returns 1 if the item is active, 0 if it is inactive.
    */
   public function itemActive($value) {
-    return (int) isset($this->active[$value]);
+    return (int) isset($this->activeItems[$value]);
   }
 
   /**
    * Helper function that returns the query string variables for a facet item.
    *
-   * @param $values
+   * @param array $values
    *   An array containing the item's values being added to or removed from the
    *   query string dependent on whether or not the item is active.
-   * @param $active
+   * @param int $active
    *   An integer flagging whether the item is active or not.
    *
    * @reutrn
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
+    static $get;
+    if (NULL === $get) {
+      $get = drupal_get_query_parameters($_GET, array('q', 'page'));
+    }
+    $qstring = $get;
 
     // Gets field alias for readability.
     $field_alias = $this->facet['field alias'];
-
-    // Builds array of query string variables.
-    $qstring = $_GET;
     foreach ($values as $value) {
-      if ($active && isset($this->active[$value])) {
-        unset($qstring[$field_alias][$this->active[$value]['pos']]);
+      if ($active && isset($this->activeItems[$value])) {
+        unset($qstring['f'][$field_alias][$this->activeItems[$value]['pos']]);
       }
       elseif (!$active) {
-        if (!isset($qstring[$field_alias])) {
-          $qstring[$field_alias] = array();
+        if (!isset($qstring['f'][$field_alias])) {
+          $qstring['f'][$field_alias] = array();
         }
-        elseif (!is_array($qstring[$field_alias])) {
-          $qstring[$field_alias] = array((string) $qstring[$field_alias]);
+        elseif (!is_array($qstring['f'][$field_alias])) {
+          $qstring['f'][$field_alias] = array((string) $qstring['f'][$field_alias]);
         }
-        $qstring[$field_alias][] = $value;
+        $qstring['f'][$field_alias][] = $value;
       }
     }
 
@@ -853,7 +867,7 @@ class FacetapiFacet implements ArrayAccess {
    *   An instance of this class.
    */
   public function processActiveItems() {
-    $this->active = array();
+    $this->activeItems = $data = array();
 
     // Bails if the facet isn't enabled in any realm.
     // @todo Is this check superfluous?
@@ -861,30 +875,30 @@ class FacetapiFacet implements ArrayAccess {
       return $this;
     }
 
+    // Instantiates query type plugin.
+    // @todo Error handling?
+    $plugin = $this->adapter->getFacetQuery($this->facet);
+
     // Gets active items from query string, normalizes to an array.
+    $facets = isset($_GET['f']) ? (array) $_GET['f'] : array();
     $field_alias = $this->facet['field alias'];
-    if (isset($_GET[$field_alias])) {
-      if (is_array($_GET[$field_alias])) {
-        $data = $_GET[$field_alias];
+    if (isset($facets[$field_alias])) {
+      if (is_array($facets[$field_alias])) {
+        $data = $facets[$field_alias];
       }
       else {
-        $data = array((string) $_GET[$field_alias]);
+        $data = array((string) $facets[$field_alias]);
       }
     }
-    else {
-      $data = array();
-    }
 
-    // Allows hooks to add additional information to the active item. For
-    // example, range queries extract the start and end values from the item.
-    // @todo This hook is not longer valid.
-    $hook = 'facetapi_value_' . $this->facet['query type'];
+    // Allows hooks to add additional information to the active item.
     foreach ($data as $key => $value) {
-      $this->active[$value] = array(
+      $this->activeItems[$value] = array(
         'pos' => $key,
         'value' => $value,
       );
-      drupal_alter($hook, $this->active[$value], $this->adapter);
+      // Allows the query type plugin to extract additional data.
+      $plugin->extract($this->activeItems[$value]);
     }
 
     return $this;
