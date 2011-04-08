@@ -53,13 +53,6 @@ function facetapi_apachesolr_facetapi_query_types() {
 }
 
 /**
- * Implements hook_menu_alter().
- */
-function facetapi_apachesolr_menu_alter(&$items) {
-  //$items['admin/config/search/apachesolr/enabled-filters']['access callback'] = FALSE;
-}
-
-/**
  * Implements hook_form_FORM_ID_alter().
  *
  * Adds breadcrumb trail for Apache Solr administrative pages.

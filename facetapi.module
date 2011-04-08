@@ -391,7 +391,7 @@ function facetapi_facetapi_facet_info($searcher) {
     $facets['bundle'] = array(
       'label' => t('Content type'),
       'description'=> t('Filter by content type.'),
-      'map callback'=> 'facetapi_callback_type_map',
+      'map callback'=> 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
       'widget requirements'=> array('has default values'),
       'default widgets' => array('facetapi_checkboxes'),

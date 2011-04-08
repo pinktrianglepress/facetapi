@@ -602,6 +602,9 @@ class FacetapiFacet implements ArrayAccess {
     foreach ($values as $value) {
       if ($active && isset($this->activeItems[$value])) {
         unset($qstring['f'][$field_alias][$this->activeItems[$value]['pos']]);
+        if (!$qstring['f'][$field_alias]) {
+          unset($qstring['f'][$field_alias]);
+        }
       }
       elseif (!$active) {
         if (!isset($qstring['f'][$field_alias])) {
@@ -614,7 +617,7 @@ class FacetapiFacet implements ArrayAccess {
       }
     }
 
-    return $qstring;
+    return ($qstring['f']) ? $qstring : array();
   }
 
   /**
@@ -904,35 +907,6 @@ class FacetapiFacet implements ArrayAccess {
     return $this;
   }
 }
-
-/**
- * Helper function to execute a map query. A map query is useful for converting
- * unique identifiers to human readable values, for example a uid to username.
- *
- * @param $sql
- *   A string containing the SQL query mapping the ID to another value. The
- *   query must select the "id" and "name" fields.
- * @param $ids
- *   An array containing the IDs being mapped.
- * @param $type
- *   The Schema API type of the ID field (e.g. 'int', 'text', or 'varchar').
- *
- * @return
- *   An array of mapped IDs.
- */
-function facetapi_map_query($sql, array $ids, $type = 'int') {
-  $map = array();
-  if (!empty($ids)) {
-    $sql = str_replace('!placeholders', db_placeholders($ids, $type), $sql);
-    if ($result = db_query($sql, $ids)) {
-      while ($record = db_fetch_object($result)) {
-        $map[$record->id] = $record->name;
-      }
-    }
-  }
-  return $map;
-}
-
 
 /**
  * Replaces ID's with a mapped value, useful as a callback for array_walk().

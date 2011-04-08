@@ -4,4 +4,5 @@ dependencies[] = ctools
 package = Search
 core = 7.x
 files[] = facetapi.abstract.inc
-files[] = plugins/facetapi/widgets.inc
+files[] = plugins/facetapi/widget.inc
+files[] = plugins/facetapi/widget_links.inc
