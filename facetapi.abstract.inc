@@ -265,8 +265,8 @@ abstract class FacetapiAdapter {
   public function addFacetQuery(array $facet, $query) {
     if (isset($this->queryTypes[$facet['query type']])) {
       $plugin = new $this->queryTypes[$facet['query type']]($this, $facet);
-      $plugin->execute($query);
       $this->facetQueries[$facet['name']] = $plugin;
+      $plugin->execute($query);
     }
   }
 
