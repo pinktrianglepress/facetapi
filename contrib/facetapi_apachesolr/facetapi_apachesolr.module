@@ -58,6 +58,7 @@ function facetapi_apachesolr_facetapi_query_types() {
 function facetapi_apachesolr_facetapi_facet_info_alter(&$facet_info, $searcher) {
   if ('apachesolr' == $searcher['adapter']) {
     $facet_info['author']['field'] = 'is_uid';
+    $facet_info['language']['field'] = 'ss_language';
   }
 }
 

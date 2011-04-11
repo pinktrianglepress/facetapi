@@ -1002,31 +1002,3 @@ function facetapi_sort_display(array $a, array $b) {
   $b_count = (isset($b['#value'])) ? $b['#value'] : '';
   return strcasecmp($a['#value'], $b['#value']);
 }
-
-/**
- * Map callback for node types.
- */
-function facetapi_map_bundle($values) {
-  $names = node_type_get_names();
-  return array_intersect_key($names, array_flip($values));
-}
-
-/**
- * Map callback for node authors.
- */
-function facetapi_map_author($values) {
-  $result = db_select('users', 'u')
-    ->fields('u', array('uid', 'name'))
-    ->condition('uid', $values, 'IN')
-    ->execute();
-
-  $map = array();
-  while ($record = $result->fetchAssoc()) {
-    $map[$record['uid']] = $record['name'];
-  }
-  if (isset($map[0])) {
-    $map[0] = variable_get('anonymous', t('Anonymous'));
-  }
-  return $map;
-}
-

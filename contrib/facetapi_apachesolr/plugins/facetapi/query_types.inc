@@ -207,10 +207,10 @@ class FacetapiApachesolrDate extends FacetapiQueryType {
 
       // Builds SQL that gets minimum and maximum values from node table.
       $minimum = $maximum = FALSE;
-      if (!empty($this->facet['min callback']) && function_exists($this->facet['min callback'])) {
+      if ($this->facet['min callback'] && function_exists($this->facet['min callback'])) {
         $minimum = $this->facet['min callback']($this->facet);
       }
-      if (!empty($this->facet['max callback']) && function_exists($this->facet['max callback'])) {
+      if ($this->facet['max callback'] && function_exists($this->facet['max callback'])) {
         $maximum = $this->facet['max callback']($this->facet);
       }
 
