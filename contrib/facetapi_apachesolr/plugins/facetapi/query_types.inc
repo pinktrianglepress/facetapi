@@ -64,6 +64,11 @@ class FacetapiApachesolrTerm extends FacetapiQueryType {
  */
 class FacetapiApachesolrDate extends FacetapiQueryType {
 
+  public function __construct(FacetapiAdapter $adapter, array $facet) {
+    module_load_include('inc', 'facetapi', 'facetapi.date');
+    parent::__construct($adapter, $facet);
+  }
+
   /**
    * Returns the query type associated with the plugin.
    *
@@ -95,6 +100,63 @@ class FacetapiApachesolrDate extends FacetapiQueryType {
     //$limit = facetapi_setting_get('hard_limit', $searcher, '', $this->facet['name']);
     $limit = 20;
     $query->params['f.' . $this->facet['field'] . '.facet.limit'] = ($limit !== NULL) ? (int) $limit : 20;
+  }
+
+  /**
+   * Gets the range of dates we are using.
+   *
+   * @param $query
+   *   A SolrBaseQuery object.
+   *
+   * @return
+   *   An array containing the gap and range information.
+   */
+  function getDateRange(SolrBaseQuery $query) {
+
+    // Attempts to get next gap from passed date filters.
+    $return = NULL;
+    foreach ($this->adapter->getActiveItems($this->facet) as $value => $item) {
+      if ($gap = facetapi_get_date_gap($item['start'], $item['end'])) {
+        $next_gap = facetapi_get_next_date_gap($gap, FACETAPI_DATE_MINUTE);
+        if ($next_gap == $gap) {
+          $next_gap = NULL;
+        }
+        $return = array(
+          "{$item['start']}/$next_gap",
+          "{$item['end']}+1$next_gap/$next_gap",
+          "+1$next_gap",
+        );
+      }
+    }
+
+    // If no filters were passed, get default range.
+    if (NULL === $return) {
+
+      // Builds SQL that gets minimum and maximum values from node table.
+      $minimum = $maximum = FALSE;
+      if ($this->facet['min callback'] && function_exists($this->facet['min callback'])) {
+        $minimum = $this->facet['min callback']($this->facet);
+      }
+      if ($this->facet['max callback'] && function_exists($this->facet['max callback'])) {
+        $maximum = $this->facet['max callback']($this->facet);
+      }
+
+      // Gets the default gap.
+      $gap = FACETAPI_DATE_YEAR;
+      if ($minimum && $maximum) {
+        $gap = facetapi_get_timestamp_gap($minimum, $maximum);
+        $minimum = facetapi_isodate($minimum, $gap);
+        $maximum = facetapi_isodate($maximum, $gap);
+        $return = array(
+          "$minimum/$gap",
+          "$maximum+1$gap/$gap",
+          "+1$gap",
+        );
+      }
+    }
+
+    // Returns the range information.
+    return $return;
   }
 
   /**
@@ -163,7 +225,7 @@ class FacetapiApachesolrDate extends FacetapiQueryType {
     // Builds facet counts object used by the server.
     foreach ($raw_data as $value => $count) {
       if ($count) {
-        $new_value = '['. $value .' TO '. $range_end[$value] .']';
+        $new_value = '[' . $value . ' TO ' . $range_end[$value] . ']';
         $build[$new_value] = array('#count' => $count, '#active' => 0);
         if (NULL !== $parent) {
           $build[$parent]['#item_children'][$new_value] = &$build[$new_value];
@@ -173,62 +235,5 @@ class FacetapiApachesolrDate extends FacetapiQueryType {
     }
 
     return $build;
-  }
-
-  /**
-   * Gets the range of dates we are using.
-   *
-   * @param $query
-   *   A SolrBaseQuery object.
-   *
-   * @return
-   *   An array containing the gap and range information.
-   */
-  function getDateRange(SolrBaseQuery $query) {
-
-    // Attempts to get next gap from passed date filters.
-    $return = NULL;
-    foreach ($this->adapter->getActiveItems($this->facet) as $value => $item) {
-      if ($gap = facetapi_date_gap_get($item['start'], $item['end'])) {
-        $next_gap = facetapi_next_date_gap_get($gap, FACETAPI_DATE_MINUTE);
-        if ($next_gap == $gap) {
-          $next_gap = NULL;
-        }
-        $return = array(
-          "{$item['start']}/$next_gap",
-          "{$item['end']}+1$next_gap/$next_gap",
-          "+1$next_gap",
-        );
-      }
-    }
-
-    // If no filters were passed, get default range.
-    if (NULL === $return) {
-
-      // Builds SQL that gets minimum and maximum values from node table.
-      $minimum = $maximum = FALSE;
-      if ($this->facet['min callback'] && function_exists($this->facet['min callback'])) {
-        $minimum = $this->facet['min callback']($this->facet);
-      }
-      if ($this->facet['max callback'] && function_exists($this->facet['max callback'])) {
-        $maximum = $this->facet['max callback']($this->facet);
-      }
-
-      // Gets the default gap.
-      $gap = FACETAPI_DATE_YEAR;
-      if ($minimum && $maximum) {
-        $gap = facetapi_timestamp_gap_get($minimum, $maximum);
-        $minimum = facetapi_isodate($minimum, $gap);
-        $maximum = facetapi_isodate($maximum, $gap);
-        $return = array(
-          "$minimum/$gap",
-          "$maximum+1$gap/$gap",
-          "+1$gap",
-        );
-      }
-    }
-
-    // Returns the range information.
-    return $return;
   }
 }

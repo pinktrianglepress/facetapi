@@ -64,8 +64,8 @@ function facetapi_map_language(array $values) {
  */
 function facetapi_get_min_date(array $facet) {
   $query = db_select('node', 'n')->condition('status', 1);
-  $query->addExpression('MAX(' . $facet['name'] . ')', 'max');
-  $result = $query->execute()->fetch()->max;
+  $query->addExpression('MIN(' . $facet['name'] . ')', 'max');
+  return $query->execute()->fetch()->max;
 }
 
 /**
@@ -81,6 +81,6 @@ function facetapi_get_min_date(array $facet) {
  */
 function facetapi_get_max_date(array $facet) {
   $query = db_select('node', 'n')->condition('status', 1);
-  $query->addExpression('MIN(' . $facet['name'] . ')', 'max');
-  $result = $query->execute()->fetch()->max;
+  $query->addExpression('MAX(' . $facet['name'] . ')', 'max');
+  return $query->execute()->fetch()->max;
 }
