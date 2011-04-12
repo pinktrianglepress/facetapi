@@ -465,7 +465,7 @@ function facetapi_facetapi_realm_info() {
 /**
  * Implements hook_facetapi_facet_info().
  */
-function facetapi_facetapi_facet_info($searcher, $searcher_info) {
+function facetapi_facetapi_facet_info($searcher_info) {
   $facets = array();
   if ('node' == $searcher_info['type']) {
 

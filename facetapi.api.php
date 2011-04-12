@@ -5,7 +5,7 @@
  */
 
 /**
- * Defines the searchers that are available to
+ * Defines the available searchers, or search pages.
  */
 function hook_facetapi_searcher_info() {
   return array(
@@ -22,11 +22,13 @@ function hook_facetapi_searcher_info() {
 }
 
 /**
- *
+ * Defines the available adapters implemented by the backends.
  */
 function hook_facetapi_adapters() {
   return array(
+    // The plugin ID.
     'apachesolr' => array(
+      // The class containing the plugin implementation.
       'handler' => array(
         'class' => 'FacetapiApachesolrFacetapiAdapter',
       ),
