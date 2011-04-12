@@ -8,7 +8,7 @@
 /**
  * Interface that must be implemented by all query type plugins.
  */
-class FacetapiQueryTypeInterface {
+interface FacetapiQueryTypeInterface {
 
   /**
    * Returns the query type associated with the plugin.
