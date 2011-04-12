@@ -52,6 +52,27 @@ function facetapi_map_language(array $values) {
 }
 
 /**
+ * Maps date ranges to human readable dates.
+ *
+ * @param $ranges
+ *   An array containing the date ranges.
+ *
+ * @return
+ *   An array mapping the ranges to nice display dates.
+ */
+function facetapi_map_date(array $values) {
+  $map = array();
+  foreach ($values as $value) {
+    $range = explode(' TO ', trim($value, '{[]}'));
+    if (2 == count($range)) {
+      $gap = facetapi_get_date_gap($range[0], $range[1]);
+      $map[$value] = facetapi_format_date($range[0], $gap);
+    }
+  }
+  return $map;
+}
+
+/**
  * Callback that returns the minimum date in the node table.
  *
  * @param $facet
