@@ -78,6 +78,10 @@ function facetapi_menu() {
 
   // Builds the realm settings forms for each searcher.
   foreach (facetapi_get_searcher_info() as $searcher => $searcher_info) {
+    // Only build router items automatically if a path is provided.
+    if (empty($searcher_info['path'])) {
+      continue;
+    }
 
     $first = TRUE;
     foreach (facetapi_get_realm_info() as $realm_name => $realm) {
