@@ -82,7 +82,7 @@ abstract class FacetapiWidget {
     // Initializes JavaScript settings.
     $this->jsSettings = array(
       'searcher' => $searcher,
-      'instance' => $facet->getAdapter()->getInstance(),
+      'type' => $facet->getAdapter()->getType(),
       'realmName' => $realm['name'],
       'facetName' => $facet['name'],
       'widget' => $settings->settings['widget'],

@@ -141,8 +141,8 @@ abstract class FacetapiAdapter {
    * @return
    *   The type of content indexed by $this->info['searcher'].
    */
-  public function getInstance() {
-    return $this->info['instance'];
+  public function getType() {
+    return $this->info['type'];
   }
 
   /**

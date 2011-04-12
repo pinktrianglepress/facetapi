@@ -5,7 +5,7 @@
  */
 
 /**
- *
+ * Defines the searchers that are available to
  */
 function hook_facetapi_searcher_info() {
   return array(
@@ -13,8 +13,8 @@ function hook_facetapi_searcher_info() {
     'apachesolr_search' => array(
       // The adapter plugin used by this searcher.
       'adapter' => 'apachesolr',
-      // This is usually the name of the index instance.
-      'instance' => 'apachesolr',
+      // The type of content being indexed by the backend.
+      'type' => 'node',
       // The pase path to the admin settings page.
       'path' => 'admin/config/search/apachesolr',
     ),
