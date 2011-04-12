@@ -1,7 +1,7 @@
 name = Facet API
 description = An abstracted facet API that can be used by various search backends.
 dependencies[] = ctools
-package = Search
+package = Search Toolkit
 core = 7.x
 files[] = facetapi.abstract.inc
 files[] = plugins/facetapi/query_type.inc

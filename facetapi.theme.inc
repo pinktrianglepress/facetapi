@@ -6,40 +6,6 @@
  */
 
 /**
- * Wrapper around theme_item_list(), accepts render array as an argument.
- *
- * @param $variables
- *
- * @see theme_item_list()
- * @todo Remove in Drupal 7.
- */
-function theme_facetapi_item_list($element) {
-  $output = '';
-
-  $field_alias = $element['#facet']['field alias'];
-  if (!empty($element[$field_alias])) {
-    // Themes title, initializes attributes if necessary.
-    $title = theme('facetapi_title', $element['#title']);
-    if (empty($element['#attributes'])) {
-      $element['#attributes'] = array();
-    }
-
-    // Variables to pass to theme('item_list');
-    $variables = array(
-      'title' => $title,
-      'items' => $element[$field_alias],
-    );
-
-    // Themes the item list.
-    $output .= '<div' . drupal_attributes($element['#attributes']) . '>';
-    $output .= theme('item_list', $variables);
-    $output .= '</div>';
-  }
-
-  return $output;
-}
-
-/**
  * Themes the facet title.
  */
 function theme_facetapi_title($variables) {

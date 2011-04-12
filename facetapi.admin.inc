@@ -8,7 +8,7 @@
 /**
  * Facet settings.
  */
-function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
+function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
 
   // instantiates adapter, loads realm.
   $adapter = facetapi_adapter_load($searcher);
@@ -24,7 +24,7 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
   );
 
   $form['table'] = array(
-    '#theme' => 'facetapi_ui_realm_settings_table',
+    '#theme' => 'facetapi_realm_settings_table',
     '#facetapi' => &$form['#facetapi'],
   );
 
@@ -66,7 +66,7 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
     '#value' => t('Save configuration'),
   );
 
-  $form['#submit'][] = 'facetapi_ui_realm_settings_form_submit';
+  $form['#submit'][] = 'facetapi_realm_settings_form_submit';
 
   return $form;
 }
@@ -74,7 +74,7 @@ function facetapi_ui_realm_settings_form($form, &$form_state, $searcher, $realm_
 /**
  *
  */
-function facetapi_ui_realm_settings_form_submit($form, &$form_state) {
+function facetapi_realm_settings_form_submit($form, &$form_state) {
 
   // Pulls variables for code readability.
   $adapter = $form['#facetapi']['adapter'];
@@ -96,7 +96,7 @@ function facetapi_ui_realm_settings_form_submit($form, &$form_state) {
 /**
  * Themes a realm settings table.
  */
-function theme_facetapi_ui_realm_settings_table($variables) {
+function theme_facetapi_realm_settings_table($variables) {
   $output = '';
 
   // Gets variales for code readability.
@@ -127,14 +127,14 @@ function theme_facetapi_ui_realm_settings_table($variables) {
           'data' => array(
             '#type' => 'link',
             '#title' => t('Edit'),
-            '#href' => facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, 'edit'),
+            '#href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit'),
           ),
         ),
         'operations-2' => array(
           'data' => array(
             '#type' => 'link',
             '#title' => t('Export'),
-            '#href' => facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, 'export'),
+            '#href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export'),
           ),
         ),
         'weight' => array(
@@ -154,7 +154,7 @@ function theme_facetapi_ui_realm_settings_table($variables) {
 /**
  * Returns path to search page.
  */
-function facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, $op) {
+function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
   $path_parts = array('admin', 'config', 'search', 'facetapi');
   $path_parts[] = $searcher;
   $path_parts[] = $realm_name;
@@ -166,7 +166,7 @@ function facetapi_ui_get_settings_path($searcher, $realm_name, $facet_name, $op)
 /**
  *
  */
-function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
   $searcher = $adapter->getSearcher();
   $settings = $adapter->getFacet($facet)->getSettings($realm);
@@ -282,7 +282,7 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
   );
 
   $form['realm']['sort']['table'] = array(
-    '#theme' => 'facetapi_ui_sort_settings_table',
+    '#theme' => 'facetapi_sort_settings_table',
     '#facetapi' => &$form['#facetapi'],
   );
 
@@ -347,7 +347,7 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
     '#href' => $searcher_info[$searcher]['path'] . '/facets/' . $realm['name'],
   );
 
-  $form['#submit'][] = 'facetapi_ui_facet_settings_form_submit';
+  $form['#submit'][] = 'facetapi_facet_settings_form_submit';
 
   return $form;
 }
@@ -355,7 +355,7 @@ function facetapi_ui_facet_settings_form($form, &$form_state, FacetapiAdapter $a
 /**
  * Themes a sort settings table.
  */
-function theme_facetapi_ui_sort_settings_table($variables) {
+function theme_facetapi_sort_settings_table($variables) {
   $output = '';
 
   // Gets variales for code readability.
@@ -399,9 +399,9 @@ function theme_facetapi_ui_sort_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_ui_facet_settings_form submissions.
+ * Processes facetapi_facet_settings_form submissions.
  */
-function facetapi_ui_facet_settings_form_submit($form, &$form_state) {
+function facetapi_facet_settings_form_submit($form, &$form_state) {
 
   // Pulls variables for code readability.
   $adapter = $form['#facetapi']['adapter'];
@@ -416,8 +416,8 @@ function facetapi_ui_facet_settings_form_submit($form, &$form_state) {
   ));
 
   // Converts sort_weight:* and sort_order:* settings to associative arrays.
-  facetapi_ui_combine_settings('sort_weight', $settings);
-  facetapi_ui_combine_settings('sort_order', $settings);
+  facetapi_combine_settings('sort_weight', $settings);
+  facetapi_combine_settings('sort_order', $settings);
 
   if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
     drupal_set_message(t('Error saving settings.'), 'error');
@@ -434,7 +434,7 @@ function facetapi_ui_facet_settings_form_submit($form, &$form_state) {
  * @param $settings
  *   An object containing the settings loaded from CTools.
  */
-function facetapi_ui_combine_settings($setting_name, $settings) {
+function facetapi_combine_settings($setting_name, $settings) {
   $start = strlen($setting_name) + 1;
   $settings->settings[$setting_name] = array();
   foreach ($settings->settings as $name => $value) {
@@ -444,4 +444,35 @@ function facetapi_ui_combine_settings($setting_name, $settings) {
       $settings->settings[$setting_name][$key] = $value;
     }
   }
+}
+
+/**
+ * Export form, wrapper around ctools_export_form().
+ *
+ * @param $form
+ *
+ * @param &$form_state
+ *
+ * @param $settings
+ *
+ * @see ctools_export_form()
+ */
+function facetapi_export_form($form, &$form_state, $adapter, $realm, $facet) {
+
+  // Adds link to get back to list page.
+  $form['back'] = array(
+    '#type' => 'link',
+    '#title' => t('Go back to realm settings page'),
+    '#href' => $adapter->getPath($realm['name']),
+  );
+
+  // Gets export fieldset from ctools_export_form().
+  $title = t('Export configuration');
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  $export = ctools_export_crud_export('facetapi', $settings);
+  $form = ctools_export_form($form, $form_state, $export, $title);
+
+  // Adds settings and returns form.
+  $form['#settings'] = $settings;
+  return $form;
 }

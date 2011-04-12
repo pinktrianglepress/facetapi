@@ -1,5 +1,0 @@
-name = Facet UI
-description = Provides an administrative interface for facet configuration.
-package = Search
-core = 7.x
-dependencies[] = facetapi

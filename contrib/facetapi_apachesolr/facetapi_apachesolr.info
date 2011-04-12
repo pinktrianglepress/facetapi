@@ -1,6 +1,6 @@
 name = Apache Solr Facets
 description = Apache Solr's implementation of the Facet API.
-package = Search
+package = Search Toolkit
 core = 7.x
 configure = admin/config/search/apachesolr/facets
 files[] = plugins/facetapi/adapter.inc

@@ -71,6 +71,74 @@ define('FACETAPI_REGEX_DATE_RANGE', '/^\[('. trim(FACETAPI_REGEX_DATE, '/^$') .'
 require_once dirname(__FILE__) . '/facetapi.callbacks.inc';
 
 /**
+ * Implements hook_menu().
+ */
+function facetapi_menu() {
+  $items = array();
+
+  // Builds the realm settings forms for each searcher.
+  foreach (facetapi_get_searcher_info() as $searcher => $searcher_info) {
+
+    $first = TRUE;
+    foreach (facetapi_get_realm_info() as $realm_name => $realm) {
+      if ($first) {
+        $first = FALSE;
+
+        $items[$searcher_info['path'] . '/facets'] = array(
+          'title' => 'Facets',
+          'page callback' => 'drupal_get_form',
+          'page arguments' => array('facetapi_realm_settings_form', $searcher, $realm_name),
+          'access arguments' => array('administer search'),
+          'type' => MENU_LOCAL_TASK,
+          'file' => 'facetapi.admin.inc',
+        );
+
+        $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
+          'title' => $realm['label'],
+          'type' => MENU_DEFAULT_LOCAL_TASK,
+          'weight' => $realm['weight'],
+        );
+
+      }
+      else {
+
+        $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
+          'title' => $realm['label'],
+          'page callback' => 'drupal_get_form',
+          'page arguments' => array('facetapi_realm_settings_form', $searcher, $realm_name),
+          'access arguments' => array('administer search'),
+          'type' => MENU_LOCAL_TASK,
+          'file' => 'facetapi.admin.inc',
+        );
+      }
+    }
+
+  }
+
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
+    'title' => 'Edit facet configuration',
+    'load arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_facet_settings_form', 4, 5, 6),
+    'access arguments' => array('administer search'),
+    'type' => MENU_CALLBACK,
+    'file' => 'facetapi.admin.inc',
+  );
+
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
+    'title' => 'Export facet configuration',
+    'load arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_export_form', 4, 5, 6),
+    'access arguments' => array('administer search'),
+    'type' => MENU_CALLBACK,
+    'file' => 'facetapi.pages.inc',
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_ctools_plugin_type().
  */
 function facetapi_ctools_plugin_type() {
@@ -107,6 +175,14 @@ function facetapi_theme() {
     'facetapi_link_active' => array(
       'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
       'file' => 'facetapi.theme.inc',
+    ),
+    'facetapi_realm_settings_table' => array(
+      'render element' => 'element',
+      'file' => 'facetapi.admin.inc',
+    ),
+    'facetapi_sort_settings_table' => array(
+      'render element' => 'element',
+      'file' => 'facetapi.admin.inc',
     ),
   );
 }
