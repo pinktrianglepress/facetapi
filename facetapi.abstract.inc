@@ -116,6 +116,16 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Returns the id of the adapter plugin.
+   *
+   * @return string
+   *   The machine readable if of the adapter plugin.
+   */
+  public function getId() {
+    return $this->info['adapter'];
+  }
+
+  /**
    * Returns the machine readable name of the searcher.
    *
    * @return string
