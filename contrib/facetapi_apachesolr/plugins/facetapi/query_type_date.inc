@@ -8,15 +8,7 @@
 /**
  * Plugin for "date" query types.
  */
-class FacetapiApachesolrDate extends FacetapiQueryType {
-
-  /**
-   * Loads the include file containing the date API functions.
-   */
-  public function __construct(FacetapiAdapter $adapter, array $facet) {
-    module_load_include('inc', 'facetapi', 'facetapi.date');
-    parent::__construct($adapter, $facet);
-  }
+class FacetapiApachesolrDate extends FacetapiQueryTypeDate implements FacetapiQueryTypeInterface {
 
   /**
    * Returns the query type associated with the plugin.
@@ -61,9 +53,9 @@ class FacetapiApachesolrDate extends FacetapiQueryType {
    *   An array containing the gap and range information.
    */
   function getDateRange(SolrBaseQuery $query) {
+    $return = NULL;
 
     // Attempts to get next gap from passed date filters.
-    $return = NULL;
     foreach ($this->adapter->getActiveItems($this->facet) as $value => $item) {
       if ($gap = facetapi_get_date_gap($item['start'], $item['end'])) {
         $next_gap = facetapi_get_next_date_gap($gap, FACETAPI_DATE_MINUTE);

@@ -8,7 +8,7 @@
 /**
  * Plugin for "term" query types.
  */
-class FacetapiApachesolrTerm extends FacetapiQueryType {
+class FacetapiApachesolrTerm extends FacetapiQueryType implements FacetapiQueryTypeInterface {
 
   /**
    * Returns the query type associated with the plugin.
