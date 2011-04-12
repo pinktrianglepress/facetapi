@@ -183,7 +183,35 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns a FacetapiFacet instnace for the facet being rendered.
+   * Requests facets and applies facet filters to the query.
+   *
+   * @param stdClass $query
+   *   The query in the backend's native API.
+   */
+  function addFacetsFilters($query) {
+    foreach (facetapi_get_enabled_facets($this->info['name']) as $facet) {
+      $this->addFacetQuery($facet, $query);
+      $this->addActiveFilters($facet, $query);
+    }
+  }
+
+  /**
+   * Back-end specific function for adding filters.
+   *
+   * Typically will call $this->getActiveItems($facet);
+   *
+   * @param array $facet
+   *   The facet definition.
+   * @param mixed $query
+   *   A mixed value containing the query in the backend's native API.
+   *
+   * @return FacetapiFacet
+   *   The facet rendering object object.
+   */
+  abstract public function addActiveFilters(array $facet, $query);
+
+  /**
+   * Returns a FacetapiFacet instance for the facet being rendered.
    *
    * @param array $facet
    *   The facet definition.

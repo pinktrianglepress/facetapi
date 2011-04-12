@@ -602,21 +602,6 @@ function facetapi_facet_enabled($searcher, $realm_name, $facet_name) {
 }
 
 /**
- * Applies facet filters to the query.
- *
- * @param $searcher
- *   The machine readable name of the searcher.
- * @param stdClass $query
- *   The query in the backend's native API.
- */
-function facetapi_add_facets($searcher, $query) {
-  $adapter = facetapi_adapter_load($searcher);
-  foreach (facetapi_get_enabled_facets($searcher) as $facet) {
-    $adapter->addFacetQuery($facet, $query);
-  }
-}
-
-/**
  * Builds a facet realm.
  *
  * Converts the facet data into a render array suitable for passing to the
