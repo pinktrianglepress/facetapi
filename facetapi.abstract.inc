@@ -53,7 +53,7 @@ abstract class FacetapiAdapter {
    */
   protected $activeItems;
 
-    /**
+  /**
    * An array of parameters, such as from $_GET.
    *
    * @var array

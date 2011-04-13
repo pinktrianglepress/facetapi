@@ -70,7 +70,7 @@ abstract class FacetapiWidget {
     );
 
     // Applies sorting algorithms to the render array.
-    //$this->sortFacet($this->build);
+    $this->sortFacet($this->build);
 
     // Sets the key of the element as appended to the realm's render array.
     $this->key = $facet['field alias'];
@@ -133,16 +133,10 @@ abstract class FacetapiWidget {
    *   The facet's render array.
    */
   function sortFacet(array &$build) {
-
-    // Gets active sorts.
-    /*
-    $active_sorts = (array) facetapi_setting_get(
-      'sort', $searcher, $realm['name'], $facet['name']
-    );
-    */
-    $active_sorts = array();
+    $settings = $build['#settings']->settings;
 
     // Applies defaults if nothing is set.
+    /*
     $defaults = array();
     if (empty($active_sorts)) {
       $weight = -50;
@@ -154,30 +148,23 @@ abstract class FacetapiWidget {
         );
       }
     }
+    */
+
+    // Gets active sort definitions.
+    $this->sorts = array_intersect_key(
+      facetapi_get_sort_info(),
+      array_filter($settings['active_sorts'])
+    );
 
     // Finalizes sort definitions with settings or defaults.
-    $this->sorts = array_intersect_key(facetapi_get_sort_info(), array_filter($active_sorts));
-    foreach ($this->sorts as $sort_name => &$sort_info) {
-      if (empty($defaults)) {
-        // @todo Settings aren't found here anymore.
-        $sort_info['weight'] = facetapi_setting_get(
-          'sort_weight', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
-        );
-        $sort_info['order'] = facetapi_setting_get(
-          'sort_order', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
-        );
-      }
-      else {
-        $sort_info['weight'] = $defaults[$sort_name]['weight'];
-        $sort_info['order']  = $defaults[$sort_name]['order'];
-      }
+    foreach ($this->sorts as $name => &$info) {
+      $info['weight'] = $settings['sort_weight'][$name];
+      $info['order'] = $settings['sort_order'][$name];
     }
-    unset($sort_info);
-    uasort($this->sorts, 'drupal_sort_weight');
 
-    // Applies sorting algorithms.
-    $this->applySorts($this->build);
-    unset($this->sorts);
+    // Orders the sorts, applies sorting algorithms in that order.
+    uasort($this->sorts, 'drupal_sort_weight');
+    $this->applySorts($build[$this->facet['field alias']]);
   }
 
   /**
@@ -255,7 +242,7 @@ function facetapi_sort_indexed(array $a, array $b) {
  * Sorts by display value.
  */
 function facetapi_sort_display(array $a, array $b) {
-  $a_count = (isset($a['#value'])) ? $a['#value'] : '';
-  $b_count = (isset($b['#value'])) ? $b['#value'] : '';
-  return strcasecmp($a['#value'], $b['#value']);
+  $a_count = (isset($a['#markup'])) ? $a['#markup'] : '';
+  $b_count = (isset($b['#markup'])) ? $b['#markup'] : '';
+  return strcasecmp($a['#markup'], $b['#markup']);
 }
