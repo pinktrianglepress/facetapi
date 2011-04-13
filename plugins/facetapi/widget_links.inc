@@ -79,11 +79,11 @@ class FacetapiWidgetLinks extends FacetapiWidget {
       // We don't display children unless the parent is clicked.
       if (!empty($item['#item_children'])) {
         if ($item['#active']) {
-          $row['class'] = 'expanded';
+          $row['class'] = array('expanded');
           $row['children'] = $this->buildListItems($item['#item_children']);
         }
         else {
-          $row['class'] = 'collapsed';
+          $row['class'] = array('collapsed');
         }
       }
 
