@@ -5,8 +5,6 @@
  * Callbacks defined in hook_facetapi_facet_info() implementations.
  */
 
-
-
 /**
  * Map callback for node types.
  */
@@ -104,6 +102,18 @@ function facetapi_get_max_date(array $facet) {
   $query = db_select('node', 'n')->condition('status', 1);
   $query->addExpression('MAX(' . $facet['name'] . ')', 'max');
   return $query->execute()->fetch()->max;
+}
+
+/**
+ * Map callback for taxonomy terms.
+ */
+function facetapi_map_taxonomy_terms(array $values) {
+  $map = array();
+  $terms = taxonomy_term_load_multiple($values);
+  foreach ($terms as $term) {
+    $map[$term->tid] = $term->name;
+  }
+  return $map;
 }
 
 /**
