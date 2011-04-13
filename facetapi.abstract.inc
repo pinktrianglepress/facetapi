@@ -58,8 +58,10 @@ abstract class FacetapiAdapter {
    *
    * @param array $searcher_info
    *   The searcher definition.
+   * @param array $filters
+   *   An array of filters, such as $_GET['f'].
    */
-  public function __construct(array $searcher_info, $filters = array()) {
+  public function __construct(array $searcher_info, array $filters = array()) {
     $this->info = $searcher_info;
     $this->setFilters($filters);
 
@@ -85,19 +87,20 @@ abstract class FacetapiAdapter {
   /**
    * Processes a raw arrray of active filters.
    *
-   * @param an array of filters, such as $_GET[f']
+   * @param array $filters
+   *   An array of filters, such as $_GET['f'].
    *
    * @return
    *   The called object.
    */
-  public function setFilters($filters = array()) {
+  public function setFilters(array $filters = array()) {
     $this->activeItems = array();
 
     // Gets enabled facets and processes array of raw filters.
     $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
 
     // Extracts valid filters from query string.
-    foreach ((array) $filters as $pos => $filter) {
+    foreach ($filters as $pos => $filter) {
       if (!is_scalar($filter)) {
         // Skip this if it's an array or object.
         continue;
