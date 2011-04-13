@@ -2,7 +2,7 @@
 
 /**
  * @file
- *
+ * Facet API administrative settings forms.
  */
 
 /**
@@ -91,6 +91,9 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
       drupal_set_message(t('Error saving settings.'), 'error');
     }
   }
+
+  // Clears delta map cache.
+  cache_clear_all('facetapi:delta_map', 'cache');
 }
 
 /**

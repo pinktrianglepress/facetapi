@@ -85,7 +85,7 @@ abstract class FacetapiAdapter {
    * Processes and returns all active filters.
    *
    * @return array
-   *   An array of active facets.
+   *   An array of active filters.
    */
   public function getAllActiveItems() {
     if (NULL === $this->activeItems) {
@@ -390,6 +390,13 @@ class FacetapiFacet implements ArrayAccess {
   protected $build = array();
 
   /**
+   * The initializes query string for all facets.
+   *
+   * @var string
+   */
+  static protected $qstring;
+
+  /**
    * Constructor, sets adapter and facet definition.
    *
    * @param $adapter
@@ -591,20 +598,17 @@ class FacetapiFacet implements ArrayAccess {
   /**
    * Returns the initialized query string for facet links.
    *
-   * This is static because if only needs to be processed once for all facets.
-   *
    * @return array
    *   An array containing the query string.
    */
-  static public function initializeQueryString() {
-    static $qstring;
-    if (NULL === $qstring) {
-      $qstring = drupal_get_query_parameters($_GET, array('q', 'page'));
-      if (!isset($qstring['f']) || !is_array($qstring['f'])) {
-        $qstring['f'] = array();
+  public function initializeQueryString() {
+    if (NULL === self::$qstring) {
+      self::$qstring = drupal_get_query_parameters($_GET, array('q', 'page'));
+      if (!isset(self::$qstring['f']) || !is_array(self::$qstring['f'])) {
+        self::$qstring['f'] = array();
       }
     }
-    return $qstring;
+    return self::$qstring;
   }
 
   /**
@@ -620,7 +624,7 @@ class FacetapiFacet implements ArrayAccess {
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
-    $qstring = self::initializeQueryString();
+    $qstring = $this->initializeQueryString();
 
     // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
@@ -632,7 +636,8 @@ class FacetapiFacet implements ArrayAccess {
       }
     }
 
-    // Filters empty values, returns query string.
+    // Resets array keys, returns query string.
+    $qstring['f'] = array_values($qstring['f']);
     return array_filter($qstring);
   }
 
