@@ -683,7 +683,7 @@ class FacetapiFacet implements ArrayAccess {
     // Builds the base render array for this facet across all realms. This
     // ensures we are only pulling the data from the server once per facet.
     if (!$this->build) {
-      $this->initializeBuild()->processHierarchy()->processQueryStrings();
+      $this->initializeBuild()->processHierarchy()->processQueryStrings($this->build);
     }
 
     // Instantiates the widget plugin and executes.
@@ -792,11 +792,11 @@ class FacetapiFacet implements ArrayAccess {
   /**
    * Initializes the render array's query string variables.
    *
-   * @return FacetapiFacet
-   *   An instance of this class.
+   * @param array &$build
+   *   The facet's render array.
    */
-  protected function processQueryStrings() {
-    foreach ($this->build as $value => &$item) {
+  protected function processQueryStrings(array &$build) {
+    foreach ($build as $value => &$item) {
       $values = array($value);
 
       // If the item is active an has children, gets the paths for the children.
@@ -810,9 +810,6 @@ class FacetapiFacet implements ArrayAccess {
       // Formats query string for facet item, sets theme function.
       $item['#query'] = $this->getQueryString($values, $item['#active']);
     }
-
-    // Returns instance of this calss.
-    return $this;
   }
 
   /**

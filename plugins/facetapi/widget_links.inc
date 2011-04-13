@@ -62,7 +62,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
   function buildListItems($build) {
     $items = array();
     foreach ($build as $value => $item) {
-      $row = array();
+      $row = array('class' => array());
 
       // Initializes variables passed to theme hook.
       $variables = array(
@@ -70,7 +70,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         'path' => $_GET['q'],
         'count' => $item['#count'],
         'options' => array(
-          'attributes' => array(),
+          'attributes' => array('class' => array()),
           'html' => FALSE,
           'query' => $item['#query'],
         ),
@@ -79,17 +79,17 @@ class FacetapiWidgetLinks extends FacetapiWidget {
       // We don't display children unless the parent is clicked.
       if (!empty($item['#item_children'])) {
         if ($item['#active']) {
-          $row['class'] = array('expanded');
+          $row['class'][] = 'expanded';
           $row['children'] = $this->buildListItems($item['#item_children']);
         }
         else {
-          $row['class'] = array('collapsed');
+          $row['class'][] = 'collapsed';
         }
       }
 
       // Gets theme hook, adds last minute classes.
       if ($item['#active']) {
-        $variables['options']['attributes']['class'] = 'active';
+        $variables['options']['attributes']['class'][] = 'active';
       }
 
       // Themes the link, adds row to items.
