@@ -47,6 +47,13 @@ abstract class FacetapiAdapter {
   protected $facetQueries = array();
 
   /**
+   * An array of active filters.
+   *
+   * @var array
+   */
+  protected $activeItems;
+
+  /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param array $searcher_info
@@ -73,6 +80,37 @@ abstract class FacetapiAdapter {
    * @todo Generic search API should provide consistent functionality.
    */
   abstract public function searchExecuted();
+
+  /**
+   * Processes and returns all active filters.
+   *
+   * @return array
+   *   An array of active facets.
+   */
+  public function getAllActiveItems() {
+    if (NULL === $this->activeItems) {
+      $this->activeItems = array();
+
+      // Gets enabled facets and array of raw filters.
+      $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
+      $filters = (isset($_GET['f']) && is_array($_GET['f'])) ? $_GET['f'] : array();
+
+      // Extracts valid filters from query string.
+      foreach ($filters as $pos => $filter) {
+        $parts = explode(':', $filter, 2);
+        if (isset($parts[1]) && isset($enabled_facets[$parts[0]])) {
+          $this->activeItems[$filter] = array(
+            'field alias' => $parts[0],
+            'value' => $parts[1],
+            'pos' => $pos,
+          );
+        }
+      }
+    }
+
+    // Returns array of active filters.
+    return $this->activeItems;
+  }
 
   /**
    * Returns a facet's active items.
@@ -551,6 +589,25 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
+   * Returns the initialized query string for facet links.
+   *
+   * This is static because if only needs to be processed once for all facets.
+   *
+   * @return array
+   *   An array containing the query string.
+   */
+  static public function initializeQueryString() {
+    static $qstring;
+    if (NULL === $qstring) {
+      $qstring = drupal_get_query_parameters($_GET, array('q', 'page'));
+      if (!isset($qstring['f']) || !is_array($qstring['f'])) {
+        $qstring['f'] = array();
+      }
+    }
+    return $qstring;
+  }
+
+  /**
    * Helper function that returns the query string variables for a facet item.
    *
    * @param array $values
@@ -563,33 +620,20 @@ class FacetapiFacet implements ArrayAccess {
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
-    static $get;
-    if (NULL === $get) {
-      $get = drupal_get_query_parameters($_GET, array('q', 'page'));
-    }
-    $qstring = $get;
+    $qstring = self::initializeQueryString();
 
-    // Gets field alias for readability.
-    $field_alias = $this->facet['field alias'];
+    // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
       if ($active && isset($this->activeItems[$value])) {
-        unset($qstring['f'][$field_alias][$this->activeItems[$value]['pos']]);
-        if (!$qstring['f'][$field_alias]) {
-          unset($qstring['f'][$field_alias]);
-        }
+        unset($qstring['f'][$this->activeItems[$value]['pos']]);
       }
       elseif (!$active) {
-        if (!isset($qstring['f'][$field_alias])) {
-          $qstring['f'][$field_alias] = array();
-        }
-        elseif (!is_array($qstring['f'][$field_alias])) {
-          $qstring['f'][$field_alias] = array((string) $qstring['f'][$field_alias]);
-        }
-        $qstring['f'][$field_alias][] = $value;
+        $qstring['f'][] = $this->facet['field alias'] . ':' . $value;
       }
     }
 
-    return ($qstring['f']) ? $qstring : array();
+    // Filters empty values, returns query string.
+    return array_filter($qstring);
   }
 
   /**
@@ -842,39 +886,24 @@ class FacetapiFacet implements ArrayAccess {
    *   An instance of this class.
    */
   public function processActiveItems() {
-    $this->activeItems = $data = array();
+    $this->activeItems = array();
 
-    // Bails if the facet isn't enabled in any realm.
-    // @todo Is this check superfluous?
-    if (!facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
-      return $this;
-    }
+    // Processes active items if the facet is enabled in at least one realm.
+    if (facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
 
-    // Instantiates query type plugin.
-    // @todo Error handling?
-    $plugin = $this->adapter->getFacetQuery($this->facet);
-
-    // Gets active items from query string, normalizes to an array.
-    $facets = isset($_GET['f']) ? (array) $_GET['f'] : array();
-    $field_alias = $this->facet['field alias'];
-    if (isset($facets[$field_alias])) {
-      if (is_array($facets[$field_alias])) {
-        $data = $facets[$field_alias];
+      // Gets active filters for this facet only, keys by value.
+      foreach ($this->adapter->getAllActiveItems() as $item) {
+        if ($item['field alias'] == $this->facet['field alias']) {
+          $this->activeItems[$item['value']] = $item;
+        }
       }
-      else {
-        $data = array((string) $facets[$field_alias]);
-      }
-    }
 
-    // Gets information about the active item.
-    foreach ($data as $key => $value) {
-      $this->activeItems[$value] = array(
-        'pos' => $key,
-        'value' => $value,
-      );
       // Allows the query type plugin to extract additional data, such as the
       // start and end values from range queries.
-      $this->activeItems[$value] += $plugin->extract($this->activeItems[$value]);
+      $plugin = $this->adapter->getFacetQuery($this->facet);
+      foreach ($this->activeItems as &$item) {
+        $item += $plugin->extract($item);
+      }
     }
 
     return $this;
