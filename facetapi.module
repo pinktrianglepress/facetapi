@@ -233,8 +233,7 @@ function facetapi_adapter_load($searcher) {
       ctools_include('plugins');
       $id = $searcher_info[$searcher]['adapter'];
       $class = ctools_plugin_load_class('facetapi', 'adapters', $id, 'handler');
-      $filters = (isset($_GET['f']) && is_array($_GET['f'])) ? $_GET['f'] : array();
-      $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher], $filters) : FALSE;
+      $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher], $_GET) : FALSE;
     }
   }
   return $adapters[$searcher];

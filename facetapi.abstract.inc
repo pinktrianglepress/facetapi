@@ -53,17 +53,29 @@ abstract class FacetapiAdapter {
    */
   protected $activeItems;
 
+    /**
+   * An array of parameters, such as from $_GET.
+   *
+   * @var array
+   */
+  protected $params;
+
+  /**
+   * Define the array key in the params that is used for filters..
+   */
+  const FILTER_KEY = 'f';
+
   /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param array $searcher_info
    *   The searcher definition.
-   * @param array $filters
-   *   An array of filters, such as $_GET['f'].
+   * @param array $params
+   *   An array of keyed parameters, such as $_GET.
    */
-  public function __construct(array $searcher_info, array $filters = array()) {
+  public function __construct(array $searcher_info, array $params = array()) {
     $this->info = $searcher_info;
-    $this->setFilters($filters);
+    $this->setParams($params);
 
     // Registers the query type plugins classes associated with this adapter.
     foreach (ctools_get_plugins('facetapi', 'query_types') as $plugin) {
@@ -87,23 +99,30 @@ abstract class FacetapiAdapter {
   /**
    * Processes a raw arrray of active filters.
    *
-   * @param array $filters
-   *   An array of filters, such as $_GET['f'].
+   * @param array $params
+   *   An array of keyed params, such as $_GET.
    *
    * @return
    *   The called object.
    */
-  public function setFilters(array $filters = array()) {
+  public function setParams(array $params = array()) {
     $this->activeItems = array();
-
+    // Need to rebuild any facets that used different params.
+    $this->facets = array();
+    // We never want to use 'q' or 'page' params.
+    unset($params['q'], $params['page']);
+    if (!isset($params[self::FILTER_KEY])) {
+      $params[self::FILTER_KEY] = array();
+    }
+    $this->params = $params;
     // Gets enabled facets and processes array of raw filters.
     $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
 
     // Extracts valid filters from query string.
-    foreach ($filters as $pos => $filter) {
+    foreach ($params[self::FILTER_KEY] as $pos => $filter) {
       if (!is_scalar($filter)) {
-        // Skip this if it's an array or object.
-        continue;
+        // Remove this from consideration if it's an array or object.
+        unset($params[self::FILTER_KEY][$pos]);
       }
       $parts = explode(':', $filter, 2);
       if (isset($parts[1]) && isset($enabled_facets[$parts[0]])) {
@@ -115,6 +134,10 @@ abstract class FacetapiAdapter {
       }
     }
     return $this;
+  }
+
+  public function getParams() {
+    return $this->params;
   }
 
   /**
@@ -206,7 +229,7 @@ abstract class FacetapiAdapter {
    *   The name of the realm.
    *
    * @return
-   *   The type of content indexed by $this->info['searcher'].
+   *   The path to the admin settings.
    */
   public function getPath($realm_name) {
     return $this->info['path'] . '/facets/' . $realm_name;
@@ -275,7 +298,7 @@ abstract class FacetapiAdapter {
    */
   public function getFacet(array $facet) {
     if (!isset($this->facets[$facet['name']])) {
-      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet);
+      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet, $this->params, self::FILTER_KEY);
     }
     return $this->facets[$facet['name']];
   }
@@ -406,11 +429,18 @@ class FacetapiFacet implements ArrayAccess {
   protected $build = array();
 
   /**
-   * The initializes query string for all facets.
+   * The initialized query string for all facets.
+   *
+   * @var array
+   */
+  protected $params;
+
+  /**
+   * The key in $params corresponding to filters.
    *
    * @var string
    */
-  static protected $qstring;
+  protected $filter_key;
 
   /**
    * Constructor, sets adapter and facet definition.
@@ -419,10 +449,17 @@ class FacetapiFacet implements ArrayAccess {
    *   A FacetapiAdapter object.
    * @param $facet
    *   An array containing the facet definition.
+   * @param $params
+   *   An array of params such as $_GET.
+   * @param $filter_key
+   *   The array key in $params corresponding to filters. $params[$filter_key]
+   *   must be an array.
    */
-  public function __construct(FacetapiAdapter $adapter, array $facet) {
+  public function __construct(FacetapiAdapter $adapter, array $facet, array $params, $filter_key) {
     $this->adapter = $adapter;
     $this->facet = $facet;
+    $this->params = $params;
+    $this->filter_key = $filter_key;
     // Checks which facets are "active".
     // @todo Is there a way to better lazy-load this?
     $this->processActiveItems();
@@ -602,22 +639,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns the initialized query string for facet links.
-   *
-   * @return array
-   *   An array containing the query string.
-   */
-  public function initializeQueryString() {
-    if (NULL === self::$qstring) {
-      self::$qstring = drupal_get_query_parameters($_GET, array('q', 'page'));
-      if (!isset(self::$qstring['f']) || !is_array(self::$qstring['f'])) {
-        self::$qstring['f'] = array();
-      }
-    }
-    return self::$qstring;
-  }
-
-  /**
    * Helper function that returns the query string variables for a facet item.
    *
    * @param array $values
@@ -630,20 +651,20 @@ class FacetapiFacet implements ArrayAccess {
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
-    $qstring = $this->initializeQueryString();
+    $qstring = $this->params;
 
     // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
       if ($active && isset($this->activeItems[$value])) {
-        unset($qstring['f'][$this->activeItems[$value]['pos']]);
+        unset($qstring[$this->filter_key][$this->activeItems[$value]['pos']]);
       }
       elseif (!$active) {
-        $qstring['f'][] = $this->facet['field alias'] . ':' . $value;
+        $qstring[$this->filter_key][] = $this->facet['field alias'] . ':' . $value;
       }
     }
 
     // Resets array keys, returns query string.
-    $qstring['f'] = array_values($qstring['f']);
+    $qstring[$this->filter_key] = array_values($qstring[$this->filter_key]);
     return array_filter($qstring);
   }
 
