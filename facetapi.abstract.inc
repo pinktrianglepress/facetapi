@@ -586,7 +586,6 @@ class FacetapiFacet implements ArrayAccess {
       $settings->facet = $this->facet['name'];
       $settings->enabled = 0;
 
-
       if ($realm_name) {
         $settings->settings = array(
           'weight' => 0,

@@ -89,8 +89,8 @@ class FacetapiQueryType {
    * @return
    *   An object containing the settings.
    */
-  public function getSettings($realm) {
-    return $this->adapter->getFacet($this->facet)->getSettings();
+  public function getSettings($realm = NULL) {
+    return $this->adapter->getFacet($this->facet)->getSettings($realm);
   }
 }
 
