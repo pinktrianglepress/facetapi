@@ -214,14 +214,18 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#collapsible' => TRUE,
   );
 
+  $all_options = array(
+    FACETAPI_OPERATOR_AND => t('AND'),
+    FACETAPI_OPERATOR_OR => t('OR'),
+  );
+  $allowed = array_filter($facet['allowed operators']);
+  $options = array_intersect_key($all_options, $allowed);
   $form['global']['operator'] = array(
     '#type' => 'radios',
+    '#access' => count($options) > 1,
     '#title' => t('Operator'),
     '#default_value' => $global_settings->settings['operator'],
-    '#options' => array(
-      FACETAPI_OPERATOR_AND => t('AND'),
-      FACETAPI_OPERATOR_OR => t('OR'),
-    ),
+    '#options' => $options,
     '#description' => t('AND filters are exclusive. OR filters are inclusive. Selecting more AND filters narrows the result set. Selecting more OR filters widens the result set.')
   );
 
