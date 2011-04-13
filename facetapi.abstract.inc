@@ -59,8 +59,9 @@ abstract class FacetapiAdapter {
    * @param array $searcher_info
    *   The searcher definition.
    */
-  public function __construct(array $searcher_info) {
+  public function __construct(array $searcher_info, $filters = array()) {
     $this->info = $searcher_info;
+    $this->setFilters($filters);
 
     // Registers the query type plugins classes associated with this adapter.
     foreach (ctools_get_plugins('facetapi', 'query_types') as $plugin) {
@@ -82,32 +83,44 @@ abstract class FacetapiAdapter {
   abstract public function searchExecuted();
 
   /**
+   * Processes a raw arrray of active filters.
+   *
+   * @param an array of filters, such as $_GET[f']
+   *
+   * @return
+   *   The called object.
+   */
+  public function setFilters($filters = array()) {
+    $this->activeItems = array();
+
+    // Gets enabled facets and processes array of raw filters.
+    $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
+
+    // Extracts valid filters from query string.
+    foreach ((array) $filters as $pos => $filter) {
+      if (!is_scalar($filter)) {
+        // Skip this if it's an array or object.
+        continue;
+      }
+      $parts = explode(':', $filter, 2);
+      if (isset($parts[1]) && isset($enabled_facets[$parts[0]])) {
+        $this->activeItems[$filter] = array(
+          'field alias' => $parts[0],
+          'value' => $parts[1],
+          'pos' => $pos,
+        );
+      }
+    }
+    return $this;
+  }
+
+  /**
    * Processes and returns all active filters.
    *
    * @return array
    *   An array of active filters.
    */
   public function getAllActiveItems() {
-    if (NULL === $this->activeItems) {
-      $this->activeItems = array();
-
-      // Gets enabled facets and array of raw filters.
-      $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
-      $filters = (isset($_GET['f']) && is_array($_GET['f'])) ? $_GET['f'] : array();
-
-      // Extracts valid filters from query string.
-      foreach ($filters as $pos => $filter) {
-        $parts = explode(':', $filter, 2);
-        if (isset($parts[1]) && isset($enabled_facets[$parts[0]])) {
-          $this->activeItems[$filter] = array(
-            'field alias' => $parts[0],
-            'value' => $parts[1],
-            'pos' => $pos,
-          );
-        }
-      }
-    }
-
     // Returns array of active filters.
     return $this->activeItems;
   }
