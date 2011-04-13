@@ -574,6 +574,9 @@ class FacetapiFacet implements ArrayAccess {
     elseif (is_array($realm)) {
       $realm_name = $realm['name'];
     }
+    else {
+      $realm_name = $realm;
+    }
 
     // Loads the settings via the CTools API.
     ctools_include('export');
