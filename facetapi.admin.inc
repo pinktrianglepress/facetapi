@@ -172,7 +172,8 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
   $searcher = $adapter->getSearcher();
-  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
+  $global_settings = $adapter->getFacet($facet)->getSettings();
 
   // Adds LuceneAPI settings, excluded values aren't saved.
   $form['#facetapi'] = array(
@@ -189,8 +190,8 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   // Orders the sorts by weight.
   foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
     // @todo Figure out a better default system.
-    if (isset($settings->settings['sort_weight'][$sort_name])) {
-      $weight = $settings->settings['sort_weight'][$sort_name];
+    if (isset($facet_settings->settings['sort_weight'][$sort_name])) {
+      $weight = $facet_settings->settings['sort_weight'][$sort_name];
     }
     else {
       $weight = 0;
@@ -216,7 +217,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $form['global']['operator'] = array(
     '#type' => 'radios',
     '#title' => t('Operator'),
-    '#default_value' => $settings->settings['operator'],
+    '#default_value' => $global_settings->settings['operator'],
     '#options' => array(
       FACETAPI_OPERATOR_AND => t('AND'),
       FACETAPI_OPERATOR_OR => t('OR'),
@@ -227,7 +228,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $form['global']['hard_limit'] = array(
     '#type' => 'select',
     '#title' => t('Hard limit'),
-    '#default_value' => $settings->settings['hard_limit'],
+    '#default_value' => $global_settings->settings['hard_limit'],
     '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Display no more than this number of facet items.')
   );
@@ -265,14 +266,14 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $form['realm']['widget'] = array(
     '#type' => 'select',
     '#title' => t('Display widget'),
-    '#default_value' => $settings->settings['widget'],
+    '#default_value' => $facet_settings->settings['widget'],
     '#options' => $widget_options,
   );
 
   $form['realm']['soft_limit'] = array(
     '#type' => 'select',
     '#title' => t('Soft limit'),
-    '#default_value' => $settings->settings['soft_limit'],
+    '#default_value' => $facet_settings->settings['soft_limit'],
     '#options' => array(0 => t('No limit')) + drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Limits the number of displayed facets via JavaScript.'),
   );
@@ -295,8 +296,8 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     $sort_options[$sort_name] = '';
 
     // @todo Figure out a better default system.
-    if (isset($settings->settings['sort_order'][$sort_name])) {
-      $default_value = $settings->settings['sort_order'][$sort_name];
+    if (isset($facet_settings->settings['sort_order'][$sort_name])) {
+      $default_value = $facet_settings->settings['sort_order'][$sort_name];
     }
     else {
       $default_value = SORT_ASC;
@@ -312,8 +313,8 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     );
 
     // @todo Figure out a better default system.
-    if (isset($settings->settings['sort_weight'][$sort_name])) {
-      $default_value = $settings->settings['sort_weight'][$sort_name];
+    if (isset($facet_settings->settings['sort_weight'][$sort_name])) {
+      $default_value = $facet_settings->settings['sort_weight'][$sort_name];
     }
     else {
       $default_value = 0;
@@ -330,7 +331,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $form['realm']['sort']['table']['active_sorts'] = array(
     '#type' => 'checkboxes',
     '#options' => $sort_options,
-    '#default_value' => $settings->settings['active_sorts'],
+    '#default_value' => $facet_settings->settings['active_sorts'],
   );
 
   $form['actions'] = array(
@@ -411,17 +412,26 @@ function facetapi_facet_settings_form_submit($form, &$form_state) {
   $facet = $form['#facetapi']['facet'];
 
   // Loads settings, saves all form values as settings other than excluded.
-  $settings = $adapter->getFacet($facet)->getSettings($realm);
-  $settings->settings = array_merge($settings->settings, array_diff_key(
+  $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
+  $facet_settings->settings = array_merge($facet_settings->settings, array_diff_key(
     $form_state['values'],
     array_flip($form['#facetapi']['excluded_values'])
   ));
+  unset($facet_settings->settings['operator']);
+  unset($facet_settings->settings['hard_limit']);
 
   // Converts sort_weight:* and sort_order:* settings to associative arrays.
-  facetapi_combine_settings('sort_weight', $settings);
-  facetapi_combine_settings('sort_order', $settings);
+  facetapi_combine_settings('sort_weight', $facet_settings);
+  facetapi_combine_settings('sort_order', $facet_settings);
 
-  if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
+  $global_settings = $adapter->getFacet($facet)->getSettings();
+  $global_settings->settings['operator'] = $form_state['values']['operator'];
+  $global_settings->settings['hard_limit'] = $form_state['values']['hard_limit'];
+
+  if (FALSE === ctools_export_crud_save('facetapi', $facet_settings)) {
+    drupal_set_message(t('Error saving settings.'), 'error');
+  }
+  if (FALSE === ctools_export_crud_save('facetapi', $global_settings)) {
     drupal_set_message(t('Error saving settings.'), 'error');
   }
 }

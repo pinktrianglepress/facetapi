@@ -78,6 +78,20 @@ class FacetapiQueryType {
   public function extract(array $item) {
     return array();
   }
+
+  /**
+   * Returns settings.
+   *
+   * @param string|array $realm
+   *   The machine readable name of the realm or realm definition. Pass null to
+   *   get global settings.
+   *
+   * @return
+   *   An object containing the settings.
+   */
+  public function getSettings($realm) {
+    return $this->adapter->getFacet($this->facet)->getSettings();
+  }
 }
 
 /**

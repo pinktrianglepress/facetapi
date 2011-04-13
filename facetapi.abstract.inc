@@ -585,16 +585,24 @@ class FacetapiFacet implements ArrayAccess {
       $settings->realm = $realm_name;
       $settings->facet = $this->facet['name'];
       $settings->enabled = 0;
-      $settings->settings = array(
-        'weight' => 0,
-        'operator' => FACETAPI_OPERATOR_AND,
-        'hard_limit' => 50,
-        'soft_limit' => 20,
-        'widget' => 'facetapi_links',
-        'active_sorts' => array(),
-        'sort_weight' => array(),
-        'sort_order' => array(),
-      );
+
+
+      if ($realm_name) {
+        $settings->settings = array(
+          'weight' => 0,
+          'soft_limit' => 20,
+          'widget' => 'facetapi_links',
+          'active_sorts' => array(),
+          'sort_weight' => array(),
+          'sort_order' => array(),
+        );
+      }
+      else {
+        $settings->settings = array(
+          'operator' => FACETAPI_OPERATOR_AND,
+          'hard_limit' => 50,
+        );
+      }
     }
     return $settings;
   }
