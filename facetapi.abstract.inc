@@ -520,16 +520,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns the facet's active sorts in the order specified via the GUI.
-   *
-   * @return array
-   *   The facet's active sorts.
-   */
-  public function getActiveSorts() {
-    return array();
-  }
-
-  /**
    * Gets facet setting for the passed realm.
    *
    * @param string|array $realm
@@ -675,7 +665,7 @@ class FacetapiFacet implements ArrayAccess {
       $this->initializeBuild()->processHierarchy()->processQueryStrings();
     }
 
-    // Instantiates the widget plugins and executes.
+    // Instantiates the widget plugin and executes.
     $widget_name = $settings->settings['widget'];
     $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
     $plugin = new $class($realm, $settings, $this);
@@ -805,102 +795,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns sorts enabled for a facet in a realm.
-   *
-   * Sort definitions are returned in the order specified in the configurations
-   * settings.
-   *
-   * @param $realm
-   *   An array containing the full realm definition.
-   *
-   * @return
-   *   An array of enabled sort definitions.
-   *
-   * @todo Move to FacetapiFacet object.
-   */
-  function sortFacet(array $realm) {
-
-    // Gets active sorts.
-    /*
-    $active_sorts = (array) facetapi_setting_get(
-      'sort', $searcher, $realm['name'], $facet['name']
-    );
-    */
-    $active_sorts = array();
-
-    // Applies defaults if nothing is set.
-    $defaults = array();
-    if (empty($active_sorts)) {
-      $weight = -50;
-      foreach ($this->facet['default sorts'] as $sort) {
-        $active_sorts[$sort[0]] = $sort[0];
-        $defaults[$sort[0]] = array(
-          'weight' => $weight++,
-          'order'  => $sort[1],
-        );
-      }
-    }
-
-    // Finalizes sort definitions with settings or defaults.
-    $this->sorts = array_intersect_key(facetapi_get_sort_info(), array_filter($active_sorts));
-    foreach ($this->sorts as $sort_name => &$sort_info) {
-      if (empty($defaults)) {
-        // @todo Settings aren't found here anymore.
-        $sort_info['weight'] = facetapi_setting_get(
-          'sort_weight', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
-        );
-        $sort_info['order'] = facetapi_setting_get(
-          'sort_order', $this->info['searcher'], $realm['name'], $this->facet['name'], $sort_name
-        );
-      }
-      else {
-        $sort_info['weight'] = $defaults[$sort_name]['weight'];
-        $sort_info['order']  = $defaults[$sort_name]['order'];
-      }
-    }
-    unset($sort_info);
-    uasort($this->sorts, 'drupal_sort_weight');
-
-    // Applies sorting algorithms.
-    $this->applySorts($this->build);
-    unset($this->sorts);
-  }
-
-  /**
-   * Sorts the facet's build array.
-   *
-   * @param array &$build
-   *   Reference to the render array, allows us to sort one hierarchical level
-   *   at a time.
-   */
-  protected function applySorts(&$build) {
-    foreach (element_children($build) as $value) {
-      if (!empty($build[$value]['#item_children'])) {
-        $this->applySorts($build[$value]['#item_children']);
-      }
-    }
-    uasort($build, array($this, 'sortCallback'));
-  }
-
-  /**
-   * Generic sort callback, useful as a callback to uasort().
-   *
-   * Applies sorts in the order they are specified in the settings.
-   */
-  protected function sortCallback(array $a, array $b) {
-    $return = 0;
-    foreach ($this->sorts as $sort) {
-      if ($return = $sort['callback']($a, $b)) {
-        if (SORT_DESC == $sort['order']) {
-          $return *= -1;
-        }
-        break;
-      }
-    }
-    return $return;
-  }
-
-  /**
    * Gets active facet items from the query string, stores as a property.
    *
    * @return
@@ -979,49 +873,4 @@ function facetapi_get_child_values(array $build) {
  */
 function facetapi_filter_inactive_parent(array $build) {
   return empty($build['#item_parents']);
-}
-
-/**
- * Sorts by whether or not a facet is active.
- */
-function facetapi_sort_active(array $a, array $b) {
-  $a_active = (isset($a['#active'])) ? $a['#active'] : 0;
-  $b_active = (isset($b['#active'])) ? $b['#active'] : 0;
-  if ($a_active == $b_active) {
-    return 0;
-  }
-  return ($a_active < $b_active) ? -1 : 1;
-}
-
-/**
- * Sorts by facet count.
- */
-function facetapi_sort_count(array $a, array $b) {
-  $a_count = (isset($a['#count'])) ? $a['#count'] : 0;
-  $b_count = (isset($b['#count'])) ? $b['#count'] : 0;
-  if ($a_count == $b_count) {
-    return 0;
-  }
-  return ($a_count < $b_count) ? -1 : 1;
-}
-
-/**
- * Sorts by raw indexed value.
- */
-function facetapi_sort_indexed(array $a, array $b) {
-  $a_value = (isset($a['#indexed_value'])) ? $a['#indexed_value'] : '';
-  $b_value = (isset($b['#indexed_value'])) ? $b['#indexed_value'] : '';
-  if ($a_value == $b_value) {
-    return 0;
-  }
-  return ($a_value < $b_value) ? -1 : 1;
-}
-
-/**
- * Sorts by display value.
- */
-function facetapi_sort_display(array $a, array $b) {
-  $a_count = (isset($a['#value'])) ? $a['#value'] : '';
-  $b_count = (isset($b['#value'])) ? $b['#value'] : '';
-  return strcasecmp($a['#value'], $b['#value']);
 }
