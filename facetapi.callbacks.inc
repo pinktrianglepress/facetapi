@@ -120,8 +120,8 @@ function facetapi_get_taxonomy_hierarchy(array $values) {
     ->fields('th', array('tid', 'parent'))
     ->condition('th.parent', '0', '>')
     ->condition(db_or()
-      ->condition('th.tid', array_keys($values), 'IN')
-      ->condition('th.parent', array_keys($values), 'IN')
+      ->condition('th.tid', $values, 'IN')
+      ->condition('th.parent', $values, 'IN')
     )
     ->execute();
 
