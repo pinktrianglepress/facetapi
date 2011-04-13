@@ -105,3 +105,30 @@ function facetapi_get_max_date(array $facet) {
   $query->addExpression('MAX(' . $facet['name'] . ')', 'max');
   return $query->execute()->fetch()->max;
 }
+
+/**
+ * Gets parent information for taxonomy terms.
+ *
+ * @param array $values
+ *   An array containing the term ids.
+ *
+ * @return
+ *   An associative array keyed by term ID to parent ID.
+ */
+function facetapi_get_taxonomy_hierarchy(array $values) {
+  $result = db_select('taxonomy_term_hierarchy', 'th')
+    ->fields('th', array('tid', 'parent'))
+    ->condition('th.parent', '0', '>')
+    ->condition(db_or()
+      ->condition('th.tid', array_keys($values), 'IN')
+      ->condition('th.parent', array_keys($values), 'IN')
+    )
+    ->execute();
+
+  $parents = array();
+  foreach ($result as $record) {
+    $parents[$record->tid][] = $record->parent;
+  }
+  return $parents;
+}
+
