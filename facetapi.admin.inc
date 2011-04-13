@@ -343,11 +343,10 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#value' => t('Save configuration'),
   );
 
-  $searcher_info = facetapi_get_searcher_info();
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => $searcher_info[$searcher]['path'] . '/facets/' . $realm['name'],
+    '#href' => $adapter->getPath($realm['name']),
   );
 
   $form['#submit'][] = 'facetapi_facet_settings_form_submit';
