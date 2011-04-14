@@ -610,6 +610,14 @@ class FacetapiFacet implements ArrayAccess {
           'sort_weight' => array(),
           'sort_order' => array(),
         );
+
+        // Apply default sort settings.
+        $weight = -50;
+        foreach ($this->facet['default sorts'] as $sort => $default) {
+          $settings->settings['active_sorts'][$default[0]] = $default[0];
+          $settings->settings['sort_weight'][$default[0]] = $weight++;
+          $settings->settings['sort_order'][$default[0]] = $default[1];
+        }
       }
       else {
         $settings->settings = array(
@@ -618,6 +626,7 @@ class FacetapiFacet implements ArrayAccess {
         );
       }
     }
+
     return $settings;
   }
 
