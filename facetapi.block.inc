@@ -8,17 +8,17 @@
 /**
  * Returns block information.
  */
-function facetapi_get_block_info() {
+function facetapi_get_block_info($realm_name = 'block') {
   $blocks = array();
 
   // Gets delta map, iterates over all enabled facets.
   $map = facetapi_get_delta_map();
   foreach (facetapi_get_searcher_info() as $searcher => $info) {
-    $facets = facetapi_get_enabled_facets($searcher, 'block');
+    $facets = facetapi_get_enabled_facets($searcher, $realm_name);
     foreach ($facets as $facet_name => $facet) {
 
       // Gets the delta from the delta map.
-      $string = $searcher . ':-' . $facet_name;
+      $string = $searcher . ':' . $realm_name .':' . $facet_name;
       $delta = array_search($string, $map);
 
       // Defines the block.
@@ -45,9 +45,13 @@ function facetapi_get_block_content($delta) {
   if (!isset($map[$delta])) {
     return;
   }
-  $realm_name = 'block';
   // Extracts the searcher, realm name, and facet name from $delta.
-  list($searcher, $facet_name) = explode(':-', $map[$delta]);
+  // Process the parts from the end in case the searcher includes a ':'.
+  $parts = explode(':', $map[$delta]);
+  $facet_name = array_pop($parts);
+  $realm_name = array_pop($parts);
+  $searcher = implode(':', $parts);
+
   $group = $searcher . ':' . $realm_name;
 
   // Bails if output is suppressed, such as if a search hasn't been executed.
@@ -86,13 +90,16 @@ function facetapi_get_delta_map() {
 
       // Calculates deltas for facets in the block realm.
       foreach (facetapi_get_searcher_info() as $searcher => $info) {
-        foreach (facetapi_get_enabled_facets($searcher, 'block') as $facet) {
-          $string = $searcher . ':-' . $facet['name'];
-          // NOTE: We don't need drupal_strlen() becuase there will be no UTF8
-          // characters in this string, and strlen() is much faster.
-          // @todo Is this a bad assumption?
-          $key = (strlen($string) <= 32) ? $string : substr(base64_encode(hash('sha256', $string, TRUE)), 0, 32);
-          $map[$key] = $string;
+        // @todo - some other way to define realms that are block-like.
+        foreach (array('block') as $realm_name) {
+          foreach (facetapi_get_enabled_facets($searcher, $realm_name) as $facet) {
+            $string = $searcher . ':' . $realm_name . ':' . $facet['name'];
+            // NOTE: We don't need drupal_strlen() becuase there will be no UTF8
+            // characters in this string, and strlen() is much faster.
+            // @todo Is this a bad assumption?
+            $key = (strlen($string) <= 32) ? $string : substr(base64_encode(hash('sha256', $string, TRUE)), 0, 32);
+            $map[$key] = $string;
+          }
         }
       }
 
