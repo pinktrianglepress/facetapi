@@ -50,9 +50,8 @@ function facetapi_get_block_content($delta) {
   list($searcher, $facet_name) = explode(':-', $map[$delta]);
   $group = $searcher . ':' . $realm_name;
 
-  // Bails if a search hasn't been executed.
-  // @todo Handle empty searches.
-  if ((!$adapter = facetapi_adapter_load($searcher)) || !$adapter->searchExecuted()) {
+  // Bails if output is suppressed, such as if a search hasn't been executed.
+  if ((!$adapter = facetapi_adapter_load($searcher)) || $adapter->suppressOutput($realm_name)) {
     return;
   }
 

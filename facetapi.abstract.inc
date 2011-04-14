@@ -97,6 +97,18 @@ abstract class FacetapiAdapter {
   abstract public function searchExecuted();
 
   /**
+   * Returns a boolean flagging whether facets in a realm shoud be displayed.
+   *
+   * Useful, for example, for suppressing sidebar blocks in some cases.
+   *
+   * @return
+   *   A boolean flagging whether to display a given realm.
+   *
+   * @todo Generic search API should provide consistent functionality.
+   */
+  abstract public function suppressOutput($realm_name);
+
+  /**
    * Processes a raw arrray of active filters.
    *
    * @param array $params
