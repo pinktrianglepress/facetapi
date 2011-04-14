@@ -18,7 +18,7 @@ function facetapi_get_block_info() {
     foreach ($facets as $facet_name => $facet) {
 
       // Gets the delta from the delta map.
-      $string = $searcher . ':block:' . $facet_name;
+      $string = $searcher . ':-' . $facet_name;
       $delta = array_search($string, $map);
 
       // Defines the block.
@@ -45,9 +45,9 @@ function facetapi_get_block_content($delta) {
   if (!isset($map[$delta])) {
     return;
   }
-
+  $realm_name = 'block';
   // Extracts the searcher, realm name, and facet name from $delta.
-  list($searcher, $realm_name, $facet_name) = explode(':', $map[$delta]);
+  list($searcher, $facet_name) = explode(':-', $map[$delta]);
   $group = $searcher . ':' . $realm_name;
 
   // Bails if a search hasn't been executed.
@@ -66,12 +66,12 @@ function facetapi_get_block_content($delta) {
 }
 
 /**
- * Returns a cached delta map of md5 hashes to names.
+ * Returns a cached delta map of hashes to names.
  *
- * Sometimes our deltas are longer than 32 chars and need to be passed to md5().
+ * Sometimes our deltas are longer than 32 chars and need to be passed to hash().
  * Due to the block table's schema, deltas cannot be longer than 32 characters.
- * However, md5 hashes are nasty as CSS IDs, so we can use the map to convert
- * the md5 back to a nicer value in facetapi_preprocess_block().
+ * However, hashes are nasty as CSS IDs, so we can use the map to convert
+ * the hashes back to a nicer value in facetapi_preprocess_block().
  *
  * @return
  *   An array containing the delta map.
@@ -88,11 +88,11 @@ function facetapi_get_delta_map() {
       // Calculates deltas for facets in the block realm.
       foreach (facetapi_get_searcher_info() as $searcher => $info) {
         foreach (facetapi_get_enabled_facets($searcher, 'block') as $facet) {
-          $string = $searcher . ':block:' . $facet['name'];
+          $string = $searcher . ':-' . $facet['name'];
           // NOTE: We don't need drupal_strlen() becuase there will be no UTF8
           // characters in this string, and strlen() is much faster.
           // @todo Is this a bad assumption?
-          $key = (strlen($string) <= 32) ? $string : md5($string);
+          $key = (strlen($string) <= 32) ? $string : substr(base64_encode(hash('sha256', $string, TRUE)), 0, 32);
           $map[$key] = $string;
         }
       }
