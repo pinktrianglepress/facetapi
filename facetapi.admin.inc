@@ -75,6 +75,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
  *
  */
 function facetapi_realm_settings_form_submit($form, &$form_state) {
+  $success = TRUE;
 
   // Pulls variables for code readability.
   $adapter = $form['#facetapi']['adapter'];
@@ -89,7 +90,13 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
     $settings->settings['weight'] = $weight;
     if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
       drupal_set_message(t('Error saving settings.'), 'error');
+      $success = FALSE;
     }
+  }
+
+  // Sets message if all configurations were saved.
+  if ($success) {
+    drupal_set_message(t('The configuration options have been saved.'));
   }
 
   // Clears delta map cache.
@@ -348,6 +355,11 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#value' => t('Save configuration'),
   );
 
+  $form['actions']['submit_realm'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save and go back to realm settings'),
+  );
+
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
@@ -432,11 +444,25 @@ function facetapi_facet_settings_form_submit($form, &$form_state) {
   $global_settings->settings['operator'] = $form_state['values']['operator'];
   $global_settings->settings['hard_limit'] = $form_state['values']['hard_limit'];
 
+  $success = TRUE;
   if (FALSE === ctools_export_crud_save('facetapi', $facet_settings)) {
-    drupal_set_message(t('Error saving settings.'), 'error');
+    drupal_set_message(t('Error saving configuration options.'), 'error');
+    $success = FALSE;
   }
   if (FALSE === ctools_export_crud_save('facetapi', $global_settings)) {
-    drupal_set_message(t('Error saving settings.'), 'error');
+    drupal_set_message(t('Error saving configuration options.'), 'error');
+    $success = FALSE;
+  }
+
+  // Sets message if both sets of configurations were saved.
+  if ($success) {
+    drupal_set_message(t('The configuration options have been saved.'));
+  }
+
+  // Redirects back to the realm settings page if necessary.
+  $clicked = $form_state['clicked_button']['#value'];
+  if (t('Save and go back to realm settings') == $clicked) {
+    $form_state['redirect'] = $adapter->getPath($realm['name']);
   }
 }
 
