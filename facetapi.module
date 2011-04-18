@@ -96,16 +96,13 @@ function facetapi_menu() {
           'type' => MENU_LOCAL_TASK,
           'file' => 'facetapi.admin.inc',
         );
-
         $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'type' => MENU_DEFAULT_LOCAL_TASK,
           'weight' => $realm['weight'],
         );
-
       }
       else {
-
         $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'page callback' => 'drupal_get_form',
@@ -116,7 +113,6 @@ function facetapi_menu() {
         );
       }
     }
-
   }
 
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
@@ -128,7 +124,6 @@ function facetapi_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'facetapi.admin.inc',
   );
-
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
     'load arguments' => array(4),
@@ -343,7 +338,6 @@ function facetapi_get_facet_info($searcher) {
       'label' => $facet_name,
       'description' => '',
       'field' => $facet_name,
-      'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
       'query type' => 'term',
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
       'default widgets' => array(),
@@ -359,7 +353,8 @@ function facetapi_get_facet_info($searcher) {
         array('display', SORT_ASC),
       ),
     );
-
+    // This is required since otherwise URL processing doesn't work.
+    $facet_info[$facet_name]['field alias'] = $facet_name;
     // Checks whether facet is flat or hierarchical, adds to requirements.
     if (!$facet_info[$facet_name]['hierarchy callback']) {
       $facet_info[$facet_name]['widget requirements'][] = 'flat';
@@ -483,7 +478,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
       'default widgets' => array('facetapi_checkboxes'),
     );
 
-    $facets['author'] = array(
+    $facets['uid'] = array(
       'label' => t('Author'),
       'description' => t('Filter by author.'),
       'field' => 'uid',
