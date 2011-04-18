@@ -65,7 +65,7 @@ abstract class FacetapiWidget {
       $facet['field alias'] => $facet->getBuild(),
       '#attributes' => array(
         'class' => "facetapi-facet-{$facet['name']}",
-        'id' => "facetapi-facet-$searcher-{$realm['name']}-{$facet['name']}",
+        'id' => drupal_html_id("facetapi-facet-$searcher-{$realm['name']}-{$facet['name']}"),
       ),
     );
 
