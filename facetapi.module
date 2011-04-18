@@ -204,9 +204,10 @@ function facetapi_block_info() {
  */
 function facetapi_block_view($delta = '') {
   module_load_include('inc', 'facetapi', 'facetapi.block');
+  $content = facetapi_get_block_content($delta);
   return array(
-    'subject' => NULL,
-    'content' => facetapi_get_block_content($delta),
+    'subject' => theme('facetapi_title', array('title' => $content['#title'])),
+    'content' => $content,
   );
 }
 

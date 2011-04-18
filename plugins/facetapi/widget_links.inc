@@ -22,15 +22,9 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     $this->setThemeHooks($element);
     $element = array(
       '#theme' => 'item_list',
-      '#title' => theme('facetapi_title', array('title' => $this->build['#title'])),
       '#items' => $this->buildListItems($element),
+      '#attributes' => $this->build['#attributes'],
     );
-
-    /*
-    drupal_add_js(drupal_get_path('module', 'facetapi') .'/js/facetapi.block.js');
-    // Adds "soft limit" to the javascript settings.
-    $js_settings['limit'] = $build['#settings']->settings['soft_limit'];
-    */
   }
 
   /**
