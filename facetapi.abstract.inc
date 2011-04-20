@@ -127,8 +127,11 @@ abstract class FacetapiAdapter {
       $params[self::FILTER_KEY] = array();
     }
     $this->params = $params;
-    // Gets enabled facets and processes array of raw filters.
-    $enabled_facets = facetapi_get_enabled_facets($this->info['name']);
+    // Gets enabled facets' field aliases and processes array of raw filters.
+    $field_aliases = array();
+    foreach(facetapi_get_enabled_facets($this->info['name']) as $facet) {
+      $field_aliases[$facet['field alias']] = TRUE;
+    }
 
     // Extracts valid filters from query string.
     foreach ($params[self::FILTER_KEY] as $pos => $filter) {
@@ -137,7 +140,7 @@ abstract class FacetapiAdapter {
         unset($params[self::FILTER_KEY][$pos]);
       }
       $parts = explode(':', $filter, 2);
-      if (isset($parts[1]) && isset($enabled_facets[$parts[0]])) {
+      if (isset($parts[1]) && isset($field_aliases[$parts[0]])) {
         $this->activeItems[$filter] = array(
           'field alias' => $parts[0],
           'value' => $parts[1],

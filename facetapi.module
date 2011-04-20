@@ -96,16 +96,13 @@ function facetapi_menu() {
           'type' => MENU_LOCAL_TASK,
           'file' => 'facetapi.admin.inc',
         );
-
         $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'type' => MENU_DEFAULT_LOCAL_TASK,
           'weight' => $realm['weight'],
         );
-
       }
       else {
-
         $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'page callback' => 'drupal_get_form',
@@ -116,7 +113,6 @@ function facetapi_menu() {
         );
       }
     }
-
   }
 
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
@@ -128,7 +124,6 @@ function facetapi_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'facetapi.admin.inc',
   );
-
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
     'load arguments' => array(4),
