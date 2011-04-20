@@ -95,8 +95,8 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
   }
 
   // Sets message if all configurations were saved.
-  if ($success) {
-    drupal_set_message(t('The configuration options have been saved.'));
+  if ($success && !empty($realm['submit message'])) {
+    drupal_set_message($realm['submit message']);
   }
 
   // Clears delta map cache.
