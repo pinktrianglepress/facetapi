@@ -457,14 +457,14 @@ function facetapi_facetapi_realm_info() {
       array('@block-page' => url('admin/structure/block'))
     ),
   );
-
+/* // @todo - implement this. http://drupal.org/node/1132744
   $realms['fieldset'] = array(
     'label' => t('Fieldset'),
     'weight' => -5,
     'default widget' => 'facetapi_textfield',
     'description' => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
   );
-
+*/
   return $realms;
 }
 
