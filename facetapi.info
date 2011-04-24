@@ -7,3 +7,4 @@ files[] = facetapi.abstract.inc
 files[] = plugins/facetapi/query_type.inc
 files[] = plugins/facetapi/widget.inc
 files[] = plugins/facetapi/widget_links.inc
+files[] = plugins/facetapi/widget_checkbox_links.inc

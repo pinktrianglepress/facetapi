@@ -366,7 +366,7 @@ abstract class FacetapiAdapter {
     }
 
     // Adds JavaScript, initializes render array.
-    drupal_add_js(drupal_get_path('module', 'facetapi') . '/js/facetapi.js');
+    drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.js');
     $build = array(
       '#adapter' => $this,
       '#realm' => $realm,

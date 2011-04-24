@@ -581,6 +581,12 @@ function facetapi_facetapi_widgets() {
         'class' => 'FacetapiWidgetLinks',
       ),
     ),
+    'facetapi_checkbox_links' => array(
+      'handler' => array(
+        'label' => t('Links with checkboxes'),
+        'class' => 'FacetapiWidgetCheckboxLinks',
+      ),
+    ),
   );
 }
 

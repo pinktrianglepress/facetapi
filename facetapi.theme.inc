@@ -26,7 +26,7 @@ function theme_facetapi_link_inactive($variables) {
   if (!empty($variables['count'])) {
     $variables['text'] .= ' ' . theme('facetapi_count', $variables);
   }
-  return theme('link', $variables);
+  return theme_link($variables);
 }
 
 /**
@@ -41,8 +41,15 @@ function theme_facetapi_count($variables) {
  * Themes a facet link for a value that is currently being searched.
  */
 function theme_facetapi_link_active($variables) {
+  $suffix = '';
   if (isset($variables['text'])) {
-    $variables['text'] = '(-) ' . $variables['text'];
+    if (empty($variables['options']['html'])) {
+     $suffix = ' ' . check_plain($variables['text']);
+    }
+    else {
+      $suffix  = ' ' . $variables['text'];
+    }
   }
-  return theme('link', $variables);
+  $variables['text'] = '(-) ';
+  return theme_link($variables) . $suffix;
 }

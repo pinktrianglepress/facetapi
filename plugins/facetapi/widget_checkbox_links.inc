@@ -6,42 +6,9 @@
  */
 
 /**
- * Widget that renders facets as a list of clickable links.
+ * Widget that renders facets as a list of clickable links as checkboxes.
  */
-class FacetapiWidgetLinks extends FacetapiWidget {
-
-  /**
-   * Renders the links.
-   */
-  public function execute() {
-    // Sets the key, captures the facet's render array.
-    $this->key = $this->build['#facet']['name'];
-    $element = &$this->build[$this->facet['field alias']];
-
-    // Sets each item's theme hook, builds item list.
-    $this->setThemeHooks($element);
-    $element = array(
-      '#theme' => 'item_list',
-      '#items' => $this->buildListItems($element),
-      '#attributes' => $this->build['#attributes'],
-    );
-  }
-
-  /**
-   * Recursive function that sets each item's theme hook.
-   *
-   * @param array &$build
-   *   A render array containing the facet items.
-   */
-  protected function setThemeHooks(array &$build) {
-    foreach ($build as $value => &$item) {
-      $item['#theme'] = ($item['#active']) ? 'facetapi_link_active' : 'facetapi_link_inactive';
-      if (!empty($item['#item_children'])) {
-        $this->setThemeHooks($item['#item_children']);
-      }
-    }
-    return $this;
-  }
+class FacetapiWidgetCheckboxLinks extends FacetapiWidgetLinks {
 
   /**
    * Recursive function that converts the render array into an array that can be
@@ -64,7 +31,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         'path' => $_GET['q'],
         'count' => $item['#count'],
         'options' => array(
-          'attributes' => array('class' => array()),
+          'attributes' => array('class' => array('facet-checkbox')),
           'html' => FALSE,
           'query' => $item['#query'],
         ),
