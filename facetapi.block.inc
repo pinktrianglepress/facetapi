@@ -65,7 +65,13 @@ function facetapi_get_block_content($delta) {
   }
 
   // Returns the individual block.
-  return (isset($builds[$group][$facet_name])) ? $builds[$group][$facet_name] : NULL;
+  if (isset($builds[$group][$facet_name])) {
+    // Add a contextual link to edit this facet.
+    $builds[$group][$facet_name]['#contextual_links'] = array(
+      'facetapi' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/edit", array()),
+     );
+     return $builds[$group][$facet_name];
+  }
 }
 
 /**
