@@ -20,7 +20,14 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   );
 
   $form['description'] = array(
+    '#prefix' => '<div class="facet-realm-description">',
     '#markup' => filter_xss_admin($realm['description']),
+    '#suffix' => "</div>\n",
+  );
+  $form['performance'] = array(
+    '#prefix' => '<div class="facet-performance-note">',
+    '#markup' => t('For performance reasons, you should only enable facets that you intend to have available to users on the search page.'),
+    '#suffix' => "</div>\n",
   );
 
   $form['table'] = array(
