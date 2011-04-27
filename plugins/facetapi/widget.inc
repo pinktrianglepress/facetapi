@@ -135,21 +135,6 @@ abstract class FacetapiWidget {
   function sortFacet(array &$build) {
     $settings = $build['#settings']->settings;
 
-    // Applies defaults if nothing is set.
-    /*
-    $defaults = array();
-    if (empty($active_sorts)) {
-      $weight = -50;
-      foreach ($this->facet['default sorts'] as $sort) {
-        $active_sorts[$sort[0]] = $sort[0];
-        $defaults[$sort[0]] = array(
-          'weight' => $weight++,
-          'order'  => $sort[1],
-        );
-      }
-    }
-    */
-
     // Gets active sort definitions.
     $this->sorts = array_intersect_key(
       facetapi_get_sort_info(),
