@@ -61,6 +61,13 @@ abstract class FacetapiAdapter {
   protected $params;
 
   /**
+   * A boolean flagging whether the breadcrumb trail has been set.
+   *
+   * @var array
+   */
+  protected $breadcrumbSet = FALSE;
+
+  /**
    * Define the array key in the params that is used for filters..
    */
   const FILTER_KEY = 'f';
@@ -364,6 +371,43 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Sets the breadcrumb trail on searches.
+   */
+  public function setBreadcrumb() {
+    $breadcrumb = drupal_get_breadcrumb();
+    $enabled_facets = $this->getEnabledFacets();
+
+    // Adds the current search to the query.
+    // @todo Need a getBaseQuery() method or something.
+    $breadcrumb[] = l($this->getSearchKeys(), $_GET['q']);
+
+    // Adds filters to the breadcrumb trail.
+    $query = array();
+    foreach ($this->getAllActiveItems() as $item) {
+      $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
+
+      // Maps the value to something human readable.
+      // @todo This is wicked hacky.
+      $value = $item['value'];
+      foreach ($enabled_facets as $facet) {
+        if ($facet['field alias'] == $item['field alias'] && $facet['map callback'] && function_exists($facet['map callback'])) {
+          $mapped = $facet['map callback'](array($value));
+          if (isset($mapped[$value])) {
+            $value = $mapped[$value];
+          }
+          continue;
+        }
+      }
+
+      // Appends the filter to the breadcrumb trail.
+      $breadcrumb[] = l($value, $_GET['q'], array('query' => $query));
+    }
+
+    // Sets the breadcrumb trail with searck keys and filters.
+    drupal_set_breadcrumb($breadcrumb);
+  }
+
+  /**
    * Builds the render array for facets in a realm.
    *
    * @param string $realm_name
@@ -377,6 +421,12 @@ abstract class FacetapiAdapter {
     // @todo Call watchdog()?
     if (!$realm = facetapi_realm_load($realm_name)) {
       return array();
+    }
+
+    // Builds breadcrumb trail, only does this once.
+    if (!$this->breadcrumbSet && $this->searchExecuted()) {
+      $this->breadcrumbSet = TRUE;
+      $this->setBreadcrumb();
     }
 
     // Adds JavaScript, initializes render array.
