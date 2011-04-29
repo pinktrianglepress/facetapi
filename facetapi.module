@@ -410,8 +410,11 @@ function facetapi_get_sort_info() {
 /**
  * Loads settings from the database.
  *
- * @param FacetapiAdapter $adapter
- *   The adapter loading the facets.
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm, pass NULL to return all facets
+ *   that are enabled in at least one realm.
  *
  * @return array
  *   Facet definitions for enabled facets.
