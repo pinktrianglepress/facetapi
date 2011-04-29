@@ -129,7 +129,7 @@ abstract class FacetapiAdapter {
     $this->params = $params;
     // Gets enabled facets' field aliases and processes array of raw filters.
     $field_aliases = array();
-    foreach(facetapi_get_enabled_facets($this->info['name']) as $facet) {
+    foreach($this->getEnabledFacets() as $facet) {
       $field_aliases[$facet['field alias']] = TRUE;
     }
 
@@ -281,7 +281,7 @@ abstract class FacetapiAdapter {
    *   The query in the backend's native API.
    */
   function addFacetsFilters($query) {
-    foreach (facetapi_get_enabled_facets($this->info['name']) as $facet) {
+    foreach ($this->getEnabledFacets() as $facet) {
       $this->addFacetQuery($facet, $query);
       $this->addActiveFilters($facet, $query);
     }
@@ -301,6 +301,20 @@ abstract class FacetapiAdapter {
    *   The facet rendering object object.
    */
   abstract public function addActiveFilters(array $facet, $query);
+
+  /**
+   * Returns the enabled facets associated with the instance of the adapter.
+   *
+   * @param string $realm_name
+   *   The machine readable name of the realm, pass NULL to get the enabled
+   *   facets in all realms.
+   *
+   * @return array
+   *   An array of enabled facets.
+   */
+  public function getEnabledFacets($realm_name = NULL) {
+    return facetapi_get_enabled_facets($this->info['name'], $realm_name);
+  }
 
   /**
    * Returns a FacetapiFacet instance for the facet being rendered.
@@ -373,7 +387,7 @@ abstract class FacetapiAdapter {
     );
 
     // Builds each facet in the realm, merges into realm's render array.
-    foreach (facetapi_get_enabled_facets($this->info['name'], $realm['name']) as $facet) {
+    foreach ($this->getEnabledFacets($realm['name']) as $facet) {
       $field_alias = $facet['field alias'];
       $facet_build = $this->getFacet($facet)->build($realm);
 
