@@ -6,7 +6,7 @@ Drupal.behaviors.facetapi = {
     // links for block realm facets.
     // @todo We need some sort of JS API so we don't have to make decisions
     // based on the realm.
-    for (var index in Drupal.settings.facetapi.facets) {
+    for (var index in settings.facetapi.facets) {
       if ('block' == settings.facetapi.facets[index].realmName) {
         Drupal.facetapi.applyLimit(settings.facetapi.facets[index]);
       }
