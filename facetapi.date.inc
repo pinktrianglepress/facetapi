@@ -178,22 +178,22 @@ function facetapi_get_date_gap($start_date, $end_date) {
 function facetapi_format_timestamp($timestamp, $gap = FACETAPI_DATE_YEAR) {
   switch ($gap) {
     case FACETAPI_DATE_MONTH:
-      return format_date($timestamp, 'custom', 'F Y');
+      return format_date($timestamp, 'custom', 'F Y', 'UTC');
 
     case FACETAPI_DATE_DAY:
-      return format_date($timestamp, 'custom', 'F j, Y');
+      return format_date($timestamp, 'custom', 'F j, Y', 'UTC');
 
     case FACETAPI_DATE_HOUR:
-      return format_date($timestamp, 'custom', 'g A');
+      return format_date($timestamp, 'custom', 'g A', 'UTC');
 
     case FACETAPI_DATE_MINUTE:
-      return format_date($timestamp, 'custom', 'g:i A');
+      return format_date($timestamp, 'custom', 'g:i A', 'UTC');
 
     case FACETAPI_DATE_SECOND:
-      return format_date($timestamp, 'custom', 'g:i:s A');
+      return format_date($timestamp, 'custom', 'g:i:s A', 'UTC');
 
     default:
-      return format_date($timestamp, 'custom', 'Y');
+      return format_date($timestamp, 'custom', 'Y', 'UTC');
   }
 }
 
