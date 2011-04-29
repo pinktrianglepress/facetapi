@@ -8,6 +8,11 @@ Drupal.behaviors.facetapi = {
     // based on the realm.
     for (var index in settings.facetapi.facets) {
       if ('block' == settings.facetapi.facets[index].realmName) {
+        // Find all checkbox facet links and give them a checkbox.
+        $('a.facet-checkbox.facet-click', context).each(Drupal.facetapi.addCheckbox);
+        // Find all unclick links and turn them into checkboxes.
+        $('a.facet-checkbox.facet-unclick', context).each(Drupal.facetapi.makeCheckbox);
+        // Applies soft limit to the list.
         Drupal.facetapi.applyLimit(settings.facetapi.facets[index]);
       }
     }
