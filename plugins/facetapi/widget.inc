@@ -64,7 +64,7 @@ abstract class FacetapiWidget {
       '#settings' => $settings,
       $facet['field alias'] => $facet->getBuild(),
       '#attributes' => array(
-        'class' => "facetapi-facet-{$facet['name']}",
+        'class' => drupal_html_class("facetapi-facet-{$facet['name']}"),
         'id' => drupal_html_id("facetapi-facet-$searcher-{$realm['name']}-{$facet['name']}"),
       ),
     );
@@ -81,12 +81,14 @@ abstract class FacetapiWidget {
 
     // Initializes JavaScript settings.
     $this->jsSettings = array(
+      'id' => $this->build['#attributes']['id'],
       'searcher' => $searcher,
       'type' => $facet->getAdapter()->getType(),
       'realmName' => $realm['name'],
       'facetName' => $facet['name'],
-      'widget' => $settings->settings['widget'],
       'queryType' => $facet['query type'],
+      'widget' => $settings->settings['widget'],
+      'limit' => $settings->settings['soft_limit'],
     );
   }
 
