@@ -81,13 +81,7 @@ function facetapi_get_next_date_gap($gap, $min_gap = FACETAPI_DATE_SECOND) {
   // is within the limit set by the $min_gap parameter.
   $gap_num = isset($gap_numbers[$gap]) ? $gap_numbers[$gap] : 6;
   $min_num = isset($gap_numbers[$min_gap]) ? $gap_numbers[$min_gap] : 1;
-
-  if ($gap_num > $min_num) {
-    return array_search($gap_num - 1, $gap_numbers);
-  }
-  else {
-    return $min_gap;
-  }
+  return ($gap_num > $min_num) ? array_search($gap_num - 1, $gap_numbers) : $min_gap;
 }
 
 /**
@@ -163,7 +157,7 @@ function facetapi_get_date_gap($start_date, $end_date) {
  *
  * This function assumes that gaps less than one day will be displayed in a
  * search context in which a larger containing gap including a day is already
- * displayed.  So, HOUR, MINUTE, and SECOND gaps only display time information,
+ * displayed. So, HOUR, MINUTE, and SECOND gaps only display time information,
  * without date.
  *
  * @param $timestamp
