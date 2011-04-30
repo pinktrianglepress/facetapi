@@ -117,7 +117,7 @@ function facetapi_get_timestamp_gap($start_time, $end_time) {
     case ($time_diff >= 86400365):
       return FACETAPI_DATE_YEAR;
 
-    case (date('Ym', $start_time) != date('Ym', $end_time)):
+    case (gmdate('Ym', $start_time) != gmdate('Ym', $end_time)):
       return FACETAPI_DATE_MONTH;
 
     case ($time_diff >= 86400):
