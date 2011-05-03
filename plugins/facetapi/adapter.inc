@@ -377,13 +377,30 @@ abstract class FacetapiAdapter {
     $breadcrumb = drupal_get_breadcrumb();
     $enabled_facets = $this->getEnabledFacets();
 
+    $keys = $this->getSearchKeys();
+    $active_items = $this->getAllActiveItems();
+    // Make sure the search page itself is in the breadcrub if we are going to
+    // add more crumbs. Wow this breadcrumb code sucks.
+    $item = menu_get_item();
+    $last_load_func = is_array($item['load_functions']) ? end($item['load_functions']) : NULL;
+    if ((!$keys && $active_items) || ($keys && $last_load_func != 'menu_tail_load')) {
+      $last = end($breadcrumb);
+      $this_page = l($item['title'], $item['href'], $item['localized_options']);
+      if ($last != $this_page) {
+        $breadcrumb[] = $this_page;
+      }
+    }
     // Adds the current search to the query.
     // @todo Need a getBaseQuery() method or something.
-    $breadcrumb[] = l($this->getSearchKeys(), $_GET['q']);
+    if ($keys) {
+      // The last item should be text, not a link.
+      $breadcrumb[] = $active_items ? l($keys, $_GET['q']) : check_plain($keys);
+    }
 
     // Adds filters to the breadcrumb trail.
     $query = array();
-    foreach ($this->getAllActiveItems() as $item) {
+    $last = end($active_items);
+    foreach ($active_items as $item) {
       $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
 
       // Maps the value to something human readable.
@@ -398,9 +415,14 @@ abstract class FacetapiAdapter {
           continue;
         }
       }
-
-      // Appends the filter to the breadcrumb trail.
-      $breadcrumb[] = l($value, $_GET['q'], array('query' => $query));
+      // The last item should be text, not a link.
+      if ($last == $item) {
+        $breadcrumb[] = check_plain($value);
+      }
+      else {
+        // Appends the filter to the breadcrumb trail.
+        $breadcrumb[] = l($value, $_GET['q'], array('query' => $query));
+      }
     }
 
     // Sets the breadcrumb trail with searck keys and filters.
