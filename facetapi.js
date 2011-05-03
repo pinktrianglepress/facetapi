@@ -81,14 +81,17 @@ Drupal.facetapi.addCheckbox = function() {
 }
 
 Drupal.facetapi.makeCheckbox = function() {
-  // Create a checked checkbox.
-  var checkbox = $('<input type="checkbox" class="facet-checkbox" checked="true" />');
-  // Get the href of the link that is this DOM object.
-  var href = $(this).attr('href');
-  redirect = new Drupal.facetapi.Redirect(href);
-  checkbox.click($.proxy(redirect, 'gotoHref'));
-  // Add the checkbox, hide the link.
-  $(this).before(checkbox).hide();
+  if (!$(this).hasClass('facet-checkbox-processed')) {
+    // Create a checked checkbox.
+    var checkbox = $('<input type="checkbox" class="facet-checkbox" checked="true" />');
+    // Get the href of the link that is this DOM object.
+    var href = $(this).attr('href');
+    redirect = new Drupal.facetapi.Redirect(href);
+    checkbox.click($.proxy(redirect, 'gotoHref'));
+    // Add the checkbox, hide the link.
+    $(this).before(checkbox).hide();
+    $(this).addClass('facet-checkbox-processed');
+  }
 }
 
 })(jQuery);
