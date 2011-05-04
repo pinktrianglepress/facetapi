@@ -14,11 +14,19 @@ function facetapi_get_block_info($realm_name = 'block') {
   // Gets delta map, iterates over all enabled facets.
   $map = facetapi_get_delta_map();
   foreach (facetapi_get_searcher_info() as $searcher => $info) {
+    // Adds "Current Search" blocks.
+    $delta = array_search($searcher . ':current_search', $map);
+    $blocks[$delta] = array(
+      'info' => 'Facet API: ' . $info['label'] . ' : ' . t('Current Search'),
+      //'cache' => BLOCK_NO_CACHE,
+    );
+
+    // Adds facet blocks.
     $facets = facetapi_get_enabled_facets($searcher, $realm_name);
     foreach ($facets as $facet_name => $facet) {
 
       // Gets the delta from the delta map.
-      $string = $searcher . ':' . $realm_name .':' . $facet_name;
+      $string = $searcher . ':' . $realm_name . ':' . $facet_name;
       $delta = array_search($string, $map);
 
       // Defines the block.
@@ -37,14 +45,15 @@ function facetapi_get_block_info($realm_name = 'block') {
 /**
  * Returns the content for a facet based on the delta.
  */
-function facetapi_get_block_content($delta) {
+function facetapi_get_block($delta) {
   $builds = &drupal_static(__FUNCTION__, array());
 
-  // Bails if delta isn't mapped.
+  // Bails if delta is not mapped.
   $map = facetapi_get_delta_map();
   if (!isset($map[$delta])) {
     return;
   }
+
   // Extracts the searcher, realm name, and facet name from $delta.
   // Process the parts from the end in case the searcher includes a ':'.
   $parts = explode(':', $map[$delta]);
@@ -52,14 +61,32 @@ function facetapi_get_block_content($delta) {
   $realm_name = array_pop($parts);
   $searcher = implode(':', $parts);
 
-  $group = $searcher . ':' . $realm_name;
+  // If we are viewing the current search block, set variable names accordingly.
+  if (!$searcher && 'current_search' == $facet_name) {
+    $searcher = $realm_name;
+    $realm_name = $facet_name = FALSE;
+  }
 
   // Bails if output is suppressed, such as if a search hasn't been executed.
-  if ((!$adapter = facetapi_adapter_load($searcher)) || $adapter->suppressOutput($realm_name)) {
+  if (!$adapter = facetapi_adapter_load($searcher)) {
+    return;
+  }
+
+  // If there is no realm, we are rendering the curent search block.
+  if (FALSE === $realm_name && $adapter->searchExecuted()) {
+    return array(
+      'subject' => t('Current search'),
+      'content' => $adapter->buildCurrentSearch(),
+    );
+  }
+
+  // Bails if the output should be suppressed.
+  if ($adapter->suppressOutput($realm_name)) {
     return;
   }
 
   // Builds and caches the entire realm per searcher / realm combination.
+  $group = $searcher . ':' . $realm_name;
   if (!isset($builds[$group])) {
     $builds[$group] = facetapi_build_realm($searcher, $realm_name);
   }
@@ -70,7 +97,11 @@ function facetapi_get_block_content($delta) {
     $builds[$group][$facet_name]['#contextual_links'] = array(
       'facetapi' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/edit", array()),
     );
-    return $builds[$group][$facet_name];
+    $variables = array('title' => $builds[$group][$facet_name]['#title']);
+    return array(
+      'subject' => theme('facetapi_title', $variables),
+      'content' => $builds[$group][$facet_name]
+    );
   }
 }
 
@@ -96,15 +127,17 @@ function facetapi_get_delta_map() {
 
       // Calculates deltas for facets in the block realm.
       foreach (facetapi_get_searcher_info() as $searcher => $info) {
+
+        // Maps current search block.
+        $delta = $searcher . ':current_search';
+        $map[facetapi_hash_delta($delta)] = $delta;
+
+        // Maps facet deltas.
         // @todo - some other way to define realms that are block-like.
         foreach (array('block') as $realm_name) {
           foreach (facetapi_get_enabled_facets($searcher, $realm_name) as $facet) {
-            $string = $searcher . ':' . $realm_name . ':' . $facet['name'];
-            // NOTE: We don't need drupal_strlen() becuase there will be no UTF8
-            // characters in this string, and strlen() is much faster.
-            // @todo Is this a bad assumption?
-            $key = (strlen($string) <= 32) ? $string : substr(base64_encode(hash('sha256', $string, TRUE)), 0, 32);
-            $map[$key] = $string;
+            $delta = $searcher . ':' . $realm_name . ':' . $facet['name'];
+            $map[facetapi_hash_delta($delta)] = $delta;
           }
         }
       }
@@ -115,4 +148,17 @@ function facetapi_get_delta_map() {
   }
 
   return $map;
+}
+
+/**
+ * Hashing code for deltas.
+ *
+ * @param $delta
+ *   A string containing the delta.
+ *
+ * @return
+ *   The hashed delta value.
+ */
+function facetapi_hash_delta($delta) {
+  return (strlen($delta) <= 32) ? $delta : substr(base64_encode(hash('sha256', $delta, TRUE)), 0, 32);
 }

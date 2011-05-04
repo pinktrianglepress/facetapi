@@ -282,6 +282,16 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Returns the number of results returned by the search query.
+   *
+   * @return int
+   *   An integer containing the number of results.
+   */
+  public function getResultCount() {
+    return;
+  }
+
+  /**
    * Requests facets and applies facet filters to the query.
    *
    * @param stdClass $query
@@ -402,19 +412,8 @@ abstract class FacetapiAdapter {
     $last = end($active_items);
     foreach ($active_items as $item) {
       $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
-
       // Maps the value to something human readable.
-      // @todo This is wicked hacky.
-      $value = $item['value'];
-      foreach ($enabled_facets as $facet) {
-        if ($facet['field alias'] == $item['field alias'] && $facet['map callback'] && function_exists($facet['map callback'])) {
-          $mapped = $facet['map callback'](array($value));
-          if (isset($mapped[$value])) {
-            $value = $mapped[$value];
-          }
-          continue;
-        }
-      }
+      $value = $this->mapActiveItem($item);
       // The last item should be text, not a link.
       if ($last == $item) {
         $breadcrumb[] = check_plain($value);
@@ -427,6 +426,96 @@ abstract class FacetapiAdapter {
 
     // Sets the breadcrumb trail with searck keys and filters.
     drupal_set_breadcrumb($breadcrumb);
+  }
+
+  /**
+   * Awful method that maps a value when we don't know what facet it belongs to.
+   *
+   * The problem is that field aliases are not unique, so we can only guess as
+   * to which facet the active items belong to.
+   *
+   * @param array $item
+   *   An array containing the active item.
+   *
+   * @return mixed
+   *   The mapped value.
+   *
+   * @deprecated
+   * @todo Destroy with the utmost fury.
+   */
+  public function mapActiveItem(array $item) {
+    $value = $item['value'];
+    foreach ($this->getEnabledFacets() as $facet) {
+      if ($facet['field alias'] == $item['field alias'] && $facet['map callback'] && function_exists($facet['map callback'])) {
+        $mapped = $facet['map callback'](array($value));
+        if (isset($mapped[$value])) {
+          $value = $mapped[$value];
+        }
+        continue;
+      }
+    }
+    return $value;
+  }
+
+  /**
+   * Builds the content for the current search block.
+   *
+   * @return array
+   *   The block's render array.
+   */
+  public function buildCurrentSearch() {
+    $items = array();
+
+    // Gets the base query string.
+    $get = $_GET;
+    unset($get['q'], $get['page']);
+
+    // Adds search keys.
+    // @todo Need a getBaseQuery() method or something.
+    if ($keys = $this->getSearchKeys()) {
+      $items[] = check_plain($keys);
+    }
+
+    // Adds active facets to the current search block.
+    foreach ($this->getAllActiveItems() as $item) {
+      // Builds query string.
+      $query = $get;
+      unset($query[self::FILTER_KEY][$item['pos']]);
+      $query[self::FILTER_KEY] = array_values($query[self::FILTER_KEY]);
+
+      // Builds variables for active link theme.
+      $variables = array(
+        'text' => $this->mapActiveItem($item),
+        'path' => $_GET['q'],
+        'options' => array(
+          'attributes' => array('class' => array()),
+          'html' => FALSE,
+          'query' => array_filter($query),
+        ),
+      );
+
+      // Renders the active link.
+      $items[] = theme('facetapi_link_active', $variables);
+    }
+
+    // If there are items, return the render array.
+    if ($items) {
+      $build = array(
+        '#title' => t('Current search'),
+        'block' => array(
+          '#theme' => 'item_list',
+          '#items' => $items,
+        ),
+      );
+
+      // Set message as title if list if result count was returned.
+      if (NULL !== ($count = $this->getResultCount())) {
+        $build['block']['#title'] = format_plural($count, 'Search found 1 item', 'Search found @count items');
+      }
+
+      // Returns the render array for the block.
+      return $build;
+    }
   }
 
   /**
