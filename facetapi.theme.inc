@@ -13,13 +13,6 @@ function theme_facetapi_title($variables) {
 }
 
 /**
- * Themes a facet link for a value that is currently being searched.
- */
-function theme_facetapi_link($variables) {
-  return facetapi_l('', $path, $options);
-}
-
-/**
  * Themes a facet link with an optional count.
  */
 function theme_facetapi_link_inactive($variables) {
