@@ -407,8 +407,11 @@ abstract class FacetapiAdapter {
       $breadcrumb[] = $active_items ? l($keys, $_GET['q']) : check_plain($keys);
     }
 
+    // Initializes base breadcrumb query.
+    $query = $this->params;
+    unset($query[self::FILTER_KEY]);
+
     // Adds filters to the breadcrumb trail.
-    $query = array();
     $last = end($active_items);
     foreach ($active_items as $item) {
       $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
@@ -467,8 +470,7 @@ abstract class FacetapiAdapter {
     $items = array();
 
     // Gets the base query string.
-    $get = $_GET;
-    unset($get['q'], $get['page']);
+    $params = $this->params;
 
     // Adds search keys.
     // @todo Need a getBaseQuery() method or something.
@@ -479,7 +481,7 @@ abstract class FacetapiAdapter {
     // Adds active facets to the current search block.
     foreach ($this->getAllActiveItems() as $item) {
       // Builds query string.
-      $query = $get;
+      $query = $params;
       unset($query[self::FILTER_KEY][$item['pos']]);
       $query[self::FILTER_KEY] = array_values($query[self::FILTER_KEY]);
 
