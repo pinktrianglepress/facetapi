@@ -22,6 +22,13 @@ function hook_facetapi_searcher_info() {
 }
 
 /**
+ *
+ */
+function hook_facetapi_searcher_info_alter(array &$searcher_info) {
+
+}
+
+/**
  * Defines the available adapters implemented by the backends.
  */
 function hook_facetapi_adapters() {
@@ -37,7 +44,7 @@ function hook_facetapi_adapters() {
 }
 
 /**
- *
+ * Allows backends to handle query types, such as term queries or date queries.
  */
 function hook_facetapi_query_types() {
   return array(
@@ -53,3 +60,65 @@ function hook_facetapi_query_types() {
   );
 }
 
+/**
+ * Defines display widgets.
+ */
+function hook_facetapi_widgets() {
+  return array(
+    'facetapi_links' => array(
+      'handler' => array(
+        'label' => t('Links'),
+        'class' => 'FacetapiWidgetLinks',
+      ),
+    ),
+  );
+}
+
+/**
+ * Defines facet realms.
+ */
+function hook_facetapi_realm_info() {
+
+}
+
+/**
+ * Alter realm definitions.
+ */
+function hook_facetapi_realm_info_alter(array &$realm_info) {
+
+}
+
+/**
+ * Defines available facets.
+ */
+function hook_facetapi_facet_info(array $searcher_info) {
+
+}
+
+/**
+ * Alter facet definitions.
+ */
+function hook_facetapi_facet_info_alter(array &$facet_info, array $searcher_info) {
+
+}
+
+/**
+ * Define sorting algorithms for facets.
+ */
+function hook_facetapi_sort_info() {
+
+}
+
+/**
+ * Alter sorting algorithms.
+ */
+function hook_facetapi_sort_info_alter(array &$sort_info) {
+
+}
+
+/**
+ * Alter a realm's render array.
+ */
+function hook_facetapi_facets_alter(array &$build, FacetapiAdapter $adapter, array $realm) {
+
+}
