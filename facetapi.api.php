@@ -92,7 +92,29 @@ function hook_facetapi_realm_info_alter(array &$realm_info) {
  * Defines available facets.
  */
 function hook_facetapi_facet_info(array $searcher_info) {
+  $facets = array();
+  if ('node' == $searcher_info['type']) {
 
+    $facets['created'] = array(
+      'label' => t('Post date'),
+      'description' => t('Filter by the date the node was posted.'),
+      'field' => 'created',
+      'field alias' => 'created',
+      'query type' => 'date',
+      'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE),
+      'weight' => 0,
+      'values callback' => FALSE,
+      'map callback' => 'facetapi_map_date',
+      'min callback' => 'facetapi_get_min_date',
+      'max callback' => 'facetapi_get_max_date',
+      'default sorts' => array(
+        array('active', SORT_DESC),
+        array('indexed', SORT_ASC),
+      ),
+    );
+  }
+
+  return $facets;
 }
 
 /**
