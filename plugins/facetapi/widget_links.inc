@@ -44,6 +44,16 @@ class FacetapiWidgetLinks extends FacetapiWidget {
   }
 
   /**
+   * Gets the base class array for a facet item.
+   *
+   * @return array
+   *   An array of classes.
+   */
+  function getItemClasses() {
+    return array();
+  }
+
+  /**
    * Recursive function that converts the render array into an array that can be
    * passed to theme_item_list().
    *
@@ -64,7 +74,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         'path' => $_GET['q'],
         'count' => $item['#count'],
         'options' => array(
-          'attributes' => array('class' => array()),
+          'attributes' => array('class' => $this->getItemClasses()),
           'html' => FALSE,
           'query' => $item['#query'],
         ),
