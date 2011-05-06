@@ -116,7 +116,7 @@ function facetapi_menu() {
   }
 
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
-    'title' => 'Edit facet configuration',
+    'title' => 'Configure facet display',
     'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('facetapi_facet_settings_form', 4, 5, 6),
