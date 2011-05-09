@@ -450,7 +450,7 @@ abstract class FacetapiAdapter {
     $value = $item['value'];
     foreach ($this->getEnabledFacets() as $facet) {
       if ($facet['field alias'] == $item['field alias'] && $facet['map callback'] && function_exists($facet['map callback'])) {
-        $mapped = $facet['map callback'](array($value));
+        $mapped = call_user_func($facet['map callback'], array($value), $facet['map options']);
         if (isset($mapped[$value])) {
           $value = $mapped[$value];
         }
@@ -949,7 +949,7 @@ class FacetapiFacet implements ArrayAccess {
 
     // Maps the IDs to human readable values via the mapping callback.
     if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
-      $map = call_user_func($this->facet['map callback'], array_keys($this->build));
+      $map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
       array_walk($this->build, 'facetapi_replace_ids', $map);
     }
 

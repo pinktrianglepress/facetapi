@@ -353,6 +353,7 @@ function facetapi_get_facet_info($searcher) {
       'default widgets' => array(),
       'weight' => 0,
       'map callback' => FALSE,
+      'map options' => array(),
       'hierarchy callback' => FALSE,
       'values callback' => FALSE,
       'min callback' => FALSE,
