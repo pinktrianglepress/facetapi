@@ -632,7 +632,7 @@ class FacetapiFacet implements ArrayAccess {
    *
    * @var string
    */
-  protected $filter_key;
+  protected $filterKey;
 
   /**
    * Constructor, sets adapter and facet definition.
@@ -651,7 +651,7 @@ class FacetapiFacet implements ArrayAccess {
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->params = $params;
-    $this->filter_key = $filter_key;
+    $this->filterKey = $filter_key;
     // Checks which facets are "active".
     // @todo Is there a way to better lazy-load this?
     $this->processActiveItems();
@@ -867,15 +867,15 @@ class FacetapiFacet implements ArrayAccess {
     // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
       if ($active && isset($this->activeItems[$value])) {
-        unset($qstring[$this->filter_key][$this->activeItems[$value]['pos']]);
+        unset($qstring[$this->filterKey][$this->activeItems[$value]['pos']]);
       }
       elseif (!$active) {
-        $qstring[$this->filter_key][] = $this->facet['field alias'] . ':' . $value;
+        $qstring[$this->filterKey][] = $this->facet['field alias'] . ':' . $value;
       }
     }
 
     // Resets array keys, returns query string.
-    $qstring[$this->filter_key] = array_values($qstring[$this->filter_key]);
+    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
     return array_filter($qstring);
   }
 
