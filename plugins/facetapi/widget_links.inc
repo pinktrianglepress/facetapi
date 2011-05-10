@@ -90,6 +90,9 @@ class FacetapiWidgetLinks extends FacetapiWidget {
           $row['class'][] = 'collapsed';
         }
       }
+      else {
+        $row['class'][] = 'leaf';
+      }
 
       // Gets theme hook, adds last minute classes.
       if ($item['#active']) {
