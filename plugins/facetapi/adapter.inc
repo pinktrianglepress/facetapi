@@ -40,6 +40,13 @@ abstract class FacetapiAdapter {
   protected $facets = array();
 
   /**
+   * An array of FacetapiFacetProcessor objects.
+   *
+   * @var array
+   */
+  protected $processors = array();
+
+  /**
    * An array of executed query tyoe plugins keyed by field name.
    *
    * @var array
@@ -61,11 +68,11 @@ abstract class FacetapiAdapter {
   protected $params;
 
   /**
-   * A boolean flagging whether the breadcrumb trail has been set.
+   * A boolean flagging whether the facets have been processed.
    *
-   * @var array
+   * @var boolean
    */
-  protected $breadcrumbSet = FALSE;
+  protected $processed = FALSE;
 
   /**
    * Define the array key in the params that is used for filters..
@@ -344,7 +351,7 @@ abstract class FacetapiAdapter {
    */
   public function getFacet(array $facet) {
     if (!isset($this->facets[$facet['name']])) {
-      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet, $this->params, self::FILTER_KEY);
+      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet, $this->params);
     }
     return $this->facets[$facet['name']];
   }
@@ -537,9 +544,20 @@ abstract class FacetapiAdapter {
     }
 
     // Builds breadcrumb trail, only does this once.
-    if (!$this->breadcrumbSet && $this->searchExecuted()) {
-      $this->breadcrumbSet = TRUE;
-      $this->setBreadcrumb();
+    if (!$this->processed) {
+      $this->processed = TRUE;
+
+      // Processes facet builds.
+      foreach ($this->getEnabledFacets() as $facet) {
+        $this->processors[$facet['name']] = new FacetapiFacetProcessor(
+          $this->getFacet($facet), self::FILTER_KEY
+        );
+      }
+
+      // Sets the breadcrumb trail.
+      if ($this->searchExecuted()) {
+        $this->setBreadcrumb();
+      }
     }
 
     // Adds JavaScript, initializes render array.
@@ -551,8 +569,11 @@ abstract class FacetapiAdapter {
 
     // Builds each facet in the realm, merges into realm's render array.
     foreach ($this->getEnabledFacets($realm['name']) as $facet) {
+
+      // Gets the initialized build.
       $field_alias = $facet['field alias'];
-      $facet_build = $this->getFacet($facet)->build($realm);
+      $processor = $this->processors[$facet['name']];
+      $facet_build = $this->getFacet($facet)->build($realm, $processor);
 
       // Tries to be smart when merging the render arrays. Crazy things happen
       // when merging facets with the same field alias such as taxonomy terms in
@@ -628,13 +649,6 @@ class FacetapiFacet implements ArrayAccess {
   protected $params;
 
   /**
-   * The key in $params corresponding to filters.
-   *
-   * @var string
-   */
-  protected $filterKey;
-
-  /**
    * Constructor, sets adapter and facet definition.
    *
    * @param $adapter
@@ -643,15 +657,11 @@ class FacetapiFacet implements ArrayAccess {
    *   An array containing the facet definition.
    * @param $params
    *   An array of params such as $_GET.
-   * @param $filter_key
-   *   The array key in $params corresponding to filters. $params[$filter_key]
-   *   must be an array.
    */
-  public function __construct(FacetapiAdapter $adapter, array $facet, array $params, $filter_key) {
+  public function __construct(FacetapiAdapter $adapter, array $facet, array $params) {
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->params = $params;
-    $this->filterKey = $filter_key;
     // Checks which facets are "active".
     // @todo Is there a way to better lazy-load this?
     $this->processActiveItems();
@@ -862,21 +872,20 @@ class FacetapiFacet implements ArrayAccess {
   /**
    * Returns the facet's render array.
    *
-   * @param $realm
+   * @param array $realm
    *   An array containing the realm definition.
+   * @param FacetapiFacetProcessor $processor
+   *   The processor object.
    *
    * @return
    *   The facet's build array.
    */
-  public function build(array $realm) {
+  public function build(array $realm, FacetapiFacetProcessor $processor) {
     $settings = $this->getSettings($realm);
 
     // Builds the base render array for this facet across all realms. This
     // ensures we are only pulling the data from the server once per facet.
-    if (!$this->build) {
-      $processor = new FacetapiFacetProcessor($this);
-      $this->build = $processor->getBuild();
-    }
+    $this->build = $processor->getBuild();
 
     // Instantiates the widget plugin and executes.
     $widget_name = $settings->settings['widget'];
@@ -980,6 +989,13 @@ class FacetapiFacetProcessor {
   protected $facet;
 
   /**
+   * The key in $params corresponding to filters.
+   *
+   * @var string
+   */
+  protected $filterKey;
+
+  /**
    *
    * @var array
    */
@@ -987,9 +1003,17 @@ class FacetapiFacetProcessor {
 
   /**
    * Constructor, initializes render array.
+   *
+   * @param FacetapiFacet $facet
+   *
+   * @param $filter_key
+   *   The array key in $params corresponding to filters. $params[$filter_key]
+   *   must be an array.
+   *
    */
-  public function __construct(FacetapiFacet $facet) {
+  public function __construct(FacetapiFacet $facet, $filter_key) {
     $this->facet = $facet;
+    $this->filterKey = $filter_key;
 
     // Initializes render array.
     $this
@@ -1134,20 +1158,19 @@ class FacetapiFacetProcessor {
   public function getQueryString(array $values, $active) {
     $qstring = $this->facet->getAdapter()->getParams();
     $active_items = $this->facet->getActiveItems();
-    $filter_key = $this->facet->getFilterKey();
 
     // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
       if ($active && isset($active_items[$value])) {
-        unset($qstring[$filter_key][$active_items[$value]['pos']]);
+        unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
       }
       elseif (!$active) {
-        $qstring[$filter_key][] = $this->facet['field alias'] . ':' . $value;
+        $qstring[$this->filterKey][] = $this->facet['field alias'] . ':' . $value;
       }
     }
 
     // Resets array keys, returns query string.
-    $qstring[$filter_key] = array_values($qstring[$filter_key]);
+    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
     return array_filter($qstring);
   }
 
