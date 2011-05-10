@@ -749,6 +749,16 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
+   * Returns the filter key.
+   *
+   * @return string
+   *   The filter key.
+   */
+  public function getFilterKey() {
+    return $this->filterKey;
+  }
+
+  /**
    * Gets facet setting for the passed realm.
    *
    * @param string|array $realm
@@ -850,36 +860,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Helper function that returns the query string variables for a facet item.
-   *
-   * @param array $values
-   *   An array containing the item's values being added to or removed from the
-   *   query string dependent on whether or not the item is active.
-   * @param int $active
-   *   An integer flagging whether the item is active or not.
-   *
-   * @reutrn
-   *   An array containing the query string variables.
-   */
-  public function getQueryString(array $values, $active) {
-    $qstring = $this->params;
-
-    // Appends to qstring if inactive, removes if inactive.
-    foreach ($values as $value) {
-      if ($active && isset($this->activeItems[$value])) {
-        unset($qstring[$this->filterKey][$this->activeItems[$value]['pos']]);
-      }
-      elseif (!$active) {
-        $qstring[$this->filterKey][] = $this->facet['field alias'] . ':' . $value;
-      }
-    }
-
-    // Resets array keys, returns query string.
-    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
-    return array_filter($qstring);
-  }
-
-  /**
    * Returns the facet's render array.
    *
    * @param $realm
@@ -894,7 +874,8 @@ class FacetapiFacet implements ArrayAccess {
     // Builds the base render array for this facet across all realms. This
     // ensures we are only pulling the data from the server once per facet.
     if (!$this->build) {
-      $this->initializeBuild()->processHierarchy()->processQueryStrings($this->build);
+      $processor = new FacetapiFacetProcessor($this);
+      $this->build = $processor->getBuild();
     }
 
     // Instantiates the widget plugin and executes.
@@ -957,9 +938,124 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
+   * Gets active facet items from the query string, stores as a property.
+   *
+   * @return
+   *   An instance of this class.
+   */
+  public function processActiveItems() {
+    $this->activeItems = array();
+
+    // Processes active items if the facet is enabled in at least one realm.
+    if (facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
+
+      // Gets active filters for this facet only, keys by value.
+      foreach ($this->adapter->getAllActiveItems() as $item) {
+        if ($item['field alias'] == $this->facet['field alias']) {
+          $this->activeItems[$item['value']] = $item;
+        }
+      }
+
+      // Allows the query type plugin to extract additional data, such as the
+      // start and end values from range queries.
+      $plugin = $this->adapter->getFacetQuery($this->facet);
+      foreach ($this->activeItems as &$item) {
+        $item += $plugin->extract($item);
+      }
+    }
+
+    return $this;
+  }
+}
+
+/**
+ * Processes facets, initializes the build.
+ */
+class FacetapiFacetProcessor {
+
+  /**
+   *
+   * @var FacetapiFacet
+   */
+  protected $facet;
+
+  /**
+   *
+   * @var array
+   */
+  protected $build;
+
+  /**
+   * Constructor, initializes render array.
+   */
+  public function __construct(FacetapiFacet $facet) {
+    $this->facet = $facet;
+
+    // Initializes render array.
+    $this
+      ->initializeBuild()
+      ->mapValues()
+      ->processHierarchy()
+      ->processQueryStrings($this->build);
+  }
+
+  /**
+   * Initializes render array.
+   *
+   * @return FacetapiFacetProcessor
+   *   An instance of this class.
+   */
+  protected function initializeBuild() {
+
+    // Build array defaults.
+    $defaults = array(
+      '#markup' => '',
+      '#indexed_value' => '',
+      '#count' => 0,
+      '#active' => 0,
+      '#item_parents' => array(),
+      '#item_children' => array(),
+    );
+
+    // Bails if there is no field attached to the facet, in other words if the
+    // facet is simply rendering markup.
+    if (!$this->facet['field']) {
+      $this->build = array();
+      return $this;
+    }
+
+    // Builds render arrays for each item.
+    $this->build = $this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())->build();
+    foreach (element_children($this->build) as $value) {
+      $item_defaults = array(
+        '#markup' => $value,
+        '#indexed_value' => $value,
+        '#active' => $this->facet->itemActive($value),
+      );
+      $this->build[$value] = array_merge($defaults, $item_defaults, $this->build[$value]);
+    }
+
+    return $this;
+  }
+
+  /**
+   * Maps the IDs to human readable values via the mapping callback.
+   *
+   * @return FacetapiFacetProcessor
+   *   An instance of this class.
+   */
+  protected function mapValues() {
+    if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
+      $map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
+      array_walk($this->build, 'facetapi_replace_ids', $map);
+    }
+    return $this;
+  }
+
+  /**
    * Processes hierarchical relationships between the facet items.
    *
-   * @return FacetapiFacet
+   * @return FacetapiFacetProcessor
    *   An instance of this class.
    */
   protected function processHierarchy() {
@@ -1024,34 +1120,44 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Gets active facet items from the query string, stores as a property.
+   * Helper function that returns the query string variables for a facet item.
    *
-   * @return
-   *   An instance of this class.
+   * @param array $values
+   *   An array containing the item's values being added to or removed from the
+   *   query string dependent on whether or not the item is active.
+   * @param int $active
+   *   An integer flagging whether the item is active or not.
+   *
+   * @reutrn
+   *   An array containing the query string variables.
    */
-  public function processActiveItems() {
-    $this->activeItems = array();
+  public function getQueryString(array $values, $active) {
+    $qstring = $this->facet->getAdapter()->getParams();
+    $active_items = $this->facet->getActiveItems();
+    $filter_key = $this->facet->getFilterKey();
 
-    // Processes active items if the facet is enabled in at least one realm.
-    if (facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
-
-      // Gets active filters for this facet only, keys by value.
-      foreach ($this->adapter->getAllActiveItems() as $item) {
-        if ($item['field alias'] == $this->facet['field alias']) {
-          $this->activeItems[$item['value']] = $item;
-        }
+    // Appends to qstring if inactive, removes if inactive.
+    foreach ($values as $value) {
+      if ($active && isset($active_items[$value])) {
+        unset($qstring[$filter_key][$active_items[$value]['pos']]);
       }
-
-      // Allows the query type plugin to extract additional data, such as the
-      // start and end values from range queries.
-      $plugin = $this->adapter->getFacetQuery($this->facet);
-      foreach ($this->activeItems as &$item) {
-        $item += $plugin->extract($item);
+      elseif (!$active) {
+        $qstring[$filter_key][] = $this->facet['field alias'] . ':' . $value;
       }
     }
 
-    return $this;
+    // Resets array keys, returns query string.
+    $qstring[$filter_key] = array_values($qstring[$filter_key]);
+    return array_filter($qstring);
   }
+
+  /**
+   * Gets the initialized render array.
+   */
+  public function getBuild() {
+    return $this->build;
+  }
+
 }
 
 /**
