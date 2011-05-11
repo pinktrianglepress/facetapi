@@ -95,12 +95,8 @@ class FacetapiWidgetLinks extends FacetapiWidget {
       }
 
       // Gets theme hook, adds last minute classes.
-      if ($item['#active']) {
-        $variables['options']['attributes']['class'][] = 'facet-unclick';
-      }
-      else {
-        $variables['options']['attributes']['class'][] = 'facet-click';
-      }
+      $class = ($item['#active']) ? 'facetapi-active' : 'facetapi-inactive';
+      $variables['options']['attributes']['class'][] = $class;
 
       // Themes the link, adds row to items.
       $row['data'] = theme($item['#theme'], $variables);

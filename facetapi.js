@@ -9,9 +9,9 @@ Drupal.behaviors.facetapi = {
     for (var index in settings.facetapi.facets) {
       if ('block' == settings.facetapi.facets[index].realmName) {
         // Find all checkbox facet links and give them a checkbox.
-        $('a.facet-checkbox.facet-click', context).each(Drupal.facetapi.addCheckbox);
+        $('a.facetapi-checkbox.facetapi-inactive', context).each(Drupal.facetapi.addCheckbox);
         // Find all unclick links and turn them into checkboxes.
-        $('a.facet-checkbox.facet-unclick', context).each(Drupal.facetapi.makeCheckbox);
+        $('a.facetapi-checkbox.facetapi-active', context).each(Drupal.facetapi.makeCheckbox);
         // Applies soft limit to the list.
         Drupal.facetapi.applyLimit(settings.facetapi.facets[index]);
       }
@@ -68,29 +68,29 @@ Drupal.facetapi.Redirect.prototype.gotoHref = function() {
 }
 
 Drupal.facetapi.addCheckbox = function() {
-  if (!$(this).hasClass('facet-checkbox-processed')) {
+  if (!$(this).hasClass('facetapi-checkbox-processed')) {
     // Create an unchecked checkbox.
-    var checkbox = $('<input type="checkbox" class="facet-checkbox" />');
+    var checkbox = $('<input type="checkbox" class="facetapi-checkbox" />');
     // Get the href of the link that is this DOM object.
     var href = $(this).attr('href');
     redirect = new Drupal.facetapi.Redirect(href);
     checkbox.click($.proxy(redirect, 'gotoHref'));
     $(this).before(checkbox).before('&nbsp;');
-    $(this).addClass('facet-checkbox-processed');
+    $(this).addClass('facetapi-checkbox-processed');
   }
 }
 
 Drupal.facetapi.makeCheckbox = function() {
-  if (!$(this).hasClass('facet-checkbox-processed')) {
+  if (!$(this).hasClass('facetapi-checkbox-processed')) {
     // Create a checked checkbox.
-    var checkbox = $('<input type="checkbox" class="facet-checkbox" checked="true" />');
+    var checkbox = $('<input type="checkbox" class="facetapi-checkbox" checked="true" />');
     // Get the href of the link that is this DOM object.
     var href = $(this).attr('href');
     redirect = new Drupal.facetapi.Redirect(href);
     checkbox.click($.proxy(redirect, 'gotoHref'));
     // Add the checkbox, hide the link.
     $(this).before(checkbox).hide();
-    $(this).addClass('facet-checkbox-processed');
+    $(this).addClass('facetapi-checkbox-processed');
   }
 }
 

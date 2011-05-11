@@ -17,6 +17,6 @@ class FacetapiWidgetCheckboxLinks extends FacetapiWidgetLinks {
    *   An array of classes.
    */
   public function getItemClasses() {
-    return array('facet-checkbox');
+    return array('facetapi-checkbox');
   }
 }
