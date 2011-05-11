@@ -68,7 +68,7 @@ abstract class FacetapiAdapter {
   protected $breadcrumbSet = FALSE;
 
   /**
-   * Define the array key in the params that is used for filters..
+   * Define the array key in the params that is used for filters.
    */
   const FILTER_KEY = 'f';
 
@@ -292,32 +292,27 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Requests facets and applies facet filters to the query.
+   * Adds facet query type plugins to the queue and invokes the execute() hook
+   * to allow for the backend to add filters to its native query object.
    *
-   * @param stdClass $query
-   *   The query in the backend's native API.
+   * @param mixed $query
+   *   The backend's native object.
    */
-  function addFacetsFilters($query) {
+  function addActiveFilters($query) {
+    $this->initActiveFilters($query);
     foreach ($this->getEnabledFacets() as $facet) {
       $this->addFacetQuery($facet, $query);
-      $this->addActiveFilters($facet, $query);
     }
   }
 
   /**
-   * Back-end specific function for adding filters.
+   * Allows the backend to initialize its query object before adding the facet
+   * filters.
    *
-   * Typically will call $this->getActiveItems($facet);
-   *
-   * @param array $facet
-   *   The facet definition.
    * @param mixed $query
-   *   A mixed value containing the query in the backend's native API.
-   *
-   * @return FacetapiFacet
-   *   The facet rendering object object.
+   *   The backend's native object.
    */
-  abstract public function addActiveFilters(array $facet, $query);
+  abstract public function initActiveFilters($query);
 
   /**
    * Returns the enabled facets associated with the instance of the adapter.
@@ -350,7 +345,8 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Adds a facet query to the backend.
+   * Adds a query type plugin to the queue, invokes the plugin's execute()
+   * method to add any filters to the query object.
    *
    * @param array $facet
    *   The facet definition.

@@ -83,5 +83,25 @@ function facetapi_install() {
  * Implementation of hook_uninstall().
  */
 function facetapi_uninstall() {
-  drupal_uninstall_schema('facetapi');
+  // Nothing to do...
+}
+
+/**
+ * Update hashed block deltas to a URL-safe form.
+ */
+function facetapi_update_7000() {
+  $result = db_query("SELECT name FROM {facetapi}");
+  foreach ($result as $f) {
+    if (strlen($r->name) > 32) {
+      $orig_delta = substr(base64_encode(hash('sha256', $r->name, TRUE)), 0, 32);
+      $new_delta = strtr($orig_delta, array('+' => '-', '/' => '_', '=' => ''));
+      db_update('block')
+        ->fields(array(
+          'delta' => $new_delta,
+        ))
+        ->condition('module', 'facetapi')
+        ->condition('delta', $orig_delta)
+        ->execute();
+    }
+  }
 }
