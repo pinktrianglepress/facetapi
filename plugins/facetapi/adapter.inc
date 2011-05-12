@@ -895,6 +895,11 @@ class FacetapiFacet implements ArrayAccess {
       $this->initializeBuild()->processHierarchy()->processQueryStrings($this->build);
     }
 
+    // If there are no items, return an empty array.
+    if (!$this->build) {
+      return array();
+    }
+
     // Instantiates the widget plugin and executes.
     $widget_name = $settings->settings['widget'];
     $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
