@@ -538,7 +538,9 @@ abstract class FacetapiAdapter {
 
     // Runs processing routine only once.
     // @todo Move this code to addActiveFilters().
-    // @todo Will Apache Solr know the search has been excuted in addActiveFilters()?
+    // @todo Will Apache Solr know the search has been excuted in
+    //       addActiveFilters()? Answer, no. apachesolr_has_searched() is called
+    //       AFTER the query execution function.
     if (!$this->processed) {
       $this->processed = TRUE;
 
