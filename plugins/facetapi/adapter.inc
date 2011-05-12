@@ -174,13 +174,12 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Processes and returns all active filters.
+   * Returns all active filters.
    *
    * @return array
    *   An array of active filters.
    */
   public function getAllActiveItems() {
-    // Returns array of active filters.
     return $this->activeItems;
   }
 
@@ -295,10 +294,17 @@ abstract class FacetapiAdapter {
    *   The backend's native object.
    */
   function addActiveFilters($query) {
+
+    // @todo Active items need to be processed by now.
+
     $this->initActiveFilters($query);
     foreach ($this->getEnabledFacets() as $facet) {
       $this->addFacetQuery($facet, $query);
     }
+
+    // @todo Facets should be built here so the mapped values and hierarchical
+    // relationships can be made available to the current search block and the
+    // breadcrumbs.
   }
 
   /**
@@ -531,6 +537,8 @@ abstract class FacetapiAdapter {
     }
 
     // Runs processing routine only once.
+    // @todo Move this code to addActiveFilters().
+    // @todo Will Apache Solr know the search has been excuted in addActiveFilters()?
     if (!$this->processed) {
       $this->processed = TRUE;
 
