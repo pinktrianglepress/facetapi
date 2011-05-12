@@ -211,21 +211,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Tests whether a facet item is active by passing it's value.
-   *
-   * @param array $facet
-   *   The facet definition.
-   * @param string $value
-   *   The value being checked.
-   *
-   * @return int
-   *   Returns 1 if the facet is active, 0 if the facet is not active.
-   */
-  public function itemActive(array $facet, $value) {
-    return $this->getFacet($facet)->itemActive($value);
-  }
-
-  /**
    * Returns the id of the adapter plugin.
    *
    * @return string
@@ -760,16 +745,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns the filter key.
-   *
-   * @return string
-   *   The filter key.
-   */
-  public function getFilterKey() {
-    return $this->filterKey;
-  }
-
-  /**
    * Gets facet setting for the passed realm.
    *
    * @param string|array $realm
@@ -902,51 +877,6 @@ class FacetapiFacet implements ArrayAccess {
 
     // Returns array keyed by the FacetapiWidget::$key property.
     return array($plugin->getKey() => $plugin->getBuild());
-  }
-
-  /**
-   * Builds the render arrays for the items in the facet.
-   *
-   * @return FacetapiFacet
-   *   An instance of this class.
-   */
-  protected function initializeBuild() {
-
-    // Build array defaults.
-    $defaults = array(
-      '#markup' => '',
-      '#indexed_value' => '',
-      '#count' => 0,
-      '#active' => 0,
-      '#item_parents' => array(),
-      '#item_children' => array(),
-    );
-
-    // Bails if there is no field attached to the facet, in other words if the
-    // facet is simply rendering markup.
-    if (!$this->facet['field']) {
-      $this->build = array();
-      return $this;
-    }
-
-    // Builds render arrays for each item.
-    $this->build = $this->adapter->getFacetQuery($this->facet)->build();
-    foreach (element_children($this->build) as $value) {
-      $item_defaults = array(
-        '#markup' => $value,
-        '#indexed_value' => $value,
-        '#active' => $this->itemActive($value),
-      );
-      $this->build[$value] = array_merge($defaults, $item_defaults, $this->build[$value]);
-    }
-
-    // Maps the IDs to human readable values via the mapping callback.
-    if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
-      $map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
-      array_walk($this->build, 'facetapi_replace_ids', $map);
-    }
-
-    return $this;
   }
 
   /**
