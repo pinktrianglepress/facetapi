@@ -312,7 +312,9 @@ abstract class FacetapiAdapter {
    * @param mixed $query
    *   The backend's native object.
    */
-  abstract public function initActiveFilters($query);
+  public function initActiveFilters($query) {
+    // Nothing to do ...
+  }
 
   /**
    * Returns the enabled facets associated with the instance of the adapter.
