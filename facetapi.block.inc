@@ -160,5 +160,5 @@ function facetapi_get_delta_map() {
  *   The hashed delta value.
  */
 function facetapi_hash_delta($delta) {
-  return (strlen($delta) <= 32) ? $delta : substr(drupal_hash_base64('sha256', $delta, TRUE), 0, 32);
+  return (strlen($delta) <= 32) ? $delta : substr(drupal_hash_base64($delta), 0, 32);
 }
