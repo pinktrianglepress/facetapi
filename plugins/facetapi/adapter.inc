@@ -558,6 +558,7 @@ abstract class FacetapiAdapter {
         $this->processors[$facet['name']] = new FacetapiFacetProcessor(
           $this->getFacet($facet), self::FILTER_KEY
         );
+        $this->processors[$facet['name']]->process();
       }
 
       // Sets the breadcrumb trail if a search was executed.
@@ -867,7 +868,7 @@ class FacetapiFacet implements ArrayAccess {
 class FacetapiFacetProcessor {
 
   /**
-   * Stores the mapped value.
+   * An array of mapped values keyed by their raw value.
    *
    * @var $map
    */
@@ -888,12 +889,14 @@ class FacetapiFacetProcessor {
   protected $filterKey;
 
   /**
+   * The facet's initialized render array.
    *
    * @var array
    */
-  protected $build;
+  protected $build = array();
 
   /**
+   * Arrays of children keyed by their active parent's value.
    *
    * @var array
    */
@@ -912,22 +915,72 @@ class FacetapiFacetProcessor {
   public function __construct(FacetapiFacet $facet, $filter_key) {
     $this->facet = $facet;
     $this->filterKey = $filter_key;
-
-    // Initializes render array.
-    $this
-      ->initializeBuild()
-      ->mapValues()
-      ->processHierarchy()
-      ->processQueryStrings($this->build);
   }
 
   /**
-   * Initializes render array.
+   * Processes the facet items.
+   */
+  public function process() {
+    $this->build = array();
+
+    // Only initializes facet if a query type plugin is registered for it.
+    // NOTE: We don't use the chaining patters so the methods can be tested.
+    if ($this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())) {
+      if ($this->build = $this->initializeBuild($this->build)) {
+        $this->build = $this->mapValues($this->build);
+        $this->build = $this->processHierarchy($this->build);
+        $this->processQueryStrings($this->build);
+      }
+    }
+  }
+
+  /**
+   * Gets an active item's children.
    *
-   * @return FacetapiFacetProcessor
-   *   An instance of this class.
+   * @param string $value
+   *   The value of the active item.
+   *
+   * @return array
+   *   The active item's childen.
+   */
+  public function getActiveChildren($value) {
+    return (isset($this->activeChildren[$value])) ? $this->activeChildren[$value] : array();
+  }
+
+  /**
+   * Gets the initialized render array.
+   */
+  public function getBuild() {
+    return $this->build;
+  }
+
+  /**
+   * Returns the human readable value associated with a raw value.
+   *
+   * @param string $value
+   *   The raw value passed through the query string.
+   *
+   * @return string
+   *   The mapped value.
+   */
+  public function getMappedValue($value) {
+    return (isset($this->map[$value])) ? $this->map[$value] : '';
+  }
+
+  /**
+   * Initializes the facet's render array.
+   *
+   * @return array
+   *   The initialized render array.
    */
   protected function initializeBuild() {
+    $build = array();
+
+    // Bails if there is no field attached to the facet, in other words if the
+    // facet is simply rendering markup.
+    if (!$this->facet['field']) {
+      return $build;
+    }
 
     // Build array defaults.
     $defaults = array(
@@ -939,59 +992,58 @@ class FacetapiFacetProcessor {
       '#item_children' => array(),
     );
 
-    // Bails if there is no field attached to the facet, in other words if the
-    // facet is simply rendering markup.
-    if (!$this->facet['field']) {
-      $this->build = array();
-      return $this;
-    }
-
     // Builds render arrays for each item.
     $adapter = $this->facet->getAdapter();
-    $this->build = $adapter->getFacetQuery($this->facet->getFacet())->build();
-    foreach (element_children($this->build) as $value) {
+    $build = $adapter->getFacetQuery($this->facet->getFacet())->build();
+    foreach (element_children($build) as $value) {
       $item_defaults = array(
         '#markup' => $value,
         '#indexed_value' => $value,
         '#active' => $adapter->itemActive($this->facet['name'], $value),
       );
-      $this->build[$value] = array_merge($defaults, $item_defaults, $this->build[$value]);
+      $build[$value] = array_merge($defaults, $item_defaults, $build[$value]);
     }
 
-    return $this;
+    return $build;
   }
 
   /**
    * Maps the IDs to human readable values via the mapping callback.
    *
-   * @return FacetapiFacetProcessor
-   *   An instance of this class.
+   * @param array $build
+   *   The initialized render array.
+   *
+   * @return array
+   *   The initialized render array with mapped values.
    */
-  protected function mapValues() {
-    if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
-      $this->map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
-      array_walk($this->build, 'facetapi_replace_ids', $this->map);
+  protected function mapValues(array $build) {
+    if ($this->facet['map callback']) {
+      $this->map = call_user_func($this->facet['map callback'], array_keys($build), $this->facet['map options']);
+      array_walk($build, 'facetapi_replace_ids', $this->map);
     }
-    return $this;
+    return $build;
   }
 
   /**
    * Processes hierarchical relationships between the facet items.
    *
-   * @return FacetapiFacetProcessor
-   *   An instance of this class.
+   * @param array $build
+   *   The initialized render array.
+   *
+   * @return array
+   *   The initialized render array with processed hierarchical relationships.
    */
-  protected function processHierarchy() {
+  protected function processHierarchy(array $build) {
 
     // Builds the hierarchy information if the hierarchy callback is defined.
-    if ($this->facet['hierarchy callback'] && $this->build) {
-      $parents = $this->facet['hierarchy callback'](array_keys($this->build));
+    if ($this->facet['hierarchy callback']) {
+      $parents = $this->facet['hierarchy callback'](array_keys($build));
       foreach ($parents as $value => $parents) {
         foreach ($parents as $parent) {
-          if (isset($this->build[$parent]) && isset($this->build[$value])) {
+          if (isset($build[$parent]) && isset($build[$value])) {
             // Use a reference so we see the updated data.
-            $this->build[$parent]['#item_children'][$value] = &$this->build[$value];
-            $this->build[$value]['#item_parents'][$parent] = $parent;
+            $build[$parent]['#item_children'][$value] = &$build[$value];
+            $build[$value]['#item_parents'][$parent] = $parent;
           }
         }
       }
@@ -1001,29 +1053,28 @@ class FacetapiFacetProcessor {
     // @todo: Can we make this more efficient?
     do {
       $active = 0;
-      foreach ($this->build as $value => $item) {
+      foreach ($build as $value => $item) {
         if ($item['#active'] && !empty($item['#item_parents'])) {
           // @todo Can we build facets with multiple parents? Core taxonomy
           // form cannot, so we will need a check here.
           foreach ($item['#item_parents'] as $parent) {
-            if (!$this->build[$parent]['#active']) {
-              $active = $this->build[$parent]['#active'] = 1;
+            if (!$build[$parent]['#active']) {
+              $active = $build[$parent]['#active'] = 1;
             }
           }
         }
       }
     } while ($active);
 
-    // Strips children whose parents are inactive
-    $this->build = array_filter($this->build, 'facetapi_filter_inactive_parent');
-    return $this;
+    // Strips children whose parents are inactive.
+    return array_filter($build, 'facetapi_filter_inactive_parent');
   }
 
   /**
    * Initializes the render array's query string variables.
    *
    * @param array &$build
-   *   The facet's render array.
+   *   The initialized render array.
    */
   protected function processQueryStrings(array &$build) {
     foreach ($build as $value => &$item) {
@@ -1076,39 +1127,6 @@ class FacetapiFacetProcessor {
     // Resets array keys, returns query string.
     $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
     return array_filter($qstring);
-  }
-
-  /**
-   * Gets an active item's children.
-   *
-   * @param string $value
-   *   The value of the active item.
-   *
-   * @return array
-   *   The active item's childen.
-   */
-  public function getActiveChildren($value) {
-    return (isset($this->activeChildren[$value])) ? $this->activeChildren[$value] : array();
-  }
-
-  /**
-   * Gets the initialized render array.
-   */
-  public function getBuild() {
-    return $this->build;
-  }
-
-  /**
-   * Returns the human readable value associated with a raw value.
-   *
-   * @param string $value
-   *   The raw value passed through the query string.
-   *
-   * @return string
-   *   The mapped value.
-   */
-  public function getMappedValue($value) {
-    return (isset($this->map[$value])) ? $this->map[$value] : '';
   }
 }
 
