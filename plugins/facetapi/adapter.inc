@@ -363,7 +363,7 @@ abstract class FacetapiAdapter {
    */
   public function getFacet(array $facet) {
     if (!isset($this->facets[$facet['name']])) {
-      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet, $this->params);
+      $this->facets[$facet['name']] = new FacetapiFacet($this, $facet);
     }
     return $this->facets[$facet['name']];
   }
@@ -675,13 +675,10 @@ class FacetapiFacet implements ArrayAccess {
    *   A FacetapiAdapter object.
    * @param $facet
    *   An array containing the facet definition.
-   * @param $params
-   *   An array of params such as $_GET.
    */
-  public function __construct(FacetapiAdapter $adapter, array $facet, array $params) {
+  public function __construct(FacetapiAdapter $adapter, array $facet) {
     $this->adapter = $adapter;
     $this->facet = $facet;
-    $this->params = $params;
   }
 
   /**
