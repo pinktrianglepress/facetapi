@@ -47,7 +47,7 @@ abstract class FacetapiAdapter {
   protected $processors = array();
 
   /**
-   * An array of executed query tyoe plugins keyed by field name.
+   * An array of executed query type plugins keyed by field name.
    *
    * @var array
    */
@@ -129,38 +129,63 @@ abstract class FacetapiAdapter {
    *   An instance of this class.
    */
   public function setParams(array $params = array()) {
-    // Need to rebuild active items and facets if we use different params.
-    $this->activeItems = $this->facets = array();
+    // Need to rebuild facets if we use different params.
+    $this->facets = array();
 
     // We never want to use 'q' or 'page' params.
-    unset($params['q'], $params['page']);
-    if (!isset($params[self::FILTER_KEY])) {
-      $params[self::FILTER_KEY] = array();
-    }
     $this->params = $params;
+    unset($this->params['q'], $this->params['page']);
+    if (!isset($this->params[self::FILTER_KEY])) {
+      $this->params[self::FILTER_KEY] = array();
+    }
+
+    // Processes active items, returns this class.
+    $this->processActiveItems();
+    return $this;
+  }
+
+  /**
+   * Processes active items.
+   */
+  public function processActiveItems() {
+    $this->activeItems = array('facet' => array(), 'filter' => array());
 
     // Groups enabled facets by facet alias.
     $enabled_aliases = array();
     foreach($this->getEnabledFacets() as $facet) {
       $enabled_aliases[$facet['field alias']][] = $facet['name'];
+      $this->activeItems['facet'][$facet['name']] = array();
     }
 
     // Extracts valid filters from query string.
-    foreach ($params[self::FILTER_KEY] as $pos => $filter) {
-      if (is_scalar($filter)) {
-        $parts = explode(':', $filter, 2);
-        if (isset($parts[1]) && isset($enabled_aliases[$parts[0]])) {
-          $this->activeItems[$filter] = array(
-            'facets' => $enabled_aliases[$parts[0]],
-            'field alias' => $parts[0],
-            'value' => $parts[1],
-            'pos' => $pos,
-          );
+    foreach ($this->params[self::FILTER_KEY] as $pos => $filter) {
+      // Bails if an object or array.
+      if (!is_scalar($filter)) {
+        continue;
+      }
+
+      // Performs basic parsing of the filter.
+      $parts = explode(':', $filter, 2);
+      if (isset($parts[1]) && isset($enabled_aliases[$parts[0]])) {
+
+        // Stores the base item.
+        $item = array(
+          'field alias' => $parts[0],
+          'value' => $parts[1],
+          'pos' => $pos,
+        );
+
+        // Stores active items in the global active item array.
+        $this->activeItems['filter'][$filter] = $item;
+        $this->activeItems['filter'][$filter]['facets'] = array();
+
+        // Stores active items per facet.
+        foreach ($enabled_aliases[$parts[0]] as $facet_name) {
+          $this->activeItems['filter'][$filter]['facets'][] = $facet_name;
+          $this->activeItems['facet'][$facet_name][$parts[1]] = $item;
         }
       }
     }
-
-    return $this;
   }
 
   /**
@@ -180,7 +205,7 @@ abstract class FacetapiAdapter {
    *   An array of active filters.
    */
   public function getAllActiveItems() {
-    return $this->activeItems;
+    return $this->activeItems['filter'];
   }
 
   /**
@@ -193,20 +218,22 @@ abstract class FacetapiAdapter {
    *   The facet's active items.
    */
   public function getActiveItems(array $facet) {
-    return $this->getFacet($facet)->getActiveItems();
+    return $this->activeItems['facet'][$facet['name']];
   }
 
   /**
-   * Returns The facet's active item values.
+   * Tests whether a facet item is active by passing it's value.
    *
-   * @param array $facet
-   *   The facet definition.
+   * @param string $facet_name
+   *   The facet name.
+   * @param string $value
+   *   The facet item's value.
    *
-   * @return array
-   *   The facet values keyed by position.
+   * @return
+   *   Returns 1 if the item is active, 0 if it is inactive.
    */
-  public function getActiveValues(array $facet) {
-    return $this->getFacet($facet)->getActiveValues();
+  public function itemActive($facet_name, $value) {
+    return (int) isset($this->activeItems['facet'][$facet_name][$value]);
   }
 
   /**
@@ -294,17 +321,10 @@ abstract class FacetapiAdapter {
    *   The backend's native object.
    */
   function addActiveFilters($query) {
-
-    // @todo Active items need to be processed by now.
-
     $this->initActiveFilters($query);
     foreach ($this->getEnabledFacets() as $facet) {
       $this->addFacetQuery($facet, $query);
     }
-
-    // @todo Facets should be built here so the mapped values and hierarchical
-    // relationships can be made available to the current search block and the
-    // breadcrumbs.
   }
 
   /**
@@ -349,8 +369,10 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Adds a query type plugin to the queue, invokes the plugin's execute()
-   * method to add any filters to the query object.
+   * Adds a query type plugin to the queue.
+   *
+   * Parses additional information from the active items, invokes the plugin's
+   * execute() method to add any filters to the query object.
    *
    * @param array $facet
    *   The facet definition.
@@ -359,8 +381,16 @@ abstract class FacetapiAdapter {
    */
   public function addFacetQuery(array $facet, $query) {
     if (isset($this->queryTypes[$facet['query type']])) {
+
+      // Instantiates query type plugin.
       $plugin = new $this->queryTypes[$facet['query type']]($this, $facet);
       $this->facetQueries[$facet['name']] = $plugin;
+
+      // Parses additional info from the passed value.
+      foreach ($this->activeItems['facet'][$facet['name']] as $value => &$item) {
+        $item += $plugin->extract($item);
+      }
+      // Adds filters to backend.
       $plugin->execute($query);
     }
   }
@@ -368,15 +398,36 @@ abstract class FacetapiAdapter {
   /**
    * Returns a registered facet query
    *
-   * @param array $facet
-   *   The facet definition.
+   * @param array|string $facet
+   *   The facet definition or facet name.
    *
    * @return FacetapiQueryTypeInterface
    *   The instantiated query type plugin.
    */
-  public function getFacetQuery(array $facet) {
-    if (isset($this->facetQueries[$facet['name']])) {
-      return $this->facetQueries[$facet['name']];
+  public function getFacetQuery($facet) {
+    $facet_name = (is_array($facet)) ? $facet['name'] : $facet;
+    if (isset($this->facetQueries[$facet_name])) {
+      return $this->facetQueries[$facet_name];
+    }
+  }
+
+  /**
+   * Returns the human readable value associated with a facet's raw value.
+   *
+   * @param string $facet_name
+   *   The machine readable name of the facet.
+   * @param string $value
+   *   The raw value passed through the query string.
+   *
+   * @return string
+   *   The mapped value.
+   */
+  public function getMappedValue($facet_name, $value) {
+    if (isset($this->processors[$facet_name])) {
+      return $this->processors[$facet_name]->getMappedValue($value);
+    }
+    else {
+      return '';
     }
   }
 
@@ -415,8 +466,10 @@ abstract class FacetapiAdapter {
     $last = end($active_items);
     foreach ($active_items as $item) {
       $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
-      // Maps the value to something human readable.
-      $value = $this->mapActiveItem($item);
+
+      // Replaces with the mapped value.
+      $value = $this->getMappedValue($item['facets'][0], $item['value']);
+
       // The last item should be text, not a link.
       if ($last == $item) {
         $breadcrumb[] = check_plain($value);
@@ -432,35 +485,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Awful method that maps a value when we don't know what facet it belongs to.
-   *
-   * The problem is that field aliases are not unique, so we can only guess as
-   * to which facet the active items belong to.
-   *
-   * @param array $item
-   *   An array containing the active item.
-   *
-   * @return mixed
-   *   The mapped value.
-   *
-   * @deprecated
-   * @todo Destroy with the utmost fury.
-   */
-  public function mapActiveItem(array $item) {
-    $value = $item['value'];
-    foreach ($this->getEnabledFacets() as $facet) {
-      if ($facet['field alias'] == $item['field alias'] && $facet['map callback'] && function_exists($facet['map callback'])) {
-        $mapped = call_user_func($facet['map callback'], array($value), $facet['map options']);
-        if (isset($mapped[$value])) {
-          $value = $mapped[$value];
-        }
-        continue;
-      }
-    }
-    return $value;
-  }
-
-  /**
    * Builds the content for the current search block.
    *
    * @return array
@@ -468,6 +492,9 @@ abstract class FacetapiAdapter {
    */
   public function buildCurrentSearch() {
     $items = array();
+
+    // Makes sure facet builds are initialized.
+    $this->processFacets();
 
     // Gets the base query string.
     $params = $this->params;
@@ -487,7 +514,7 @@ abstract class FacetapiAdapter {
 
       // Builds variables for active link theme.
       $variables = array(
-        'text' => $this->mapActiveItem($item),
+        'text' => $this->getMappedValue($item['facets'][0], $item['value']),
         'path' => $_GET['q'],
         'options' => array(
           'attributes' => array('class' => array()),
@@ -502,7 +529,7 @@ abstract class FacetapiAdapter {
 
     // If there are items, return the render array.
     if ($items) {
-      $build = array(
+      $content = array(
         '#title' => t('Current search'),
         'block' => array(
           '#theme' => 'item_list',
@@ -512,11 +539,32 @@ abstract class FacetapiAdapter {
 
       // Set message as title if list if result count was returned.
       if (NULL !== ($count = $this->getResultCount())) {
-        $build['block']['#title'] = format_plural($count, 'Search found 1 item', 'Search found @count items');
+        $content['block']['#title'] = format_plural($count, 'Search found 1 item', 'Search found @count items');
       }
 
       // Returns the render array for the block.
-      return $build;
+      return $content;
+    }
+  }
+
+  /**
+   * Initializes facet builds, adds breadcrumb trail.
+   */
+  protected function processFacets() {
+    if (!$this->processed) {
+      $this->processed = TRUE;
+
+      // Initializes each facet's render array.
+      foreach ($this->getEnabledFacets() as $facet) {
+        $this->processors[$facet['name']] = new FacetapiFacetProcessor(
+          $this->getFacet($facet), self::FILTER_KEY
+        );
+      }
+
+      // Sets the breadcrumb trail if a search was executed.
+      if ($this->searchExecuted()) {
+        $this->setBreadcrumb();
+      }
     }
   }
 
@@ -536,26 +584,8 @@ abstract class FacetapiAdapter {
       return array();
     }
 
-    // Runs processing routine only once.
-    // @todo Move this code to addActiveFilters().
-    // @todo Will Apache Solr know the search has been excuted in
-    //       addActiveFilters()? Answer, no. apachesolr_has_searched() is called
-    //       AFTER the query execution function.
-    if (!$this->processed) {
-      $this->processed = TRUE;
-
-      // Initializes each facet's render array.
-      foreach ($this->getEnabledFacets() as $facet) {
-        $this->processors[$facet['name']] = new FacetapiFacetProcessor(
-          $this->getFacet($facet), self::FILTER_KEY
-        );
-      }
-
-      // Sets the breadcrumb trail if a search was executed.
-      if ($this->searchExecuted()) {
-        $this->setBreadcrumb();
-      }
-    }
+    // Makes sure facet builds are initialized.
+    $this->processFacets();
 
     // Adds JavaScript, initializes render array.
     drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.js');
@@ -652,9 +682,6 @@ class FacetapiFacet implements ArrayAccess {
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->params = $params;
-    // Checks which facets are "active".
-    // @todo Is there a way to better lazy-load this?
-    $this->processActiveItems();
   }
 
   /**
@@ -739,22 +766,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns the facet's active items.
-   *
-   * @return array
-   *   The facet's active items.
-   */
-  public function getActiveItems() {
-    $active_items = array();
-    foreach ($this->adapter->getAllActiveItems() as $item) {
-      if ($item['field alias'] == $this->facet['field alias']) {
-        $active_items[$item['value']] = $item;
-      }
-    }
-    return $active_items;
-  }
-
-  /**
    * Gets facet setting for the passed realm.
    *
    * @param string|array $realm
@@ -817,42 +828,6 @@ class FacetapiFacet implements ArrayAccess {
   }
 
   /**
-   * Returns an array of the facet's active item values.
-   *
-   * This value is useful as a form element's default value.
-   *
-   * @return array
-   *   The facet values keyed by position.
-   */
-  public function getActiveValues() {
-    $values = array();
-    foreach ($this->getActiveItems() as $value => $item) {
-      $values[$item['pos']] = $value;
-    }
-    if (!empty($values)) {
-      $values = array_combine($values, $values);
-    }
-    return $values;
-  }
-
-  /**
-   * Tests whether a facet item is active by passing it's value.
-   *
-   * NOTE: This method returns an integer instead of a boolean because the value
-   * is used by the Facet API's custom sorting functions. It ends up being less
-   * code to compare integers than booleans.
-   *
-   * @param string $value
-   *   The facet item's value.
-   *
-   * @return
-   *   Returns 1 if the item is active, 0 if it is inactive.
-   */
-  public function itemActive($value) {
-    return (int) isset($this->activeItems[$value]);
-  }
-
-  /**
    * Returns the facet's render array.
    *
    * @param array $realm
@@ -888,36 +863,6 @@ class FacetapiFacet implements ArrayAccess {
     // Returns array keyed by the FacetapiWidget::$key property.
     return array($plugin->getKey() => $plugin->getBuild());
   }
-
-  /**
-   * Gets active facet items from the query string, stores as a property.
-   *
-   * @return
-   *   An instance of this class.
-   */
-  public function processActiveItems() {
-    $this->activeItems = array();
-
-    // Processes active items if the facet is enabled in at least one realm.
-    if (facetapi_facet_enabled($this->adapter->getSearcher(), NULL, $this->facet['name'])) {
-
-      // Gets active filters for this facet only, keys by value.
-      foreach ($this->adapter->getAllActiveItems() as $item) {
-        if ($item['field alias'] == $this->facet['field alias']) {
-          $this->activeItems[$item['value']] = $item;
-        }
-      }
-
-      // Allows the query type plugin to extract additional data, such as the
-      // start and end values from range queries.
-      $plugin = $this->adapter->getFacetQuery($this->facet);
-      foreach ($this->activeItems as &$item) {
-        $item += $plugin->extract($item);
-      }
-    }
-
-    return $this;
-  }
 }
 
 /**
@@ -926,6 +871,14 @@ class FacetapiFacet implements ArrayAccess {
 class FacetapiFacetProcessor {
 
   /**
+   * Stores the mapped value.
+   *
+   * @var $map
+   */
+  protected $map = array();
+
+  /**
+   * The facet being processed.
    *
    * @var FacetapiFacet
    */
@@ -992,12 +945,13 @@ class FacetapiFacetProcessor {
     }
 
     // Builds render arrays for each item.
-    $this->build = $this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())->build();
+    $adapter = $this->facet->getAdapter();
+    $this->build = $adapter->getFacetQuery($this->facet->getFacet())->build();
     foreach (element_children($this->build) as $value) {
       $item_defaults = array(
         '#markup' => $value,
         '#indexed_value' => $value,
-        '#active' => $this->facet->itemActive($value),
+        '#active' => $adapter->itemActive($this->facet['name'], $value),
       );
       $this->build[$value] = array_merge($defaults, $item_defaults, $this->build[$value]);
     }
@@ -1013,8 +967,8 @@ class FacetapiFacetProcessor {
    */
   protected function mapValues() {
     if ($this->build && $this->facet['map callback'] && function_exists($this->facet['map callback'])) {
-      $map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
-      array_walk($this->build, 'facetapi_replace_ids', $map);
+      $this->map = call_user_func($this->facet['map callback'], array_keys($this->build), $this->facet['map options']);
+      array_walk($this->build, 'facetapi_replace_ids', $this->map);
     }
     return $this;
   }
@@ -1099,8 +1053,9 @@ class FacetapiFacetProcessor {
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
-    $qstring = $this->facet->getAdapter()->getParams();
-    $active_items = $this->facet->getActiveItems();
+    $adapter = $this->facet->getAdapter();
+    $qstring = $adapter->getParams();
+    $active_items = $adapter->getActiveItems($this->facet->getFacet());
 
     // Appends to qstring if inactive, removes if inactive.
     foreach ($values as $value) {
@@ -1124,6 +1079,18 @@ class FacetapiFacetProcessor {
     return $this->build;
   }
 
+  /**
+   * Returns the human readable value associated with a raw value.
+   *
+   * @param string $value
+   *   The raw value passed through the query string.
+   *
+   * @return string
+   *   The mapped value.
+   */
+  public function getMappedValue($value) {
+    return (isset($this->map[$value])) ? $this->map[$value] : '';
+  }
 }
 
 /**
