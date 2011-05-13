@@ -211,8 +211,8 @@ abstract class FacetapiAdapter {
   /**
    * Returns a facet's active items.
    *
-   * @param array $facet
-   *   The facet definition.
+   * @param array|string $facet
+   *   The facet definition or facet name,
    *
    * @return array
    *   The facet's active items.
@@ -496,9 +496,6 @@ abstract class FacetapiAdapter {
     // Makes sure facet builds are initialized.
     $this->processFacets();
 
-    // Gets the base query string.
-    $params = $this->params;
-
     // Adds search keys.
     // @todo Need a getBaseQuery() method or something.
     if ($keys = $this->getSearchKeys()) {
@@ -507,10 +504,12 @@ abstract class FacetapiAdapter {
 
     // Adds active facets to the current search block.
     foreach ($this->getAllActiveItems() as $item) {
-      // Builds query string.
-      $query = $params;
-      unset($query[self::FILTER_KEY][$item['pos']]);
-      $query[self::FILTER_KEY] = array_values($query[self::FILTER_KEY]);
+
+      // Gets all children so they can be deactivated as well.
+      $values = array();
+      foreach ($item['facets'] as $facet_name) {
+        $values = array_merge($values, $this->processors[$facet_name]->getActiveChildren($item['value']));
+      }
 
       // Builds variables for active link theme.
       $variables = array(
@@ -519,7 +518,7 @@ abstract class FacetapiAdapter {
         'options' => array(
           'attributes' => array('class' => array()),
           'html' => FALSE,
-          'query' => array_filter($query),
+          'query' => $this->processors[$item['facets'][0]]->getQueryString($values, 1),
         ),
       );
 
@@ -895,6 +894,12 @@ class FacetapiFacetProcessor {
   protected $build;
 
   /**
+   *
+   * @var array
+   */
+  protected $activeChildren = array();
+
+  /**
    * Constructor, initializes render array.
    *
    * @param FacetapiFacet $facet
@@ -1023,13 +1028,17 @@ class FacetapiFacetProcessor {
   protected function processQueryStrings(array &$build) {
     foreach ($build as $value => &$item) {
       $values = array($value);
-
-      // If the item is active an has children, gets the paths for the children.
-      // Merges child values with this facet item's value so that unclicking the
-      // parent deactivated the children as well.
-      if (!empty($item['#active']) && !empty($item['#item_children'])) {
-        $this->processQueryStrings($item['#item_children']);
-        $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
+      if ($item['#active']) {
+        // If the item is active an has children, gets the paths for the
+        // children. Merges child values with this facet item's value so that
+        // unclicking the parent deactivates the children as well.
+        if (!empty($item['#item_children'])) {
+          $this->processQueryStrings($item['#item_children']);
+          $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
+        }
+        // Stores this item's active children so we can deactivate them in the
+        // current search block as well.
+        $this->activeChildren[$value] = $values;
       }
 
       // Formats query string for facet item, sets theme function.
@@ -1067,6 +1076,19 @@ class FacetapiFacetProcessor {
     // Resets array keys, returns query string.
     $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
     return array_filter($qstring);
+  }
+
+  /**
+   * Gets an active item's children.
+   *
+   * @param string $value
+   *   The value of the active item.
+   *
+   * @return array
+   *   The active item's childen.
+   */
+  public function getActiveChildren($value) {
+    return (isset($this->activeChildren[$value])) ? $this->activeChildren[$value] : array();
   }
 
   /**
