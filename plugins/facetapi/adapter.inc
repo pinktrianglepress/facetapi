@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Abstract classes and base plugin classes.
+ * Adapter plugin and adapter related calsses.
  */
 
 /**
@@ -326,9 +326,12 @@ abstract class FacetapiAdapter {
 
       // Invoke the dependency plugins.
       $display = TRUE;
-      foreach ($facet['dependency plugins'] as $plugin) {
-        // @todo Execute plugin here. Plugin will return TRUE, FALSE, or NULL.
-        // @todo Pass the adapter, the facet, and $this->activeItems['facet']
+      foreach ($facet['dependency plugins'] as $id) {
+        $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
+        $plugin = new $class($this, $facet, $this->activeItems['facet']);
+        if (NULL !== ($return = $plugin->execute())) {
+          $display = $return;
+        }
       }
 
       // Add query type plugin if dependencies were met, otherwise remove the
