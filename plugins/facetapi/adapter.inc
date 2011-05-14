@@ -323,7 +323,27 @@ abstract class FacetapiAdapter {
   function addActiveFilters($query) {
     $this->initActiveFilters($query);
     foreach ($this->getEnabledFacets() as $facet) {
-      $this->addFacetQuery($facet, $query);
+
+      // Invoke the dependency plugins.
+      $display = TRUE;
+      foreach ($facet['dependency plugins'] as $plugin) {
+        // @todo Execute plugin here. Plugin will return TRUE, FALSE, or NULL.
+        // @todo Pass the adapter, the facet, and $this->activeItems['facet']
+      }
+
+      // Add query type plugin if dependencies were met, otherwise remove the
+      // facet's active items so they don't display in the current search block
+      // or appear as active in the breadcrumb trail.
+      if ($display) {
+        $this->addFacetQuery($facet, $query);
+      }
+      else {
+        foreach ($this->activeItems['facet'][$facet['name']] as $item) {
+          $filter = $item['field alias'] . ':' . $item['value'];
+          unset($this->activeItems['filter'][$filter]);
+        }
+        unset($this->activeItems['facet']['bundle']);
+      }
     }
   }
 

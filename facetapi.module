@@ -354,6 +354,7 @@ function facetapi_get_facet_info($searcher) {
       'field' => $facet_name,
       'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
       'query type' => 'term',
+      'dependency plugins' => array(),
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
       'default widgets' => array(),
       'weight' => 0,
