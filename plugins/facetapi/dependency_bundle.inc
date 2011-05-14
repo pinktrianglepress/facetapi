@@ -8,7 +8,7 @@
 /**
  *
  */
-class FacetapiDependencyBundle {
+class FacetapiDependencyBundle extends FacetapiDependency {
 
   /**
    *

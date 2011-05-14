@@ -619,7 +619,7 @@ function facetapi_facetapi_dependencies() {
     'bundle' => array(
       'handler' => array(
         'label' => t('Content type'),
-        'class' => 'FacetapiBundleDependency',
+        'class' => 'FacetapiDependencyBundle',
       ),
     ),
   );
