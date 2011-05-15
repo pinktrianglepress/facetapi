@@ -586,6 +586,32 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
     ),
   );
 
+  $form['plugins'] = array(
+    '#type' => 'vertical_tabs',
+    '#weight' => 10,
+  );
+
+  // Iterates over plugins, adds settings as vertical tabs.
+  $plugins = ctools_get_plugins('facetapi', 'dependencies');
+  foreach ($dependencies as $plugin) {
+
+    // Initializes vertical tab.
+    $id = $plugin->getId();
+    $form[$id] = array(
+      '#type' => 'fieldset',
+      '#title' => check_plain($plugins[$id]['handler']['label']),
+      '#group' => 'plugins',
+    );
+
+    // Allows the plugin to add settings.
+    $plugin->settingsForm($form, $form_state);
+
+    // Removes vertical tab if nothing was added.
+    if (!element_children($form[$id])) {
+      unset($form[$id]);
+    }
+  }
+
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 20,
