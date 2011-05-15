@@ -151,17 +151,22 @@ function theme_facetapi_realm_settings_table($variables) {
 
     // Builds array of operations to use in the dropbutton.
     $operations = array();
-
     $operations[] = array(
       'title' => t('Edit'),
       'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit')
     );
-
+    if ($facet['dependency plugins']) {
+      $operations[] = array(
+        'title' => t('Dependencies'),
+        'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'dependencies')
+      );
+    }
     $operations[] = array(
       'title' => t('Export'),
       'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export')
     );
 
+    // Builds rows.
     $rows[$facet_name] = array(
       'class' => array('draggable'),
       'data' => array(
@@ -559,15 +564,27 @@ function facetapi_combine_settings($setting_name, $settings) {
  *
  * @param FacetapiAdapter $adapter
  *   The adapter the settings apply to.
- * @param array $dependencies
+ * @param array $realm
  *   The realm definition.
+ * @param array $dependencies
+ *   An array of dependencies.
  *
  * @return
  *   An array containing the form.
  *
  * @ingroup forms
  */
-function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $dependencies) {
+function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $dependencies) {
+
+  // Adds Facet API settings, excluded values aren't saved.
+  $form['#facetapi'] = array(
+    'adapter' => $adapter,
+    'realm' => $realm,
+    'excluded_values' => array(
+      'form_build_id', 'form_token', 'form_id', 'op', 'submit', 'submit_list',
+      'settings__active_tab',
+    ),
+  );
 
   $form['actions'] = array(
     '#type' => 'actions',
@@ -612,9 +629,11 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
  * Processes facetapi_facet_settings_form submissions.
  */
 function facetapi_facet_dependencies_form_submit($form, &$form_state) {
-
-  // @todo For development: REMOVE
   $success = TRUE;
+
+  // Pulls variables for code readability.
+  $adapter = $form['#facetapi']['adapter'];
+  $realm = $form['#facetapi']['realm'];
 
   // Sets message if both sets of configurations were saved.
   if ($success) {
