@@ -328,7 +328,7 @@ abstract class FacetapiAdapter {
       $display = TRUE;
       foreach ($facet['dependency plugins'] as $id) {
         $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-        $plugin = new $class($this, $facet, $this->activeItems['facet']);
+        $plugin = new $class($id, $this, $facet, $this->activeItems['facet']);
         if (NULL !== ($return = $plugin->execute())) {
           $display = $return;
         }
@@ -345,7 +345,7 @@ abstract class FacetapiAdapter {
           $filter = $item['field alias'] . ':' . $item['value'];
           unset($this->activeItems['filter'][$filter]);
         }
-        unset($this->activeItems['facet']['bundle']);
+        $this->activeItems['facet']['bundle'] = array();
       }
     }
   }

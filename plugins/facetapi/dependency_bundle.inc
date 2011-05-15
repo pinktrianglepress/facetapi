@@ -14,7 +14,7 @@ class FacetapiDependencyBundle extends FacetapiDependency {
    *
    */
   public function execute() {
-
+    return FALSE;
   }
 
 }

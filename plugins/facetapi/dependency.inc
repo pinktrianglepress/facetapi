@@ -40,11 +40,23 @@ abstract class FacetapiDependency {
    *
    * @param array $active_items
    *
+   * @param array $id
+   *
+   * @param array $label
+   *
    */
-  public function __construct(FacetapiAdapter $adapter, array $facet, array $active_items) {
+  public function __construct($id, FacetapiAdapter $adapter, array $facet, array $active_items = array()) {
+    $this->id = $id;
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->activeItems = $active_items;
+  }
+
+  /**
+   * Gets the id of the plugin.
+   */
+  public function getId() {
+    return $this->id;
   }
 
   /**
@@ -60,6 +72,13 @@ abstract class FacetapiDependency {
    *
    */
   public function settingsForm(&$form, &$form_state) {
+    // Nothing to do.
+  }
+
+  /**
+   *
+   */
+  public function defaultSettings() {
     // Nothing to do.
   }
 }

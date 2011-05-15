@@ -283,7 +283,7 @@ function facetapi_dependencies_load($facet_name, $searcher) {
   if ($facet && ($adapter = facetapi_adapter_load($searcher))) {
     foreach ($facet['dependency plugins'] as $id) {
       $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-      $dependencies[] = new $class($adapter, $facet, $adapter->getActiveItems($facet));
+      $dependencies[] = new $class($id, $adapter, $facet, $adapter->getActiveItems($facet));
     }
   }
   return ($dependencies) ? $dependencies : FALSE;
