@@ -116,6 +116,9 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 function theme_facetapi_realm_settings_table($variables) {
   $output = '';
 
+  // Adds CSS.
+  drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
+
   // Gets variales for code readability.
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
   $realm_name = $variables['element']['#facetapi']['realm']['name'];
@@ -123,7 +126,7 @@ function theme_facetapi_realm_settings_table($variables) {
   $header = array(
     'enabled' => array(),
     'label' => array('data' => t('Facet')),
-    'operations' => array('data' => t('Operations'), 'colspan' => 2),
+    'operations' => array('data' => t('Operations')),
     'weight' => array('data' => t('Weight')),
   );
 
@@ -131,6 +134,20 @@ function theme_facetapi_realm_settings_table($variables) {
   $rows = array();
   $facet_info = $variables['element']['#facetapi']['facet_info'];
   foreach ($facet_info as $facet_name => $facet) {
+
+    // Builds array of operations to use in the dropbutton.
+    $operations = array();
+
+    $operations[] = array(
+      'title' => t('Edit'),
+      'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit')
+    );
+
+    $operations[] = array(
+      'title' => t('Export'),
+      'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export')
+    );
+
     $rows[$facet_name] = array(
       'class' => array('draggable'),
       'data' => array(
@@ -140,19 +157,14 @@ function theme_facetapi_realm_settings_table($variables) {
         'label' => array(
           'data' => check_plain($facet['label']) . "<div class='description'>" . filter_xss($facet['description']) . '</div>',
         ),
-        'operations-1' => array(
-          'data' => array(
-            '#type' => 'link',
-            '#title' => t('Edit'),
-            '#href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit'),
-          ),
-        ),
-        'operations-2' => array(
-          'data' => array(
-            '#type' => 'link',
-            '#title' => t('Export'),
-            '#href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export'),
-          ),
+        'operations' => array(
+          'class' => 'facetapi-operations',
+          'data' => theme('links__ctools_dropbutton', array(
+            'links' => $operations,
+            'attributes' => array(
+              'class' => array('inline', 'links', 'actions', 'horizontal', 'right')
+            ),
+          )),
         ),
         'weight' => array(
           'data' => drupal_render($variables['element']['weight:' . $facet_name]),
@@ -189,7 +201,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
   $global_settings = $adapter->getFacet($facet)->getSettings();
 
-  // Adds LuceneAPI settings, excluded values aren't saved.
+  // Adds Facet API settings, excluded values aren't saved.
   $form['#facetapi'] = array(
     'adapter' => $adapter,
     'realm' => $realm,
