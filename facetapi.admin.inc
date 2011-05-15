@@ -557,7 +557,63 @@ function facetapi_combine_settings($setting_name, $settings) {
  */
 function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $dependencies) {
 
+  $form['actions'] = array(
+    '#type' => 'actions',
+    '#weight' => 20,
+  );
+
+  // Gets destination from query string which is set when the page is navigated
+  // to via a contextual link.
+  if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
+    $destination = $_GET['destination'];
+  }
+  else {
+    $destination = FALSE;
+  }
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+  );
+
+  // Do not show the button if the page was navigated to via a contextual link
+  // because it redirects back to the page the user came from.
+  if (!$destination) {
+    $form['actions']['submit_realm'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save and go back to realm settings'),
+    );
+  }
+
+  $form['actions']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => (!$destination) ? $adapter->getPath($realm['name']) : $destination,
+  );
+
+  $form['#submit'][] = 'facetapi_facet_dependencies_form_submit';
+
   return $form;
+}
+
+/**
+ * Processes facetapi_facet_settings_form submissions.
+ */
+function facetapi_facet_dependencies_form_submit($form, &$form_state) {
+
+  // @todo For development: REMOVE
+  $success = TRUE;
+
+  // Sets message if both sets of configurations were saved.
+  if ($success) {
+    drupal_set_message(t('The configuration options have been saved.'));
+  }
+
+  // Redirects back to the realm settings page if necessary.
+  $clicked = $form_state['clicked_button']['#value'];
+  if (t('Save and go back to realm settings') == $clicked) {
+    $form_state['redirect'] = $adapter->getPath($realm['name']);
+  }
 }
 
 /**
