@@ -6,11 +6,25 @@
  */
 
 /**
- * Facet settings.
+ * Realm settings form.
+ *
+ * @param $form
+ *
+ * @param &$form_state
+ *
+ * @param $searcher
+ *   A string containing the machine readable name of the searcher.
+ * @param $realm_name
+ *   A string containing the machine readable name of the realm.
+ *
+ * @return
+ *   An array containing the form.
+ *
+ * @ingroup forms
  */
 function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
 
-  // instantiates adapter, loads realm.
+  // Instantiates adapter, loads realm.
   $adapter = facetapi_adapter_load($searcher);
   $realm = facetapi_realm_load($realm_name);
   $form['#facetapi'] = array(
@@ -79,7 +93,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
 }
 
 /**
- *
+ * Processes facetapi_realm_settings_form form submissions.
  */
 function facetapi_realm_settings_form_submit($form, &$form_state) {
   $success = TRUE;
@@ -181,7 +195,23 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 }
 
 /**
+ * Facet display settings form.
  *
+ * @param $form
+ *
+ * @param &$form_state
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter the settings apply to.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @return
+ *   An array containing the form.
+ *
+ * @ingroup forms
  */
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
@@ -506,6 +536,28 @@ function facetapi_combine_settings($setting_name, $settings) {
       $settings->settings[$setting_name][$key] = $value;
     }
   }
+}
+
+/**
+ * Facet dependency settings form.
+ *
+ * @param $form
+ *
+ * @param &$form_state
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter the settings apply to.
+ * @param array $dependencies
+ *   The realm definition.
+ *
+ * @return
+ *   An array containing the form.
+ *
+ * @ingroup forms
+ */
+function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $dependencies) {
+
+  return $form;
 }
 
 /**

@@ -93,10 +93,14 @@ function facetapi_get_block($delta) {
 
   // Returns the individual block.
   if (isset($builds[$group][$facet_name])) {
-    // Add a contextual link to edit this facet.
+
+    // Adds contextual links.
     $builds[$group][$facet_name]['#contextual_links'] = array(
-      'facetapi' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/edit", array()),
+      'facetapi-display' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/edit", array()),
+      'facetapi-dependencies' => array("admin/config/search/facetapi/$searcher/$facet_name/dependencies", array()),
     );
+
+    // Returns the subject and content of the block.
     $variables = array('title' => $builds[$group][$facet_name]['#title']);
     return array(
       'subject' => theme('facetapi_title', $variables),

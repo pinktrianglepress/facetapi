@@ -124,6 +124,17 @@ function facetapi_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'facetapi.admin.inc',
   );
+
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_dependencies/dependencies'] = array(
+    'title' => 'Configure facet dependencies',
+    'load arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_facet_dependencies_form', 4, 5),
+    'access arguments' => array('administer search'),
+    'type' => MENU_CALLBACK,
+    'file' => 'facetapi.admin.inc',
+  );
+
   $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
     'load arguments' => array(4),
@@ -145,7 +156,10 @@ function facetapi_menu() {
  */
 function facetapi_menu_contextual_links_alter(&$links, $router_item, $root_path) {
   if ($root_path == 'admin/config/search/facetapi/%/%/%/edit' && $router_item['access']) {
-    $links['facetapi-'] = $router_item;
+    $links['facetapi-display'] = $router_item;
+  }
+  if ($root_path == 'admin/config/search/facetapi/%/%/dependencies' && $router_item['access']) {
+    $links['facetapi-dependencies'] = $router_item;
   }
 }
 
@@ -249,6 +263,30 @@ function facetapi_adapter_load($searcher) {
     }
   }
   return $adapters[$searcher];
+}
+
+/**
+ * Loads the dependency plugins associated with the facet.
+ *
+ * @param $facet_name
+ *   A string containing the machine readable name of the facet.
+ * @param $searcher
+ *   A string containing the machine readable name of the searcher module.
+ *
+ * @return
+ *   An array of instantiated dependency plugins, FALSE if the facet is not
+ *   valid or the facet has no dependency plugins associated with it.
+ */
+function facetapi_dependencies_load($facet_name, $searcher) {
+  $dependencies = array();
+  $facet = facetapi_facet_load($facet_name, $searcher);
+  if ($facet && ($adapter = facetapi_adapter_load($searcher))) {
+    foreach ($facet['dependency plugins'] as $id) {
+      $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
+      $dependencies[] = new $class($adapter, $facet, $adapter->getActiveItems($facet));
+    }
+  }
+  return ($dependencies) ? $dependencies : FALSE;
 }
 
 /**
