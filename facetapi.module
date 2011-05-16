@@ -171,13 +171,13 @@ function facetapi_ctools_plugin_type() {
     'adapters' => array(
       'use hooks' => TRUE,
     ),
+    'dependencies' => array(
+      'use hooks' => TRUE,
+    ),
     'query_types' => array(
       'use hooks' => TRUE,
     ),
     'widgets' => array(
-      'use hooks' => TRUE,
-    ),
-    'dependencies' => array(
       'use hooks' => TRUE,
     ),
   );
@@ -657,7 +657,7 @@ function facetapi_facetapi_dependencies() {
   return array(
     'bundle' => array(
       'handler' => array(
-        'label' => t('Content type'),
+        'label' => t('Content types'),
         'class' => 'FacetapiDependencyBundle',
       ),
     ),
