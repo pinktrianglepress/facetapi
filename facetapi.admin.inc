@@ -580,10 +580,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   $form['#facetapi'] = array(
     'adapter' => $adapter,
     'realm' => $realm,
-    'excluded_values' => array(
-      'form_build_id', 'form_token', 'form_id', 'op', 'submit', 'submit_list',
-      'settings__active_tab',
-    ),
+    'settings' => FALSE,
   );
 
   $form['plugins'] = array(
@@ -594,6 +591,11 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   // Iterates over plugins, adds settings as vertical tabs.
   $plugins = ctools_get_plugins('facetapi', 'dependencies');
   foreach ($dependencies as $plugin) {
+    // Only gets settings once.
+    if (!$form['#facetapi']['settings']) {
+      $settings = $adapter->getFacet($plugin->getFacet())->getSettings();
+      $form['#facetapi']['settings'] = $settings;
+    }
 
     // Initializes vertical tab.
     $id = $plugin->getId();
@@ -603,7 +605,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
       '#group' => 'plugins',
     );
 
-    // Allows the plugin to add settings.
+    // Allows plugin to add settings to the form.
     $plugin->settingsForm($form, $form_state);
 
     // Removes vertical tab if nothing was added.
@@ -660,6 +662,19 @@ function facetapi_facet_dependencies_form_submit($form, &$form_state) {
   // Pulls variables for code readability.
   $adapter = $form['#facetapi']['adapter'];
   $realm = $form['#facetapi']['realm'];
+  $settings = $form['#facetapi']['settings'];
+
+  // Gets dependency settings from form.
+  $settings->settings['dependencies'] = array_intersect_key(
+    $form_state['values'],
+    $settings->settings['dependencies']
+  );
+
+  // Writes the settings to the database.
+  if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
+    drupal_set_message(t('Error saving configuration options.'), 'error');
+    $success = FALSE;
+  }
 
   // Sets message if both sets of configurations were saved.
   if ($success) {

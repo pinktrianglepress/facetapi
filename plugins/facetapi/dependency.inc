@@ -32,6 +32,13 @@ abstract class FacetapiDependency {
   protected $activeItems;
 
   /**
+   * An array of facet settings.
+   *
+   * @var array
+   */
+  protected $settings;
+
+  /**
    *
    *
    * @param FacetapiAdapter $adapter
@@ -50,13 +57,30 @@ abstract class FacetapiDependency {
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->activeItems = $active_items;
+
+    // Captures dependency settings only.
+    $settings = $adapter->getFacet($this->facet)->getSettings();
+    $this->settings = $settings->settings['dependencies'];
   }
 
   /**
    * Gets the id of the plugin.
+   *
+   * @return string
+   *   The machine readable name of the plugin.
    */
   public function getId() {
     return $this->id;
+  }
+
+  /**
+   * Gets the facet definition.
+   *
+   * @return array
+   *   The facet definition.
+   */
+  public function getFacet() {
+    return $this->facet;
   }
 
   /**
@@ -78,7 +102,7 @@ abstract class FacetapiDependency {
   /**
    *
    */
-  public function defaultSettings() {
-    // Nothing to do.
+  public function getDefaultSettings() {
+    return array();
   }
 }

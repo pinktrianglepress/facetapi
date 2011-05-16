@@ -345,7 +345,7 @@ abstract class FacetapiAdapter {
           $filter = $item['field alias'] . ':' . $item['value'];
           unset($this->activeItems['filter'][$filter]);
         }
-        $this->activeItems['facet']['bundle'] = array();
+        $this->activeItems['facet'][$facet['name']] = array();
       }
     }
   }
@@ -841,6 +841,14 @@ class FacetapiFacet implements ArrayAccess {
           'operator' => FACETAPI_OPERATOR_AND,
           'hard_limit' => 50,
         );
+
+        // Loads default settings from dependency plugins.
+        foreach ($this->facet['dependency plugins'] as $id) {
+          $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
+          $plugin = new $class($id, $this->adapter, $this->facet, $this->adapter->getAllActiveItems());
+          $settings->settings['dependencies'] = array();
+          $settings->settings['dependencies'] += $plugin->getDefaultSettings();
+        }
       }
     }
 
