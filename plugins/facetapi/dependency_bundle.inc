@@ -6,7 +6,7 @@
  */
 
 /**
- *
+ * Adds a dependency on content type.
  */
 class FacetapiDependencyBundle extends FacetapiDependency {
 
@@ -16,8 +16,13 @@ class FacetapiDependencyBundle extends FacetapiDependency {
   public function execute() {
     switch ($this->settings['bundle']) {
       case 'referenced':
-
-        break;
+        // @todo Do we need defensive coding here?
+        $field_info = field_info_field($this->facet['field api name']);
+        $matches = array_intersect_key(
+          array_flip($field_info['bundles'][$this->adapter->getType()]),
+          $this->activeItems['bundle']
+        );
+        return ($matches) ? NULL : FALSE;
 
       case 'selected':
         $matches = array_intersect_key(
@@ -33,15 +38,18 @@ class FacetapiDependencyBundle extends FacetapiDependency {
    */
   public function settingsForm(&$form, &$form_state) {
 
-    // @todo Implement "referenced".
+    // Builds array of options.
+    $options = array();
+    $options['none'] = t('No dependencies.');
+    if ($this->facet['field api name']) {
+      $options['referenced'] = t('A content type this field is referenced by must be active.');
+    }
+    $options['selected'] = t('At least one of the selected content types must be active.');
+
     $form[$this->id]['bundle'] = array(
       '#title' => t('Dependency settings'),
       '#type' => 'radios',
-      '#options' => array(
-        'none' => t('No dependencies.'),
-        //'referenced' => t('A content type this field is referenced by must be active.'),
-        'selected' => t('At least one of the selected content types must be active.'),
-      ),
+      '#options' => $options,
       '#default_value' => $this->settings['bundle'],
     );
 
