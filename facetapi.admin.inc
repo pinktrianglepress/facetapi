@@ -407,10 +407,10 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   // Gets destination from query string which is set when the page is navigated
   // to via a contextual link.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
-    $destination = $_GET['destination'];
+    $url = drupal_parse_url($_GET['destination']);
   }
   else {
-    $destination = FALSE;
+    $url = array();
   }
 
   $form['actions']['submit'] = array(
@@ -420,7 +420,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
 
   // Do not show the button if the page was navigated to via a contextual link
   // because it redirects back to the page the user came from.
-  if (!$destination) {
+  if (!$url) {
     $form['actions']['submit_realm'] = array(
       '#type' => 'submit',
       '#value' => t('Save and go back to realm settings'),
@@ -430,7 +430,8 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => (!$destination) ? $adapter->getPath($realm['name']) : $destination,
+    '#href' => (!$url) ? $adapter->getPath($realm['name']) : $url['path'],
+    '#options' => (!$url) ? array() : array('query' => $url['query']),
   );
 
   $form['#submit'][] = 'facetapi_facet_settings_form_submit';
@@ -622,10 +623,10 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   // Gets destination from query string which is set when the page is navigated
   // to via a contextual link.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
-    $destination = $_GET['destination'];
+    $url = drupal_parse_url($_GET['destination']);
   }
   else {
-    $destination = FALSE;
+    $url = array();
   }
 
   $form['actions']['submit'] = array(
@@ -635,7 +636,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
 
   // Do not show the button if the page was navigated to via a contextual link
   // because it redirects back to the page the user came from.
-  if (!$destination) {
+  if (!$url) {
     $form['actions']['submit_realm'] = array(
       '#type' => 'submit',
       '#value' => t('Save and go back to realm settings'),
@@ -645,7 +646,8 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => (!$destination) ? $adapter->getPath($realm['name']) : $destination,
+    '#href' => (!$url) ? $adapter->getPath($realm['name']) : $url['path'],
+    '#options' => (!$url) ? array() : array('query' => $url['query']),
   );
 
   $form['#submit'][] = 'facetapi_facet_dependencies_form_submit';
