@@ -105,3 +105,27 @@ function facetapi_update_7000() {
     }
   }
 }
+
+/**
+ * Adds default dependency settings.
+ */
+function facetapi_update_7001() {
+  // There's no great way to do this, so we are just adding the dependency
+  // defaults to all settings. It won't hurt anything and will eliminate the
+  // need for overly complex logic in this update function.
+  $result = db_query("SELECT name, settings FROM {facetapi} WHERE realm = ''");
+  foreach ($result as $record) {
+    $settings = unserialize($record->settings);
+    if (empty($settings['dependencies'])) {
+      $settings['dependencies'] = array(
+        'bundle' => 'none',
+        'bundle_selected' => array(),
+      );
+      $args = array(
+        ':settings' => serialize($settings),
+        ':name' => $record->name,
+      );
+      db_query('UPDATE {facetapi} SET settings = :settings WHERE name = :name', $args);
+    }
+  }
+}
