@@ -366,8 +366,6 @@ function facetapi_get_realm_info() {
         'widget requirements' => array(),
         'weight' => 0,
         'sortable' => TRUE,
-        'ui' => TRUE,
-        'submit message' => t('The configuration options have been saved.'),
       );
     }
     drupal_alter('facetapi_realm_info', $realm_info);
