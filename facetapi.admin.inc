@@ -117,7 +117,13 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 
   // Sets message if all configurations were saved.
   if ($success && !empty($realm['submit message'])) {
-    drupal_set_message($realm['submit message']);
+    drupal_set_message(t('The configuration options have been saved.'));
+    if ('block' == $form['#facetapi']['realm']['name']) {
+      drupal_set_message(t(
+        'To enable or arrange the facet blocks, visit the <a href="@block-page">blocks administration page</a>.',
+        array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
+      ));
+    }
   }
 
   // Clears delta map cache.

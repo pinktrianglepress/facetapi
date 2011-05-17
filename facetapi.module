@@ -513,10 +513,6 @@ function facetapi_facetapi_realm_info() {
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
       array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
     ),
-    'submit message' => t(
-      'Configuration saved. To enable or arrange the facet blocks, visit the <a href="@block-page">blocks administration page</a>.',
-      array('@block-page' => url('admin/structure/block'))
-    ),
   );
 /* // @todo - implement this. http://drupal.org/node/1132744
   $realms['fieldset'] = array(
