@@ -42,7 +42,7 @@ class FacetapiDependencyBundle extends FacetapiDependency {
     $options = array();
     $options['none'] = t('No dependencies.');
     if ($this->facet['field api name']) {
-      $options['referenced'] = t('A content type this field is referenced by must be active.');
+      $options['referenced'] = t('A content type this field is attached to must be active.');
     }
     $options['selected'] = t('At least one of the selected content types must be active.');
 
