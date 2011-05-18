@@ -61,7 +61,6 @@ abstract class FacetapiDependency {
     $this->activeItems = $active_items;
 
     // Captures dependency settings only, makes sure defaults are set.
-    $settings = $adapter->getFacet($this->facet)->getSettings();
     if (empty($settings->settings['dependencies'])) {
       $settings->settings['dependencies'] = array();
     }
