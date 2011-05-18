@@ -144,7 +144,7 @@ function theme_facetapi_realm_settings_table($variables) {
   $realm_name = $variables['element']['#facetapi']['realm']['name'];
 
   $header = array(
-    'enabled' => array(),
+    'enabled' => array('data' => t('Enabled')),
     'label' => array('data' => t('Facet')),
     'operations' => array('data' => t('Operations')),
     'weight' => array('data' => t('Weight')),
@@ -158,17 +158,17 @@ function theme_facetapi_realm_settings_table($variables) {
     // Builds array of operations to use in the dropbutton.
     $operations = array();
     $operations[] = array(
-      'title' => t('Edit'),
+      'title' => t('Configure display'),
       'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit')
     );
     if ($facet['dependency plugins']) {
       $operations[] = array(
-        'title' => t('Dependencies'),
+        'title' => t('Configure dependencies'),
         'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'dependencies')
       );
     }
     $operations[] = array(
-      'title' => t('Export'),
+      'title' => t('Export configuration'),
       'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export')
     );
 
@@ -410,15 +410,19 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   // Gets destination from query string which is set when the page is navigated
   // to via a contextual link.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
+    $submit_text = t('Save and go back to search page');
+    $cancel_title = t('Return to the search page without saving configuration changes.');
     $url = drupal_parse_url($_GET['destination']);
   }
   else {
+    $submit_text = t('Save configuration');
+    $cancel_title = t('Return to the realm settings page without saving configuration changes.');
     $url = array();
   }
 
   $form['actions']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save configuration'),
+    '#value' => $submit_text,
   );
 
   // Do not show the button if the page was navigated to via a contextual link
@@ -435,6 +439,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#title' => t('Cancel'),
     '#href' => (!$url) ? $adapter->getPath($realm['name']) : $url['path'],
     '#options' => (!$url) ? array() : array('query' => $url['query']),
+    '#attributes' => array('title' => $cancel_title),
   );
 
   $form['#submit'][] = 'facetapi_facet_settings_form_submit';
@@ -626,15 +631,19 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   // Gets destination from query string which is set when the page is navigated
   // to via a contextual link.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
+    $submit_text = t('Save and go back to search page');
+    $cancel_title = t('Return to the search page without saving configuration changes.');
     $url = drupal_parse_url($_GET['destination']);
   }
   else {
+    $submit_text = t('Save configuration');
+    $cancel_title = t('Return to the realm settings page without saving configuration changes.');
     $url = array();
   }
 
   $form['actions']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save configuration'),
+    '#value' => $submit_text,
   );
 
   // Do not show the button if the page was navigated to via a contextual link
@@ -651,6 +660,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
     '#title' => t('Cancel'),
     '#href' => (!$url) ? $adapter->getPath($realm['name']) : $url['path'],
     '#options' => (!$url) ? array() : array('query' => $url['query']),
+    '#attributes' => array('title' => $cancel_title),
   );
 
   $form['#submit'][] = 'facetapi_facet_dependencies_form_submit';
