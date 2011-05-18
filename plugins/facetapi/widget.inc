@@ -74,7 +74,6 @@ abstract class FacetapiWidget {
     $this->realm = $realm;
     $this->settings = $settings;
     $this->settings->settings += $this->getDefaultSettings();
-    dsm($this->settings);
     $this->facet = $facet;
 
     // Sets the key of the element when appended to the realm's render array.
