@@ -111,7 +111,7 @@ abstract class FacetapiWidget {
     $this->sortFacet($this->build);
 
     // Initializes JavaScript settings.
-    $this->jsSettings = array(
+    $this->jsSettings += array(
       'id' => $this->build['#attributes']['id'],
       'searcher' => $searcher,
       'type' => $this->facet->getAdapter()->getType(),

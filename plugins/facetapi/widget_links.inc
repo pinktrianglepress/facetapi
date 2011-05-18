@@ -14,8 +14,8 @@ class FacetapiWidgetLinks extends FacetapiWidget {
    * Adds JS settings.
    */
   public function init() {
-    parent::init();
-    $this->jsSettings = array('limit' => $this->settings->settings['soft_limit']);
+    $this->jsSettings['limit'] = $this->settings->settings['soft_limit'];
+    return parent::init();
   }
 
   /**
