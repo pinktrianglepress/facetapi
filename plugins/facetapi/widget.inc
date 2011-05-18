@@ -11,6 +11,20 @@
 abstract class FacetapiWidget {
 
   /**
+   * The facet id.
+   *
+   * @var string
+   */
+  protected $id;
+
+  /**
+   * The realm definition.
+   *
+   * @var array
+   */
+  protected $realm;
+
+  /**
    * The facet object.
    *
    * @var FacetapiFacet
@@ -18,11 +32,18 @@ abstract class FacetapiWidget {
   protected $facet;
 
   /**
+   * The facet settings.
+   *
+   * @var stdClass
+   */
+  protected $settings;
+
+  /**
    * The normalized render array.
    *
    * @var array
    */
-  protected $build;
+  protected $build = array();
 
   /**
    * The key of the facet's render array added to the realm's render array.
@@ -36,7 +57,7 @@ abstract class FacetapiWidget {
    *
    * @var array
    */
-  protected $jsSettings;
+  protected $jsSettings = array();
 
   /**
    *
@@ -47,55 +68,89 @@ abstract class FacetapiWidget {
    * @param FacetapiFacet $facet
    *   The facet object.
    */
-  public function __construct(array $realm, stdClass $settings, FacetapiFacet $facet) {
+  public function __construct($id, array $realm, FacetapiFacet $facet, stdClass $settings) {
+    // Stores variables.
+    $this->id = $id;
+    $this->realm = $realm;
+    $this->settings = $settings;
     $this->facet = $facet;
 
+    // Sets the key of the element when appended to the realm's render array.
+    $this->key = $facet['field alias'];
+  }
+
+  /**
+   * Initializes the build, must be invoked prior to executing this widget.
+   *
+   * @return FacetapiWidget
+   *   An instance of this class.
+   */
+  public function init() {
+
     // Captures searcher for code readability.
-    $searcher = $facet->getAdapter()->getSearcher();
+    $searcher = $this->facet->getAdapter()->getSearcher();
 
     // Initializes render array.
     $this->build = array(
-      '#title' => $facet['label'],
-      '#description' => $facet['description'],
-      '#weight' => $facet['weight'],
-      '#adapter' => $facet->getAdapter(),
-      '#realm_name' => $realm['name'],
-      '#facet' => $facet->getFacet(),
-      '#settings' => $settings,
-      $facet['field alias'] => $facet->getBuild(),
+      '#title' => $this->facet['label'],
+      '#description' => $this->facet['description'],
+      '#weight' => $this->facet['weight'],
+      '#adapter' => $this->facet->getAdapter(),
+      '#realm_name' => $this->realm['name'],
+      '#facet' => $this->facet->getFacet(),
+      '#settings' => $this->settings,
+      $this->facet['field alias'] => $this->facet->getBuild(),
       '#attributes' => array(
-        'class' => drupal_html_class("facetapi-facet-{$facet['name']}"),
-        'id' => drupal_html_id("facetapi-facet-$searcher-{$realm['name']}-{$facet['name']}"),
+        'class' => drupal_html_class("facetapi-facet-{$this->facet['name']}"),
+        'id' => drupal_html_id("facetapi-facet-$searcher-{$this->realm['name']}-{$this->facet['name']}"),
       ),
     );
 
     // Applies sorting algorithms to the render array.
     $this->sortFacet($this->build);
 
-    // Sets the key of the element as appended to the realm's render array.
-    $this->key = $facet['field alias'];
-
-    // Gets widget from settings, finds default if necessary.
-    // @todo Implement default widgets.
-    $widget_name = $this->build['#settings']->settings['widget'];
-
     // Initializes JavaScript settings.
     $this->jsSettings = array(
       'id' => $this->build['#attributes']['id'],
       'searcher' => $searcher,
-      'type' => $facet->getAdapter()->getType(),
-      'realmName' => $realm['name'],
-      'facetName' => $facet['name'],
-      'queryType' => $facet['query type'],
-      'widget' => $settings->settings['widget'],
-      'limit' => $settings->settings['soft_limit'],
+      'type' => $this->facet->getAdapter()->getType(),
+      'realmName' => $this->realm['name'],
+      'facetName' => $this->facet['name'],
+      'queryType' => $this->facet['query type'],
+      'widget' => $this->settings->settings['widget'],
     );
+
+    return $this;
   }
 
   /**
    * Abstract public function.
    */
   abstract public function execute();
+
+  /**
+   * Allows the widget to provide additional settings to the form.
+   */
+  public function settingsForm(&$form, &$form_state) {
+    // Nothing to do ...
+  }
+
+  /**
+   * Returns an array of default settings
+   */
+  public function getDefaultSettings() {
+    return array();
+  }
+
+  /**
+   * Returns the render array.
+   *
+   * @return array
+   *   The render array.
+   */
+  public function getId() {
+    return $this->id;
+  }
 
   /**
    * Returns the render array.
@@ -116,7 +171,6 @@ abstract class FacetapiWidget {
   public function getKey() {
     return $this->key;
   }
-
 
   /**
    * Returns the JavaScript settings.

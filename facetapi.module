@@ -284,7 +284,8 @@ function facetapi_dependencies_load($facet_name, $searcher) {
     foreach ($facet['dependency plugins'] as $id) {
       // NOTE: CTools plugin component is loaded by facetapi_adapter_load().
       $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-      $dependencies[] = new $class($id, $adapter, $facet, $adapter->getActiveItems($facet));
+      $settings = $adapter->getFacet($facet)->getSettings();
+      $dependencies[] = new $class($id, $adapter, $facet, $settings, $adapter->getActiveItems($facet));
     }
   }
   return ($dependencies) ? $dependencies : FALSE;
@@ -397,7 +398,6 @@ function facetapi_get_facet_info($searcher) {
       'query type' => 'term',
       'dependency plugins' => array(),
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
-      'default widgets' => array(),
       'weight' => 0,
       'map callback' => FALSE,
       'map options' => array(),
@@ -535,7 +535,6 @@ function facetapi_facetapi_facet_info($searcher_info) {
       'description'=> t('Filter by content type.'),
       'map callback'=> 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
-      'default widgets' => array('facetapi_checkboxes'),
     );
 
     $facets['author'] = array(
@@ -557,7 +556,6 @@ function facetapi_facetapi_facet_info($searcher_info) {
     $facets['created'] = array(
       'label' => t('Post date'),
       'description' => t('Filter by the date the node was posted.'),
-      'widget requirements' => array('date'),
       'query type' => 'date',
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE),
       'map callback' => 'facetapi_map_date',
@@ -572,7 +570,6 @@ function facetapi_facetapi_facet_info($searcher_info) {
     $facets['changed'] = array(
       'label' => t('Updated date'),
       'description' => t('Filter by the date the node was last modified.'),
-      'widget requirements' => array('date'),
       'query type' => 'date',
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE),
       'map callback' => 'facetapi_map_date',

@@ -237,6 +237,7 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
  * @ingroup forms
  */
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+  drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.admin.js');
 
   $searcher = $adapter->getSearcher();
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
@@ -327,11 +328,14 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   uasort($widget_info, 'drupal_sort_weight');
   */
 
-  // Builds select options for widgets.
+  // Builds select options for widgets, allows widgets to add settings.
   ctools_include('plugins');
   $widget_options = array();
   foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
     $widget_options[$id] = $plugin['handler']['label'];
+    $class = $plugin['handler']['class'];
+    $plugin = new $class($id, $realm, $adapter->getFacet($facet), $facet_settings);
+    $plugin->settingsForm($form, $form_state);
   }
 
   $form['realm']['widget'] = array(
@@ -339,14 +343,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#title' => t('Display widget'),
     '#default_value' => $facet_settings->settings['widget'],
     '#options' => $widget_options,
-  );
-
-  $form['realm']['soft_limit'] = array(
-    '#type' => 'select',
-    '#title' => t('Soft limit'),
-    '#default_value' => $facet_settings->settings['soft_limit'],
-    '#options' => array(0 => t('No limit')) + drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
-    '#description' => t('Limits the number of displayed facets via JavaScript.'),
+    '#weight' => -10,
   );
 
   // Initializes the sorting table.

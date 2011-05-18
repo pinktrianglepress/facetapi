@@ -47,19 +47,20 @@ abstract class FacetapiDependency {
    *
    * @param array $active_items
    *
+   * @param stdClass $settings
+   *
    * @param array $id
    *
    * @param array $label
    *
    */
-  public function __construct($id, FacetapiAdapter $adapter, array $facet, array $active_items = array()) {
+  public function __construct($id, FacetapiAdapter $adapter, array $facet, stdClass $settings, array $active_items = array()) {
     $this->id = $id;
     $this->adapter = $adapter;
     $this->facet = $facet;
     $this->activeItems = $active_items;
 
     // Captures dependency settings only.
-    $settings = $adapter->getFacet($this->facet)->getSettings();
     $this->settings = $settings->settings['dependencies'];
   }
 

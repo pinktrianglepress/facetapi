@@ -323,12 +323,13 @@ abstract class FacetapiAdapter {
   function addActiveFilters($query) {
     $this->initActiveFilters($query);
     foreach ($this->getEnabledFacets() as $facet) {
+      $settings = $this->getFacet($facet)->getSettings();
 
       // Invoke the dependency plugins.
       $display = TRUE;
       foreach ($facet['dependency plugins'] as $id) {
         $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-        $plugin = new $class($id, $this, $facet, $this->activeItems['facet']);
+        $plugin = new $class($id, $this, $facet, $settings, $this->activeItems['facet']);
         if (NULL !== ($return = $plugin->execute())) {
           $display = $return;
         }
@@ -463,7 +464,7 @@ abstract class FacetapiAdapter {
 
     $keys = $this->getSearchKeys();
     $active_items = $this->getAllActiveItems();
-    // Make sure the search page itself is in the breadcrub if we are going to
+    // Make sure the search page itself is in the breadcrumb if we are going to
     // add more crumbs. Wow this breadcrumb code sucks.
     $item = menu_get_item();
     $last_load_func = is_array($item['load_functions']) ? end($item['load_functions']) : NULL;
@@ -797,20 +798,20 @@ class FacetapiFacet implements ArrayAccess {
    */
   public function getSettings($realm = NULL) {
     // Normalizes the realm name.
-    if (!$realm) {
-      $realm_name = '';
-    }
-    elseif (is_array($realm)) {
-      $realm_name = $realm['name'];
+    if (!is_array($realm)) {
+      $realm_name = ($realm) ? $realm : '';
+      $realm = ($realm) ? facetapi_realm_load($realm_name) : array();
     }
     else {
-      $realm_name = $realm;
+      $realm_name = $realm['name'];
     }
 
     // Loads the settings via the CTools API.
     ctools_include('export');
     $name = $this->adapter->getSearcher() . ':' . $realm_name . ':' . $this->facet['name'];
     if (!$settings = ctools_export_crud_load('facetapi', $name)) {
+
+      // Initializes settings object.
       $settings = ctools_export_crud_new('facetapi');
       $settings->name = $name;
       $settings->searcher = $this->adapter->getSearcher();
@@ -818,10 +819,11 @@ class FacetapiFacet implements ArrayAccess {
       $settings->facet = $this->facet['name'];
       $settings->enabled = 0;
 
-      if ($realm_name) {
+      if ($realm) {
+
+        // Initializes realm-specific settings.
         $settings->settings = array(
           'weight' => 0,
-          'soft_limit' => 20,
           'widget' => 'facetapi_links',
           'active_sorts' => array(),
           'sort_weight' => array(),
@@ -835,21 +837,33 @@ class FacetapiFacet implements ArrayAccess {
           $settings->settings['sort_weight'][$default[0]] = $weight++;
           $settings->settings['sort_order'][$default[0]] = $default[1];
         }
+
+        // Loads default widget plugin, adds settings.
+        $id = $realm['default widget'];
+        $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
+        $plugin = new $class($id, $realm, $this, $settings);
+        $settings->settings += $plugin->getDefaultSettings();
+
       }
       else {
+
+        // Initializes settings.
         $settings->settings = array(
           'operator' => FACETAPI_OPERATOR_AND,
           'hard_limit' => 50,
+          'dependencies' => array(),
         );
 
         // Loads default settings from dependency plugins.
         foreach ($this->facet['dependency plugins'] as $id) {
           $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-          $plugin = new $class($id, $this->adapter, $this->facet, $this->adapter->getAllActiveItems());
+          $plugin = new $class($id, $this->adapter, $this->facet, $settings, $this->adapter->getAllActiveItems());
           $settings->settings['dependencies'] = array();
           $settings->settings['dependencies'] += $plugin->getDefaultSettings();
         }
       }
+
+      // @todo Explore whether we should save settings for performance.
     }
 
     return $settings;
@@ -881,8 +895,8 @@ class FacetapiFacet implements ArrayAccess {
     // Instantiates the widget plugin and executes.
     $widget_name = $settings->settings['widget'];
     $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
-    $plugin = new $class($realm, $settings, $this);
-    $plugin->execute();
+    $plugin = new $class($widget_name, $realm, $this, $settings);
+    $plugin->init()->execute();
 
     // Adds JavaScript settings in a way that merges with others already set.
     $merge_settings['facetapi']['facets'][] = $plugin->getJavaScriptSettings();

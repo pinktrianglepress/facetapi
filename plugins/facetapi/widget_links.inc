@@ -11,6 +11,14 @@
 class FacetapiWidgetLinks extends FacetapiWidget {
 
   /**
+   * Adds JS settings.
+   */
+  public function init() {
+    parent::init();
+    $this->jsSettings = array('limit' => $this->settings->settings['soft_limit']);
+  }
+
+  /**
    * Renders the links.
    */
   public function execute() {
@@ -104,5 +112,44 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     }
 
     return $items;
+  }
+
+  /**
+   * Adds the soft limit setting.
+   */
+  function settingsForm(&$form, &$form_state) {
+    // @see http://drupal.org/node/735528 for supporting multiple values in the
+    // FAPI #states. The following hack adds multiple form elements and uses CSS
+    // and JavaScript to ensure only one is displayed at a time. Only the last
+    // form element actually passes the value.
+    $form['realm']['widget_settings']['links'][$this->id]['soft_limit'] = array(
+      '#type' => 'select',
+      '#title' => t('Soft limit'),
+      '#default_value' => $this->settings->settings['soft_limit'],
+      '#options' => array(0 => t('No limit')) + drupal_map_assoc(array(50, 40, 30, 20, 15, 10, 5, 3)),
+      '#description' => t('Limits the number of displayed facets via JavaScript.'),
+      '#states' => array(
+        'visible' => array(
+          'select[name="widget"]' => array('value' => $this->id),
+        ),
+      ),
+    );
+
+    // Hides all but the last element. The #states system will override this,
+    // however it is necessary if JavaScript is disabled so multiple elements
+    // aren't displayed to the user.
+    $last = end($form['realm']['widget_settings']['links']);
+    foreach ($form['realm']['widget_settings']['links'] as $id => $element) {
+      if ($last != $element) {
+        $form['realm']['widget_settings']['links'][$id]['#attributes']['style'] = 'display: none;';
+      }
+    }
+  }
+
+  /**
+   * Returns defaults for the settings this widget provides.
+   */
+  function getDefaultSettings() {
+    return array('soft_limit' => 20);
   }
 }
