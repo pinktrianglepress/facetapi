@@ -285,7 +285,7 @@ function facetapi_dependencies_load($facet_name, $searcher) {
       // NOTE: CTools plugin component is loaded by facetapi_adapter_load().
       $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
       $settings = $adapter->getFacet($facet)->getSettings();
-      $dependencies[] = new $class($id, $adapter, $facet, $settings, $adapter->getActiveItems($facet));
+      $dependencies[] = new $class($id, $adapter, $facet, $settings);
     }
   }
   return ($dependencies) ? $dependencies : FALSE;
