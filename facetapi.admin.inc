@@ -437,7 +437,9 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#options' => (!$url) ? array() : array('query' => $url['query']),
   );
 
+  // Adds submit handler, allow the adapter to alter the form.
   $form['#submit'][] = 'facetapi_facet_settings_form_submit';
+  $adapter->settingsForm($form, $form_state);
 
   return $form;
 }

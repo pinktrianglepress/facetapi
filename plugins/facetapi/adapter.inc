@@ -314,6 +314,23 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Allows for backend specific overrides to the settings form.
+   */
+  public function settingsForm(&$form, &$form_state) {
+    // Nothing to do...
+  }
+
+  /**
+   * Provides default values for the backend specific settings.
+   *
+   * @return array
+   *   The defaults keyed by setting name to value.
+   */
+  public function getDefaultSettings() {
+    return array();
+  }
+
+  /**
    * Adds facet query type plugins to the queue and invokes the execute() hook
    * to allow for the backend to add filters to its native query object.
    *
@@ -854,6 +871,9 @@ class FacetapiFacet implements ArrayAccess {
           'dependencies' => array(),
         );
 
+        // Loads the default settings from the adapter.
+        $settings->settings += $this->adapter->getDefaultSettings();
+
         // Loads default settings from dependency plugins.
         foreach ($this->facet['dependency plugins'] as $id) {
           $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
@@ -861,6 +881,7 @@ class FacetapiFacet implements ArrayAccess {
           $settings->settings['dependencies'] = array();
           $settings->settings['dependencies'] += $plugin->getDefaultSettings();
         }
+
       }
 
       // @todo Explore whether we should save settings for performance.
