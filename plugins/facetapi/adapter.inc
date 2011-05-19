@@ -990,7 +990,7 @@ class FacetapiFacetProcessor {
     $this->build = array();
 
     // Only initializes facet if a query type plugin is registered for it.
-    // NOTE: We don't use the chaining patters so the methods can be tested.
+    // NOTE: We don't use the chaining pattern so the methods can be tested.
     if ($this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())) {
       if ($this->build = $this->initializeBuild($this->build)) {
         $this->build = $this->mapValues($this->build);

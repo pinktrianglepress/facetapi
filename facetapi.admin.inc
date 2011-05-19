@@ -38,6 +38,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
     '#markup' => filter_xss_admin($realm['description']),
     '#suffix' => "</div>\n",
   );
+
   $form['performance'] = array(
     '#prefix' => '<div class="facetapi-performance-note">',
     '#markup' => t('For performance reasons, you should only enable facets that you intend to have available to users on the search page.'),
@@ -54,9 +55,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   foreach ($form['#facetapi']['facet_info'] as $facet_name => $facet) {
     $settings = $adapter->getFacet($facet)->getSettings($realm);
 
-    // Gets weight, appends to facet_info array for sorting.
     $form['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
-
     $form['table']['weight:' . $facet_name] = array(
       '#type' => 'select',
       '#options' => drupal_map_assoc(range(-50, 50)),
@@ -65,7 +64,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
     );
 
     $options[$facet_name] = '';
-    $default_value[$facet_name] = empty($settings->enabled) ? 0: $facet_name;
+    $default_value[$facet_name] = (!$settings->enabled) ? 0 : $facet_name;
   }
 
   // Sorts by the weight appended above.
@@ -116,7 +115,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
   }
 
   // Sets message if all configurations were saved.
-  if ($success && !empty($realm['submit message'])) {
+  if ($success) {
     drupal_set_message(t('The configuration options have been saved.'));
     if ('block' == $form['#facetapi']['realm']['name']) {
       drupal_set_message(t(
@@ -136,7 +135,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 function theme_facetapi_realm_settings_table($variables) {
   $output = '';
 
-  // Adds CSS.
+  // Adds CSS to ensure that the dropbutton looks nice.
   drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
 
   // Gets variales for code readability.
@@ -237,13 +236,17 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
  * @ingroup forms
  */
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+  drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
   drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.admin.js');
 
+  // Captures variables and settings for code readability.
   $searcher = $adapter->getSearcher();
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
   $global_settings = $adapter->getFacet($facet)->getSettings();
 
-  // Adds Facet API settings, excluded values aren't saved.
+  // Stores required items that are related to the facet being configured in
+  // this form. The excluded values are items submitted through the form that
+  // should not be stores as configuration options.
   $form['#facetapi'] = array(
     'adapter' => $adapter,
     'realm' => $realm,
@@ -255,25 +258,116 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     ),
   );
 
+  ////
+  ////
+  //// Widget settings
+  ////
+  ////
+
+  $form['widget'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Widget settings'),
+  );
+
+  // Builds select options for widgets, allows widgets to add settings.
+  ctools_include('plugins');
+  $widget_options = array();
+  foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
+    $widget_options[$id] = $plugin['handler']['label'];
+    $class = $plugin['handler']['class'];
+    $plugin = new $class($id, $realm, $adapter->getFacet($facet), $facet_settings);
+    $plugin->settingsForm($form, $form_state);
+  }
+
+  $form['widget']['widget'] = array(
+    '#type' => 'select',
+    '#title' => t('Display widget'),
+    '#default_value' => $facet_settings->settings['widget'],
+    '#options' => $widget_options,
+    '#weight' => -10,
+    '#description' => t('Select the display widget used to render this facet.'),
+  );
+
+  ////
+  ////
+  //// Sort settings
+  ////
+  ////
+
+  $form['widget']['sort'] = array(
+    '#prefix' => '<div class="facetapi-sort-table">',
+    '#suffix' => '</div>',
+    '#weight' => -10,
+  );
+
+  $form['widget']['sort']['table'] = array(
+    '#theme' => 'facetapi_sort_settings_table',
+    '#facetapi' => &$form['#facetapi'],
+  );
+
+  // Initializes sorts with default settings, orders by default weight. Ordering
+  // the weights allows us to iterate over them in order when building the
+  // form elements in the foreach() loop below.
+  $sort_weight = $facet_settings->settings['sort_weight'];
+  $sort_order = $facet_settings->settings['sort_order'];
+  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
+    $weight = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
+    $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
+    $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
+  }
+
+  // Orders the sorts by the default weights set above.
+  uasort($form['#facetapi']['sort_info'], 'drupal_sort_weight');
+
+  // Builds checkbox options and weight dropboxes.
+  $sort_options = array();
+  foreach ($form['#facetapi']['sort_info'] as $sort_name => $sort) {
+    $sort_options[$sort_name] = '';
+
+    $order_default = (isset($sort_order[$sort_name])) ? $sort_order[$sort_name] : SORT_ASC;
+    $form['widget']['sort']['table']['sort_order:' . $sort_name] = array(
+      '#type' => 'select',
+      '#title' => '',
+      '#options' => array(
+        SORT_DESC => t('Descending'),
+        SORT_ASC => t('Ascending'),
+      ),
+      '#default_value' => $order_default,
+    );
+
+    $weight_default = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
+    $form['widget']['sort']['table']['sort_weight:'. $sort_name] = array(
+      '#type' => 'weight',
+      '#title' => '',
+      '#delta' => 50,
+      '#default_value' => $weight_default,
+      '#attributes' => array('class' => array('facetapi-sort-weight')),
+    );
+  }
+
+  $form['widget']['sort']['table']['active_sorts'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $sort_options,
+    '#default_value' => $facet_settings->settings['active_sorts'],
+  );
+
+  ////
+  ////
+  //// Global settings
+  ////
+  ////
+
   $form['global'] = array(
     '#type' => 'fieldset',
     '#title' => t('Global settings'),
-    '#description' => t(
-      'Configuration settings for the %facet facet across <em>all</em> realms that apply to %searcher searches.',
-      array(
-        '%facet' => $facet['label'],
-        '%searcher' => $searcher,
-      )
-    ),
-    '#collapsible' => TRUE,
+    '#description' => t('The configuration options below apply to this facet across <em>all</em> realms.'),
   );
 
   $all_options = array(
     FACETAPI_OPERATOR_AND => t('AND'),
     FACETAPI_OPERATOR_OR => t('OR'),
   );
-  $allowed = array_filter($facet['allowed operators']);
-  $options = array_intersect_key($all_options, $allowed);
+  $options = array_intersect_key($all_options, array_filter($facet['allowed operators']));
   $form['global']['operator'] = array(
     '#type' => 'radios',
     '#access' => count($options) > 1,
@@ -291,103 +385,11 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#description' => t('Display no more than this number of facet items.')
   );
 
-  $form['realm'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('@realm realm settings', array('@realm' => $realm['label'])),
-    '#description' => t(
-      'Configuration settings for the %facet facet in the %realm realm that apply to %searcher searches.',
-      array(
-        '%facet' => $facet['label'],
-        '%realm' => $realm['label'],
-        '%searcher' => $adapter->getSearcher(),
-      )
-    ),
-    '#collapsible' => TRUE,
-  );
-
-  // Gets widgets, sorts.
-  /*
-  $widget_info = facetapi_get_widget_info(array(
-    'realm' => $realm,
-    'facet' => $facet,
-  ));
-  uasort($widget_info, 'drupal_sort_weight');
-  */
-
-  // Builds select options for widgets, allows widgets to add settings.
-  ctools_include('plugins');
-  $widget_options = array();
-  foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
-    $widget_options[$id] = $plugin['handler']['label'];
-    $class = $plugin['handler']['class'];
-    $plugin = new $class($id, $realm, $adapter->getFacet($facet), $facet_settings);
-    $plugin->settingsForm($form, $form_state);
-  }
-
-  $form['realm']['widget'] = array(
-    '#type' => 'select',
-    '#title' => t('Display widget'),
-    '#default_value' => $facet_settings->settings['widget'],
-    '#options' => $widget_options,
-    '#weight' => -10,
-  );
-
-  $form['realm']['sort'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Sorting options'),
-    '#description' => t('Determine how facet items are sorted. Selecting the checkbox activates the associated sort, and the sorts are applied from the top down. Click and drag the rows to change the order the sorts are applied.'),
-  );
-
-  $form['realm']['sort']['table'] = array(
-    '#theme' => 'facetapi_sort_settings_table',
-    '#facetapi' => &$form['#facetapi'],
-  );
-
-  // Initializes sorts with default settings, orders by default weight. Ordering
-  // the weights now allows us to iterate over them when building the actual
-  // form elements in the code below.
-  $sort_weight = $facet_settings->settings['sort_weight'];
-  $sort_order = $facet_settings->settings['sort_order'];
-  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
-    $weight = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
-    $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
-    $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
-  }
-  uasort($form['#facetapi']['sort_info'], 'drupal_sort_weight');
-
-  // Builds checkbox options for sorts.
-  $sort_options = array();
-  foreach ($form['#facetapi']['sort_info'] as $sort_name => $sort) {
-    $sort_options[$sort_name] = '';
-
-    // Calculates default value for individual sort order settings.
-    $order_default = (isset($sort_order[$sort_name])) ? $sort_order[$sort_name] : SORT_ASC;
-    $form['realm']['sort']['table']['sort_order:' . $sort_name] = array(
-      '#type' => 'select',
-      '#title' => '',
-      '#options' => array(
-        SORT_DESC => t('Descending'),
-        SORT_ASC => t('Ascending'),
-      ),
-      '#default_value' => $order_default,
-    );
-
-    // Calculates default value for individual sort weight settings.
-    $weight_default = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
-    $form['realm']['sort']['table']['sort_weight:'. $sort_name] = array(
-      '#type' => 'weight',
-      '#title' => '',
-      '#delta' => 50,
-      '#default_value' => $weight_default,
-      '#attributes' => array('class' => array('facetapi-sort-weight')),
-    );
-  }
-
-  $form['realm']['sort']['table']['active_sorts'] = array(
-    '#type' => 'checkboxes',
-    '#options' => $sort_options,
-    '#default_value' => $facet_settings->settings['active_sorts'],
-  );
+  ////
+  ////
+  //// Finalizes form
+  ////
+  ////
 
   $form['actions'] = array(
     '#type' => 'actions',
@@ -395,7 +397,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   );
 
   // Gets destination from query string which is set when the page is navigated
-  // to via a contextual link.
+  // to via a contextual link. Builds messages based on where user came from.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
     $submit_text = t('Save and go back to search page');
     $cancel_title = t('Return to the search page without saving configuration changes.');
@@ -617,7 +619,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   );
 
   // Gets destination from query string which is set when the page is navigated
-  // to via a contextual link.
+  // to via a contextual link. Builds messages based on where user came from.
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
     $submit_text = t('Save and go back to search page');
     $cancel_title = t('Return to the search page without saving configuration changes.');

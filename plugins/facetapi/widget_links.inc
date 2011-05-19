@@ -89,7 +89,10 @@ class FacetapiWidgetLinks extends FacetapiWidget {
       );
 
       // We don't display children unless the parent is clicked.
-      if (!empty($item['#item_children'])) {
+      if (empty($item['#item_children'])) {
+        $row['class'][] = 'leaf';
+      }
+      else {
         if ($item['#active']) {
           $row['class'][] = 'expanded';
           $row['children'] = $this->buildListItems($item['#item_children']);
@@ -97,9 +100,6 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         else {
           $row['class'][] = 'collapsed';
         }
-      }
-      else {
-        $row['class'][] = 'leaf';
       }
 
       // Gets theme hook, adds last minute classes.
@@ -122,7 +122,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     // FAPI #states. The following hack adds multiple form elements and uses CSS
     // and JavaScript to ensure only one is displayed at a time. Only the last
     // form element actually passes the value.
-    $form['realm']['widget_settings']['links'][$this->id]['soft_limit'] = array(
+    $form['widget']['widget_settings']['links'][$this->id]['soft_limit'] = array(
       '#type' => 'select',
       '#title' => t('Soft limit'),
       '#default_value' => $this->settings->settings['soft_limit'],
@@ -138,10 +138,10 @@ class FacetapiWidgetLinks extends FacetapiWidget {
     // Hides all but the last element. The #states system will override this,
     // however it is necessary if JavaScript is disabled so multiple elements
     // aren't displayed to the user.
-    $last = end($form['realm']['widget_settings']['links']);
-    foreach ($form['realm']['widget_settings']['links'] as $id => $element) {
+    $last = end($form['widget']['widget_settings']['links']);
+    foreach ($form['widget']['widget_settings']['links'] as $id => $element) {
       if ($last != $element) {
-        $form['realm']['widget_settings']['links'][$id]['#attributes']['style'] = 'display: none;';
+        $form['widget']['widget_settings']['links'][$id]['#attributes']['style'] = 'display: none;';
       }
     }
   }

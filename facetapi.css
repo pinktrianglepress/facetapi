@@ -97,3 +97,9 @@ td.facetapi-operations {
   padding-bottom: 0;
   padding-top: 4px;
 }
+
+.facetapi-sort-table {
+  width: 55%;
+  float: right;
+  margin-top: -2em;
+}
