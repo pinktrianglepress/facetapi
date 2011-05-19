@@ -98,13 +98,22 @@ td.facetapi-operations {
   padding-top: 4px;
 }
 
-.facetapi-widget-select {
-  font-size: 11pt;
-}
-
 .facetapi-sort-table {
   width: 55%;
   float: right;
   margin-top: -2em;
   padding: 0 1em 1em .5em;
+}
+
+.form-item-widget select {
+  font-size: 115%;
+  margin-top: .3em;
+}
+
+.form-item-widget option {
+  padding-right: 1.5em;
+}
+
+.form-item-widget label {
+  font-size: 105%;
 }

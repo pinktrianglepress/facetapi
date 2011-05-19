@@ -284,7 +284,6 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#title' => t('Display widget'),
     '#default_value' => $facet_settings->settings['widget'],
     '#options' => $widget_options,
-    '#attributes' => array('class' => array('facetapi-widget-select')),
     '#weight' => -10,
     '#description' => t('Select the display widget used to render this facet.'),
   );
