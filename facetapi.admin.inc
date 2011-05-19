@@ -372,14 +372,18 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#type' => 'radios',
     '#access' => count($options) > 1,
     '#title' => t('Operator'),
+    '#prefix' => '<div class="facetapi-global-setting">',
+    '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['operator'],
     '#options' => $options,
-    '#description' => t('AND filters are exclusive. OR filters are inclusive. Selecting more AND filters narrows the result set. Selecting more OR filters widens the result set.')
+    '#description' => t('AND filters are exclusive and narrow the result set. OR filters are inclusive and widen the result set.')
   );
 
   $form['global']['hard_limit'] = array(
     '#type' => 'select',
     '#title' => t('Hard limit'),
+    '#prefix' => '<div class="facetapi-global-setting">',
+    '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['hard_limit'],
     '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Display no more than this number of facet items.')
@@ -447,7 +451,7 @@ function theme_facetapi_sort_settings_table($variables) {
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
 
   $header = array(
-    'active' => array('data' => t('Active')),
+    'active' => array(),
     'label' => array('data' => t('Sort')),
     'order' => array('data' => t('Order')),
     'weight' => array('data' => t('Weight')),

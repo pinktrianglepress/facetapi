@@ -106,7 +106,7 @@ td.facetapi-operations {
 }
 
 .form-item-widget select {
-  font-size: 115%;
+  font-size: 120%;
   margin-top: .3em;
 }
 
@@ -116,4 +116,10 @@ td.facetapi-operations {
 
 .form-item-widget label {
   font-size: 105%;
+}
+
+.facetapi-global-setting {
+  float: left;
+  width: 30%;
+  margin-right: 2em;
 }
