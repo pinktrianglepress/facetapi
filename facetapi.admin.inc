@@ -284,6 +284,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#title' => t('Display widget'),
     '#default_value' => $facet_settings->settings['widget'],
     '#options' => $widget_options,
+    '#attributes' => array('class' => array('facetapi-widget-select')),
     '#weight' => -10,
     '#description' => t('Select the display widget used to render this facet.'),
   );
@@ -447,7 +448,7 @@ function theme_facetapi_sort_settings_table($variables) {
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
 
   $header = array(
-    'enabled' => array(),
+    'active' => array('data' => t('Active')),
     'label' => array('data' => t('Sort')),
     'order' => array('data' => t('Order')),
     'weight' => array('data' => t('Weight')),
@@ -460,7 +461,7 @@ function theme_facetapi_sort_settings_table($variables) {
     $rows[$sort_name] = array(
       'class' => array('draggable'),
       'data' => array(
-        'enabled' => array(
+        'active' => array(
           'data' => drupal_render($variables['element']['active_sorts'][$sort_name]),
         ),
         'label' => array(
