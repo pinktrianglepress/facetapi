@@ -255,20 +255,6 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     ),
   );
 
-  // Orders the sorts by weight.
-  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
-    // @todo Figure out a better default system.
-    if (isset($facet_settings->settings['sort_weight'][$sort_name])) {
-      $weight = $facet_settings->settings['sort_weight'][$sort_name];
-    }
-    else {
-      $weight = 0;
-    }
-    $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
-    $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
-  }
-  uasort($form['#facetapi']['sort_info'], 'drupal_sort_weight');
-
   $form['global'] = array(
     '#type' => 'fieldset',
     '#title' => t('Global settings'),
@@ -346,7 +332,6 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#weight' => -10,
   );
 
-  // Initializes the sorting table.
   $form['realm']['sort'] = array(
     '#type' => 'fieldset',
     '#title' => t('Sorting options'),
@@ -358,18 +343,25 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#facetapi' => &$form['#facetapi'],
   );
 
+  // Initializes sorts with default settings, orders by default weight. Ordering
+  // the weights now allows us to iterate over them when building the actual
+  // form elements in the code below.
+  $sort_weight = $facet_settings->settings['sort_weight'];
+  $sort_order = $facet_settings->settings['sort_order'];
+  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
+    $weight = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
+    $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
+    $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
+  }
+  uasort($form['#facetapi']['sort_info'], 'drupal_sort_weight');
+
   // Builds checkbox options for sorts.
   $sort_options = array();
   foreach ($form['#facetapi']['sort_info'] as $sort_name => $sort) {
     $sort_options[$sort_name] = '';
 
-    // @todo Figure out a better default system.
-    if (isset($facet_settings->settings['sort_order'][$sort_name])) {
-      $default_value = $facet_settings->settings['sort_order'][$sort_name];
-    }
-    else {
-      $default_value = SORT_ASC;
-    }
+    // Calculates default value for individual sort order settings.
+    $order_default = (isset($sort_order[$sort_name])) ? $sort_order[$sort_name] : SORT_ASC;
     $form['realm']['sort']['table']['sort_order:' . $sort_name] = array(
       '#type' => 'select',
       '#title' => '',
@@ -377,21 +369,16 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
         SORT_DESC => t('Descending'),
         SORT_ASC => t('Ascending'),
       ),
-      '#default_value' => $default_value,
+      '#default_value' => $order_default,
     );
 
-    // @todo Figure out a better default system.
-    if (isset($facet_settings->settings['sort_weight'][$sort_name])) {
-      $default_value = $facet_settings->settings['sort_weight'][$sort_name];
-    }
-    else {
-      $default_value = 0;
-    }
+    // Calculates default value for individual sort weight settings.
+    $weight_default = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
     $form['realm']['sort']['table']['sort_weight:'. $sort_name] = array(
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,
-      '#default_value' => $default_value,
+      '#default_value' => $weight_default,
       '#attributes' => array('class' => array('facetapi-sort-weight')),
     );
   }
@@ -426,13 +413,12 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   );
 
   // Do not show the button if the page was navigated to via a contextual link
-  // because it redirects back to the page the user came from.
-  if (!$url) {
-    $form['actions']['submit_realm'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save and go back to realm settings'),
-    );
-  }
+  // because it would redirect the user back to the search page.
+  $form['actions']['submit_realm'] = array(
+    '#type' => 'submit',
+    '#access' => (!$url),
+    '#value' => t('Save and go back to realm settings'),
+  );
 
   $form['actions']['cancel'] = array(
     '#type' => 'link',
@@ -647,13 +633,12 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
   );
 
   // Do not show the button if the page was navigated to via a contextual link
-  // because it redirects back to the page the user came from.
-  if (!$url) {
-    $form['actions']['submit_realm'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save and go back to realm settings'),
-    );
-  }
+  // because it would redirect the user back to the search page.
+  $form['actions']['submit_realm'] = array(
+    '#type' => 'submit',
+    '#access' => (!$url),
+    '#value' => t('Save and go back to realm settings'),
+  );
 
   $form['actions']['cancel'] = array(
     '#type' => 'link',
