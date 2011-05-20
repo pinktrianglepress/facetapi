@@ -584,6 +584,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
     'adapter' => $adapter,
     'realm' => $realm,
     'settings' => FALSE,
+    'defaults' => array(),
   );
 
   $form['plugins'] = array(
@@ -608,8 +609,9 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
       '#group' => 'plugins',
     );
 
-    // Allows plugin to add settings to the form.
+    // Allows plugin to add settings to the form, adds defaults.
     $plugin->settingsForm($form, $form_state);
+    $form['#facetapi']['defaults'] += $plugin->getDefaultSettings();
 
     // Removes vertical tab if nothing was added.
     if (!element_children($form[$id])) {
@@ -671,12 +673,11 @@ function facetapi_facet_dependencies_form_submit($form, &$form_state) {
   $adapter = $form['#facetapi']['adapter'];
   $realm = $form['#facetapi']['realm'];
   $settings = $form['#facetapi']['settings'];
+  $defaults = $form['#facetapi']['defaults'];
 
   // Gets dependency settings from form.
-  $settings->settings['dependencies'] = array_intersect_key(
-    $form_state['values'],
-    $settings->settings['dependencies']
-  );
+  $values = array_intersect_key($form_state['values'], $defaults);
+  $settings->settings['dependencies'] = $values + $defaults;
 
   // Writes the settings to the database.
   if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
