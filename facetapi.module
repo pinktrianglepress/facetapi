@@ -653,6 +653,12 @@ function facetapi_facetapi_dependencies() {
         'class' => 'FacetapiDependencyBundle',
       ),
     ),
+    'role' => array(
+      'handler' => array(
+        'label' => t('Roles'),
+        'class' => 'FacetapiDependencyRole',
+      ),
+    ),
   );
 }
 
