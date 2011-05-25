@@ -598,6 +598,12 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
     'defaults' => array(),
   );
 
+  $form['description'] = array(
+    '#prefix' => '<div class="facetapi-realm-description">',
+    '#markup' => t('Dependencies are conditions that must be met in order for the facet to be processed by the server and displayed to the user. Hiding facets via the core block system or through the Drupal forms API will not prevent the server from processing the facets.'),
+    '#suffix' => "</div>\n",
+  );
+
   $form['plugins'] = array(
     '#type' => 'vertical_tabs',
     '#weight' => 10,
