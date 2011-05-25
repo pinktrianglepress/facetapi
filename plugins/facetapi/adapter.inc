@@ -331,6 +331,16 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Returns TRUE if the back-end supports "missing".
+   *
+   * @return bool
+   *   TRUE or FALSE.
+   */
+  public function supportsFacetMissing() {
+    return $this->info['supports facet missing'];
+  }
+
+  /**
    * Adds facet query type plugins to the queue and invokes the execute() hook
    * to allow for the backend to add filters to its native query object.
    *
@@ -468,7 +478,7 @@ abstract class FacetapiAdapter {
       return $this->processors[$facet_name]->getMappedValue($value);
     }
     else {
-      return '';
+      return array('#markup' => '');
     }
   }
 
@@ -513,11 +523,11 @@ abstract class FacetapiAdapter {
 
       // The last item should be text, not a link.
       if ($last == $item) {
-        $breadcrumb[] = check_plain($value);
+        $breadcrumb[] = !empty($value['#html']) ? $value['#markup'] : check_plain($value['#markup']);
       }
       else {
         // Appends the filter to the breadcrumb trail.
-        $breadcrumb[] = l($value, $_GET['q'], array('query' => $query));
+        $breadcrumb[] = l($value['#markup'], $_GET['q'], array('query' => $query, 'html' => !empty($value['#html'])));
       }
     }
 
@@ -553,12 +563,13 @@ abstract class FacetapiAdapter {
       }
 
       // Builds variables for active link theme.
+      $mapped = $this->getMappedValue($item['facets'][0], $item['value']);
       $variables = array(
-        'text' => $this->getMappedValue($item['facets'][0], $item['value']),
+        'text' => $mapped['#markup'],
         'path' => $_GET['q'],
         'options' => array(
           'attributes' => array('class' => array()),
-          'html' => FALSE,
+          'html' => !empty($mapped['#html']),
           'query' => $this->processors[$item['facets'][0]]->getQueryString($values, 1),
         ),
       );
@@ -863,12 +874,12 @@ class FacetapiFacet implements ArrayAccess {
 
       }
       else {
-
         // Initializes settings.
         $settings->settings = array(
           'operator' => FACETAPI_OPERATOR_AND,
           'hard_limit' => 50,
           'dependencies' => array(),
+          'facet_missing' => 0,
         );
 
         // Loads the default settings from the adapter.
@@ -1051,6 +1062,7 @@ class FacetapiFacetProcessor {
     // Build array defaults.
     $defaults = array(
       '#markup' => '',
+      '#html' => FALSE,
       '#indexed_value' => '',
       '#count' => 0,
       '#active' => 0,
@@ -1085,7 +1097,18 @@ class FacetapiFacetProcessor {
   protected function mapValues(array $build) {
     if ($this->facet['map callback']) {
       $this->map = call_user_func($this->facet['map callback'], array_keys($build), $this->facet['map options']);
-      array_walk($build, 'facetapi_replace_ids', $this->map);
+      foreach ($this->map as $key => $value) {
+        // Normalize all mapped values to a two element array.
+        if (!is_array($value)) {
+          $this->map[$key] = array();
+          $this->map[$key]['#markup'] = $value;
+          $this->map[$key]['#html'] = FALSE;
+        }
+        if (isset($build[$key])) {
+          $build[$key]['#markup'] = $this->map[$key]['#markup'];
+          $build[$key]['#html'] = !empty($this->map[$key]['#markup']);
+        }
+      }
     }
     return $build;
   }
@@ -1193,22 +1216,6 @@ class FacetapiFacetProcessor {
     // Resets array keys, returns query string.
     $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
     return array_filter($qstring);
-  }
-}
-
-/**
- * Replaces ID's with a mapped value, useful as a callback for array_walk().
- *
- * @param &$item
- *   An array containing the facet item.
- * @param $key
- *   An integer containing the array key, or the ID being mapped to a value.
- * @param $map
- *   An array containing the mapped values.
- */
-function facetapi_replace_ids(array &$item, $key, array $map) {
-  if (isset($map[$key])) {
-    $item['#markup'] = $map[$key];
   }
 }
 

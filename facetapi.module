@@ -192,6 +192,10 @@ function facetapi_theme() {
       'arguments' => array('title' => NULL),
       'file' => 'facetapi.theme.inc',
     ),
+    'facetapi_facet_missing' => array(
+      'arguments' => array('field_name' => NULL),
+      'file' => 'facetapi.theme.inc',
+    ),
     'facetapi_count' => array(
       'arguments' => array('count' => NULL),
       'file' => 'facetapi.theme.inc',
@@ -342,6 +346,7 @@ function facetapi_get_searcher_info() {
     $searcher_info[$searcher] += array(
       'name' => $searcher,
       'type' => 'node',
+      'supports facet missing' => FALSE,
     );
   }
   drupal_alter('facetapi_searcher_info', $searcher_info);
@@ -398,6 +403,7 @@ function facetapi_get_facet_info($searcher) {
       'query type' => 'term',
       'dependency plugins' => array(),
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
+      'facet missing allowed' => FALSE,
       'weight' => 0,
       'map callback' => FALSE,
       'map options' => array(),

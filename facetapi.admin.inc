@@ -359,6 +359,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
 
   $form['global'] = array(
     '#type' => 'fieldset',
+    '#tree' => TRUE,
     '#title' => t('Global settings'),
     '#description' => t('The configuration options below apply to this facet across <em>all</em> realms.'),
   );
@@ -387,6 +388,15 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#default_value' => $global_settings->settings['hard_limit'],
     '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
     '#description' => t('Display no more than this number of facet items.')
+  );
+
+  $form['global']['facet_missing'] = array(
+    '#type' => 'radios',
+    '#access' => $facet['facet missing allowed'] && $adapter->supportsFacetMissing(),
+    '#title' => t('Add facet for missing values'),
+    '#default_value' => isset($global_settings->settings['facet_missing']) ? $global_settings->settings['facet_missing'] : 0,
+    '#options' => array(0 => t('No'), 1 => t('Yes')),
+    '#description' => t('Adds an extra facet matching documents with no value at all for this field.')
   );
 
   ////
@@ -496,6 +506,8 @@ function facetapi_facet_settings_form_submit($form, &$form_state) {
   $adapter = $form['#facetapi']['adapter'];
   $realm = $form['#facetapi']['realm'];
   $facet = $form['#facetapi']['facet'];
+  $global_values = $form_state['values']['global'];
+  unset($form_state['values']['global']);
 
   // Loads settings, saves all form values as settings other than excluded.
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
@@ -503,16 +515,15 @@ function facetapi_facet_settings_form_submit($form, &$form_state) {
     $form_state['values'],
     array_flip($form['#facetapi']['excluded_values'])
   ));
-  unset($facet_settings->settings['operator']);
-  unset($facet_settings->settings['hard_limit']);
 
   // Converts sort_weight:* and sort_order:* settings to associative arrays.
   facetapi_combine_settings('sort_weight', $facet_settings);
   facetapi_combine_settings('sort_order', $facet_settings);
 
   $global_settings = $adapter->getFacet($facet)->getSettings();
-  $global_settings->settings['operator'] = $form_state['values']['operator'];
-  $global_settings->settings['hard_limit'] = $form_state['values']['hard_limit'];
+  foreach ($global_values as $key => $value) {
+    $global_settings->settings[$key] = $value;
+  }
 
   $success = TRUE;
   if (FALSE === ctools_export_crud_save('facetapi', $facet_settings)) {

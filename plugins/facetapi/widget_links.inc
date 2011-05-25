@@ -83,7 +83,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         'count' => $item['#count'],
         'options' => array(
           'attributes' => array('class' => $this->getItemClasses()),
-          'html' => FALSE,
+          'html' => $item['#html'],
           'query' => $item['#query'],
         ),
       );

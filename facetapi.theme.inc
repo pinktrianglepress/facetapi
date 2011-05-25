@@ -6,6 +6,13 @@
  */
 
 /**
+ * Themes a missing facet.
+ */
+function theme_facetapi_facet_missing($variables) {
+  return t('Missing %field_name', array('%field_name' => $variables['field_name']));
+}
+
+/**
  * Themes the facet title.
  */
 function theme_facetapi_title($variables) {
