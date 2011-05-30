@@ -898,6 +898,13 @@ class FacetapiFacet implements ArrayAccess {
       // @todo Explore whether we should save settings for performance.
     }
 
+    // Ensures settings added in later versions of the module are initialized to
+    // prevent undefuned index errors after upgrading.
+    // @todo Remove in later versions.
+    if (!$realm) {
+      $settings->settings += array('facet_missing' => 0);
+    }
+
     return $settings;
   }
 
