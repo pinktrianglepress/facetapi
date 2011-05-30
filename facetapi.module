@@ -369,6 +369,7 @@ function facetapi_get_realm_info() {
         'label' => $realm_name,
         'description' => '',
         'default widget' => '',
+        'settings callback' => FALSE,
         'widget requirements' => array(),
         'weight' => 0,
         'sortable' => TRUE,
@@ -513,6 +514,7 @@ function facetapi_facetapi_realm_info() {
     'weight' => -10,
     'sortable' => FALSE,
     'default widget' => 'facetapi_links',
+    'settings callback' => 'facetapi_block_realm_settings',
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
       array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))

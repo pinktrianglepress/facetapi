@@ -446,11 +446,21 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#attributes' => array('title' => $cancel_title),
   );
 
-  // Adds submit handler, allow the adapter to alter the form.
+  // Adds submit handler, allow the realm and adapter to alter the form.
   $form['#submit'][] = 'facetapi_facet_settings_form_submit';
+  if ($realm['settings callback']) {
+    $realm['settings callback']($form, $form_state);
+  }
   $adapter->settingsForm($form, $form_state);
 
   return $form;
+}
+
+/**
+ * Allows the block realm to add configuration options to the display form.
+ */
+function facetapi_block_realm_settings(&$form, &$form_state) {
+  // Nothing to do...
 }
 
 /**
