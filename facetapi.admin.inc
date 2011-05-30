@@ -394,6 +394,8 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#type' => 'radios',
     '#access' => $facet['facet missing allowed'] && $adapter->supportsFacetMissing(),
     '#title' => t('Add facet for missing values'),
+    '#prefix' => '<div class="facetapi-global-setting">',
+    '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['facet_missing'],
     '#options' => array(0 => t('No'), 1 => t('Yes')),
     '#description' => t('Adds an extra facet matching documents with no value at all for this field.')
