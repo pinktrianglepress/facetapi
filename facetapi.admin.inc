@@ -238,6 +238,7 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
   drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.admin.js');
+  ctools_include('plugins');
 
   // Captures variables and settings for code readability.
   $searcher = $adapter->getSearcher();
@@ -270,7 +271,6 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   );
 
   // Builds select options for widgets, allows widgets to add settings.
-  ctools_include('plugins');
   $widget_options = array();
   foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
     $widget_options[$id] = $plugin['handler']['label'];
@@ -349,6 +349,29 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#type' => 'checkboxes',
     '#options' => $sort_options,
     '#default_value' => $facet_settings->settings['active_sorts'],
+  );
+
+  $form['widget']['empty'] = array(
+    '#prefix' => '<div class="facetapi-empty-setting">',
+    '#suffix' => '</div>',
+    '#weight' => 10,
+  );
+
+  $empty_options = array();
+  foreach (ctools_get_plugins('facetapi', 'empty_behaviors') as $id => $plugin) {
+    $empty_options[$id] = $plugin['handler']['label'];
+    $class = $plugin['handler']['class'];
+    $plugin = new $class($facet_settings);
+    $plugin->settingsForm($form, $form_state);
+  }
+
+  $form['widget']['empty']['empty_behavior'] = array(
+    '#type' => 'select',
+    '#title' => t('Empty facet behavior'),
+    '#default_value' => $facet_settings->settings['empty_behavior'],
+    '#options' => $empty_options,
+    '#weight' => -10,
+    '#description' => t('The action to take when a facet has no items.'),
   );
 
   ////
@@ -454,13 +477,6 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $adapter->settingsForm($form, $form_state);
 
   return $form;
-}
-
-/**
- * Allows the block realm to add configuration options to the display form.
- */
-function facetapi_block_realm_settings(&$form, &$form_state) {
-  // Nothing to do...
 }
 
 /**

@@ -11,6 +11,21 @@
 class FacetapiWidgetLinks extends FacetapiWidget {
 
   /**
+   * Overrides constructor to reset the key.
+   *
+   * @param array $realm
+   *   The realm being rendered.
+   * @param array $settings
+   *   The realm settings.
+   * @param FacetapiFacet $facet
+   *   The facet object.
+   */
+  public function __construct($id, array $realm, FacetapiFacet $facet, stdClass $settings) {
+    parent::__construct($id, $realm, $facet, $settings);
+    $this->key = $facet['name'];
+  }
+
+  /**
    * Adds JS settings.
    */
   public function init() {
@@ -22,8 +37,6 @@ class FacetapiWidgetLinks extends FacetapiWidget {
    * Renders the links.
    */
   public function execute() {
-    // Sets the key, captures the facet's render array.
-    $this->key = $this->build['#facet']['name'];
     $element = &$this->build[$this->facet['field alias']];
 
     // Sets each item's theme hook, builds item list.

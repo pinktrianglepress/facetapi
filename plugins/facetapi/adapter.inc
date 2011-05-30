@@ -658,6 +658,11 @@ abstract class FacetapiAdapter {
       // when merging facets with the same field alias such as taxonomy terms in
       // the fieldset realm. We want to merge only the values.
       foreach (element_children($facet_build) as $child) {
+        // Bails if there is nothing to render.
+        if (!element_children($facet_build[$child])) {
+          continue;
+        }
+        // Attempts to merge gracefully.
         if (!isset($build[$child])) {
           $build = array_merge_recursive($build, $facet_build);
         }
@@ -856,6 +861,7 @@ class FacetapiFacet implements ArrayAccess {
           'active_sorts' => array(),
           'sort_weight' => array(),
           'sort_order' => array(),
+          'empty_behavior' => 'none',
         );
 
         // Apply default sort settings.
@@ -901,7 +907,10 @@ class FacetapiFacet implements ArrayAccess {
     // Ensures settings added in later versions of the module are initialized to
     // prevent undefuned index errors after upgrading.
     // @todo Remove in later versions.
-    if (!$realm) {
+    if ($realm) {
+      $settings->settings += array('empty_behavior' => 'none');
+    }
+    else {
       $settings->settings += array('facet_missing' => 0);
     }
 
@@ -922,27 +931,42 @@ class FacetapiFacet implements ArrayAccess {
   public function build(array $realm, FacetapiFacetProcessor $processor) {
     $settings = $this->getSettings($realm);
 
-    // Builds the base render array for this facet across all realms. This
-    // ensures we are only pulling the data from the server once per facet.
+    // Gets the base render array from the facet processor.
     $this->build = $processor->getBuild();
 
-    // If there are no items, return an empty array.
-    if (!$this->build) {
-      return array();
-    }
-
-    // Instantiates the widget plugin and executes.
+    // Instantiates the widget plugin and initializes.
     $widget_name = $settings->settings['widget'];
     $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
-    $plugin = new $class($widget_name, $realm, $this, $settings);
-    $plugin->init()->execute();
+    $widget_plugin = new $class($widget_name, $realm, $this, $settings);
+    $widget_plugin->init();
+
+    // Executes widget plugin if not empty, otherwise executes the empty
+    // behavior plugin.
+    if ($this->build) {
+      $widget_plugin->execute();
+      $build = $widget_plugin->getBuild();
+    }
+    else {
+      // Instantiates empty behavior plugin.
+      $id = $settings->settings['empty_behavior'];
+      $class = ctools_plugin_load_class('facetapi', 'empty_behaviors', $id, 'handler');
+      $empty_plugin = new $class($settings);
+      // Executes empty behavior plugin.
+      $build = $widget_plugin->getBuild();
+      $build[$this['field alias']] = $empty_plugin->execute();
+    }
+
+    // If the element is empty, unset it.
+    if (!$build[$this['field alias']]) {
+      unset($build[$this['field alias']]);
+    }
 
     // Adds JavaScript settings in a way that merges with others already set.
-    $merge_settings['facetapi']['facets'][] = $plugin->getJavaScriptSettings();
+    $merge_settings['facetapi']['facets'][] = $widget_plugin->getJavaScriptSettings();
     drupal_add_js($merge_settings, 'setting');
 
     // Returns array keyed by the FacetapiWidget::$key property.
-    return array($plugin->getKey() => $plugin->getBuild());
+    return array($widget_plugin->getKey() => $build);
   }
 }
 
