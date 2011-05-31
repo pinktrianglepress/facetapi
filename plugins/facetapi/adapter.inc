@@ -478,7 +478,7 @@ abstract class FacetapiAdapter {
       return $this->processors[$facet_name]->getMappedValue($value);
     }
     else {
-      return array('#markup' => '');
+      return array('#markup' => $value);
     }
   }
 
@@ -561,9 +561,15 @@ abstract class FacetapiAdapter {
       foreach ($item['facets'] as $facet_name) {
         $values = array_merge($values, $this->processors[$facet_name]->getActiveChildren($item['value']));
       }
+      // Handle the case of a URL value that matches no actual
+      // facet values. Otherwise, it can't be unclicked.
+      if (!in_array($item['value'], $values)) {
+        $values[] = $item['value'];
+      }
 
       // Builds variables for active link theme.
       $mapped = $this->getMappedValue($item['facets'][0], $item['value']);
+
       $variables = array(
         'text' => $mapped['#markup'],
         'path' => $_GET['q'],
@@ -1072,7 +1078,7 @@ class FacetapiFacetProcessor {
    *   The mapped value.
    */
   public function getMappedValue($value) {
-    return (isset($this->map[$value])) ? $this->map[$value] : '';
+    return (isset($this->map[$value])) ? $this->map[$value] : array('#markup' => $value);
   }
 
   /**
