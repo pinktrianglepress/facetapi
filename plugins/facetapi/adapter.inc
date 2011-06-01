@@ -1143,7 +1143,7 @@ class FacetapiFacetProcessor {
         }
         if (isset($build[$key])) {
           $build[$key]['#markup'] = $this->map[$key]['#markup'];
-          $build[$key]['#html'] = !empty($this->map[$key]['#markup']);
+          $build[$key]['#html'] = !empty($this->map[$key]['#html']);
         }
       }
     }
