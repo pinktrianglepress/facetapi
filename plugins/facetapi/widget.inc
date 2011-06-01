@@ -114,7 +114,6 @@ abstract class FacetapiWidget {
     $this->jsSettings += array(
       'id' => $this->build['#attributes']['id'],
       'searcher' => $searcher,
-      'type' => $this->facet->getAdapter()->getType(),
       'realmName' => $this->realm['name'],
       'facetName' => $this->facet['name'],
       'queryType' => $this->facet['query type'],

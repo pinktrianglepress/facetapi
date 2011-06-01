@@ -22,15 +22,8 @@ class FacetapiWidgetLinks extends FacetapiWidget {
    */
   public function __construct($id, array $realm, FacetapiFacet $facet, stdClass $settings) {
     parent::__construct($id, $realm, $facet, $settings);
-    $this->key = $facet['name'];
-  }
-
-  /**
-   * Adds JS settings.
-   */
-  public function init() {
     $this->jsSettings['limit'] = $this->settings->settings['soft_limit'];
-    return parent::init();
+    $this->key = $facet['name'];
   }
 
   /**
