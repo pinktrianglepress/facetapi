@@ -860,10 +860,16 @@ class FacetapiFacet implements ArrayAccess {
 
       if ($realm) {
 
+        if (!empty($this->facet['default widget'])) {
+          $widget = $this->facet['default widget'];
+        }
+        else {
+          $widget = $realm['default widget'];
+        }
         // Initializes realm-specific settings.
         $settings->settings = array(
           'weight' => 0,
-          'widget' => 'facetapi_links',
+          'widget' => $widget,
           'active_sorts' => array(),
           'sort_weight' => array(),
           'sort_order' => array(),
@@ -879,8 +885,13 @@ class FacetapiFacet implements ArrayAccess {
         }
 
         // Loads default widget plugin, adds settings.
-        $id = $realm['default widget'];
+        $id = $settings->settings['widget'];
         $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
+        // Fallback in case we have an invalid default widgt.
+        if (!$class) {
+          $id = $settings->settings['widget'] = $realm['default widget'];
+          $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
+        }
         $plugin = new $class($id, $realm, $this, $settings);
         $settings->settings += $plugin->getDefaultSettings();
 

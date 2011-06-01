@@ -406,6 +406,7 @@ function facetapi_get_facet_info($searcher) {
       'field api name' => FALSE,
       'query type' => 'term',
       'dependency plugins' => array(),
+      'default widget' => FALSE,
       'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
       'facet missing allowed' => FALSE,
       'weight' => 0,
