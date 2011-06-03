@@ -887,7 +887,7 @@ class FacetapiFacet implements ArrayAccess {
         // Loads default widget plugin, adds settings.
         $id = $settings->settings['widget'];
         $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
-        // Fallback in case we have an invalid default widgt.
+        // If we have an invalid widget, fall back to the realm's default.
         if (!$class) {
           $id = $settings->settings['widget'] = $realm['default widget'];
           $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');

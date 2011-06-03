@@ -11,13 +11,12 @@
 class FacetapiWidgetCheckboxLinks extends FacetapiWidgetLinks {
 
   /**
-   * JavaScript settings.
-   *
-   * @var array
+   * Adds JavaScript settings.
    */
-  protected $jsSettings = array(
-    'makeCheckboxes' => 1,
-  );
+  public function init() {
+    parent::init();
+    $this->jsSettings['makeCheckboxes'] = 1;
+  }
 
   /**
    * Sets the base class for checkbox facet items.
