@@ -12,13 +12,6 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
   /**
    * Overrides constructor to reset the key.
-   *
-   * @param array $realm
-   *   The realm being rendered.
-   * @param array $settings
-   *   The realm settings.
-   * @param FacetapiFacet $facet
-   *   The facet object.
    */
   public function __construct($id, array $realm, FacetapiFacet $facet, stdClass $settings) {
     parent::__construct($id, $realm, $facet, $settings);
