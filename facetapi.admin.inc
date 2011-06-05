@@ -415,6 +415,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
 
   $form['global']['flatten'] = array(
     '#type' => 'radios',
+    '#access' => $facet['hierarchy callback'],
     '#title' => t('Flatten hierarchy'),
     '#prefix' => '<div class="facetapi-global-setting">',
     '#suffix' => '</div>',
