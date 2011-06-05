@@ -903,6 +903,7 @@ class FacetapiFacet implements ArrayAccess {
           'hard_limit' => 50,
           'dependencies' => array(),
           'facet_missing' => 0,
+          'flatten' => 0,
         );
 
         // Loads the default settings from the adapter.
@@ -928,7 +929,10 @@ class FacetapiFacet implements ArrayAccess {
       $settings->settings += array('empty_behavior' => 'none');
     }
     else {
-      $settings->settings += array('facet_missing' => 0);
+      $settings->settings += array(
+        'facet_missing' => 0,
+        'flatten' => 0,
+      );
     }
 
     return $settings;
@@ -1052,8 +1056,11 @@ class FacetapiFacetProcessor {
     // NOTE: We don't use the chaining pattern so the methods can be tested.
     if ($this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())) {
       if ($this->build = $this->initializeBuild($this->build)) {
+        $settings = $this->facet->getSettings();
         $this->build = $this->mapValues($this->build);
-        $this->build = $this->processHierarchy($this->build);
+        if ($this->facet['hierarchy callback'] && !$settings->settings['flatten']) {
+          $this->build = $this->processHierarchy($this->build);
+        }
         $this->processQueryStrings($this->build);
       }
     }

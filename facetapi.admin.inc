@@ -413,6 +413,16 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#description' => t('Display no more than this number of facet items.')
   );
 
+  $form['global']['flatten'] = array(
+    '#type' => 'radios',
+    '#title' => t('Flatten hierarchy'),
+    '#prefix' => '<div class="facetapi-global-setting">',
+    '#suffix' => '</div>',
+    '#default_value' => $global_settings->settings['flatten'],
+    '#options' => array(0 => t('No'), 1 => t('Yes')),
+    '#description' => t('Do not process hierarchical relationships and display facet items as a flat list.'),
+  );
+
   $form['global']['facet_missing'] = array(
     '#type' => 'radios',
     '#access' => $facet['facet missing allowed'] && $adapter->supportsFacetMissing(),
