@@ -373,8 +373,7 @@ function facetapi_get_realm_info() {
         'description' => '',
         'default widget' => '',
         'settings callback' => FALSE,
-        'widget requirements' => array(),
-        'weight' => 0,
+        'element type' => 'links',
         'sortable' => TRUE,
       );
     }
@@ -422,14 +421,6 @@ function facetapi_get_facet_info($searcher) {
         array('display', SORT_ASC),
       ),
     );
-
-    // Checks whether facet is flat or hierarchical, adds to requirements.
-    if (!$facet_info[$facet_name]['hierarchy callback']) {
-      $facet_info[$facet_name]['widget requirements'][] = 'flat';
-    }
-    else {
-      $facet_info[$facet_name]['widget requirements'][] = 'hierarchical';
-    }
   }
 
   // Invokes alter hook, sorts and returns.
@@ -518,19 +509,24 @@ function facetapi_facetapi_realm_info() {
     'weight' => -10,
     'sortable' => FALSE,
     'default widget' => 'facetapi_links',
+    'element type' => 'links',
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
       array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
     ),
   );
-/* // @todo - implement this. http://drupal.org/node/1132744
+
+  /*
+  // @todo - implement this. http://drupal.org/node/1132744
   $realms['fieldset'] = array(
     'label' => t('Fieldset'),
     'weight' => -5,
     'default widget' => 'facetapi_textfield',
+    'element type' => 'form elements',
     'description' => t('The <em>Fieldset</em> realm displays facets as form elements in a fieldset below the search form that is similar in appearance to the core Search module\'s <em>Advanced search</em> fieldset.'),
   );
-*/
+  */
+
   return $realms;
 }
 

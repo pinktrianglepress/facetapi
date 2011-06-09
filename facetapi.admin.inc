@@ -217,6 +217,85 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 }
 
 /**
+ * Returns array of widget definitions available to the facet.
+ *
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @return array
+ *   An array of available widget plugins.
+ */
+function facetapi_get_widgets(array $realm, array $facet) {
+  $plugins = array();
+
+  // Iterates over all defined plugins.
+  foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
+    $append = TRUE;
+
+    // Initializes the requirements if empty.
+    $plugin['handler'] += array(
+      'requirements' => array(
+        'facetapi_requirement_realm_property' => array('element type' => 'links')
+      ),
+    );
+
+    // Requirements fail if at least one requirements callback returns FALSE.
+    foreach ($plugin['handler']['requirements'] as $callback => $options) {
+      if (!call_user_func($callback, $realm, $facet, $options)) {
+        $append = FALSE;
+        break;
+      }
+    }
+
+    // Appends plugin if no requiremetns failed.
+    if ($append) {
+      $plugins[$id] = $plugin;
+    }
+  }
+
+  return $plugins;
+}
+
+/**
+ * Checks realm property requirement.
+ */
+function facetapi_requirement_realm_property(array $realm, array $facet, array $options) {
+  return facetapi_requirement_property($realm, $options);
+}
+
+/**
+ * Checks facet property requirement.
+ */
+function facetapi_requirement_facet_property(array $realm, array $facet, array $options) {
+  return facetapi_requirement_property($facet, $options);
+}
+
+/**
+ * Checks the equality of a property.
+ */
+function facetapi_requirement_property(array $definition, array $options) {
+  $passed = TRUE;
+  foreach ($options as $key => $requirement) {
+    $condition = $definition[$key];
+    if (is_array($requirement)) {
+      if (array_intersect_key($condition, $requirement) != $requirement) {
+        $passed = FALSE;
+        break;
+      }
+    }
+    else {
+      if ($requirement != $condition) {
+        $passed = FALSE;
+        break;
+      }
+    }
+  }
+  return $passed;
+}
+
+/**
  * Facet display settings form.
  *
  * @param $form
@@ -272,7 +351,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
 
   // Builds select options for widgets, allows widgets to add settings.
   $widget_options = array();
-  foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
+  foreach (facetapi_get_widgets($realm, $facet) as $id => $plugin) {
     $widget_options[$id] = $plugin['handler']['label'];
     $class = $plugin['handler']['class'];
     $plugin = new $class($id, $realm, $adapter->getFacet($facet), $facet_settings);
