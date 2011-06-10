@@ -1058,7 +1058,7 @@ class FacetapiFacetProcessor {
       if ($this->build = $this->initializeBuild($this->build)) {
         $settings = $this->facet->getSettings();
         $this->build = $this->mapValues($this->build);
-        if ($this->facet['hierarchy callback'] && !$settings->settings['flatten']) {
+        if (!$settings->settings['flatten']) {
           $this->build = $this->processHierarchy($this->build);
         }
         $this->processQueryStrings($this->build);
