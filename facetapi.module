@@ -121,7 +121,9 @@ function facetapi_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('facetapi_facet_settings_form', 4, 5, 6),
     'access arguments' => array('administer search'),
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_ACTION,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => -10,
     'file' => 'facetapi.admin.inc',
   );
 
@@ -131,7 +133,9 @@ function facetapi_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('facetapi_facet_dependencies_form', 4, 5, 6),
     'access arguments' => array('administer search'),
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_ACTION,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => -5,
     'file' => 'facetapi.admin.inc',
   );
 
@@ -146,21 +150,6 @@ function facetapi_menu() {
   );
 
   return $items;
-}
-
-/**
- * Implements hook_menu_contextual_links_alter().
- *
- * Note - this is a bit of a hack since the core code for contextual links
- * is stupidly broken when applied to use for blocks.
- */
-function facetapi_menu_contextual_links_alter(&$links, $router_item, $root_path) {
-  if ($root_path == 'admin/config/search/facetapi/%/%/%/edit' && $router_item['access']) {
-    $links['facetapi-display'] = $router_item;
-  }
-  if ($root_path == 'admin/config/search/facetapi/%/%/%/dependencies' && $router_item['access']) {
-    $links['facetapi-dependencies'] = $router_item;
-  }
 }
 
 /**

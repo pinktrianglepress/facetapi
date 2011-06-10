@@ -96,8 +96,7 @@ function facetapi_get_block($delta) {
 
     // Adds contextual links.
     $builds[$group][$facet_name]['#contextual_links'] = array(
-      'facetapi-display' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/edit", array()),
-      'facetapi-dependencies' => array("admin/config/search/facetapi/$searcher/$realm_name/$facet_name/dependencies", array()),
+      'facetapi' => array('admin/config/search/facetapi', array($searcher, $realm_name, $facet_name)),
     );
 
     // Returns the subject and content of the block.

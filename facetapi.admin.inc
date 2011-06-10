@@ -319,6 +319,10 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.admin.js');
   ctools_include('plugins');
 
+  // We have to set the title due to contextual link magic.
+  // @see http://drupal.org/node/1147588#comment-4428940
+  drupal_set_title(t('Configure facet display'));
+
   // Captures variables and settings for code readability.
   $searcher = $adapter->getSearcher();
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
@@ -707,6 +711,10 @@ function facetapi_combine_settings($setting_name, $settings) {
  * @ingroup forms
  */
 function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $dependencies) {
+
+  // We have to set the title due to contextual link magic.
+  // @see http://drupal.org/node/1147588#comment-4428940
+  drupal_set_title(t('Configure facet dependencies'));
 
   // Adds Facet API settings, excluded values aren't saved.
   $form['#facetapi'] = array(
