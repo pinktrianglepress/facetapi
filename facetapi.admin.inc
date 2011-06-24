@@ -421,7 +421,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     );
 
     $weight_default = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
-    $form['widget']['sort']['table']['sort_weight:'. $sort_name] = array(
+    $form['widget']['sort']['table']['sort_weight:' . $sort_name] = array(
       '#type' => 'weight',
       '#title' => '',
       '#delta' => 50,

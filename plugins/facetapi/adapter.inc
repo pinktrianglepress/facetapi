@@ -152,7 +152,7 @@ abstract class FacetapiAdapter {
 
     // Groups enabled facets by facet alias.
     $enabled_aliases = array();
-    foreach($this->getEnabledFacets() as $facet) {
+    foreach ($this->getEnabledFacets() as $facet) {
       $enabled_aliases[$facet['field alias']][] = $facet['name'];
       $this->activeItems['facet'][$facet['name']] = array();
     }

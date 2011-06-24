@@ -63,7 +63,7 @@ define('FACETAPI_REGEX_DATE', '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})
 /**
  * Regex pattern for date ranges.
  */
-define('FACETAPI_REGEX_DATE_RANGE', '/^\[('. trim(FACETAPI_REGEX_DATE, '/^$') .') TO ('. trim(FACETAPI_REGEX_DATE, '/^$') .')\]$/');
+define('FACETAPI_REGEX_DATE_RANGE', '/^\[(' . trim(FACETAPI_REGEX_DATE, '/^$') . ') TO (' . trim(FACETAPI_REGEX_DATE, '/^$') . ')\]$/');
 
 // Loads file containing various callback functions.
 // @todo Can we lazy-load this file somehow?
@@ -176,7 +176,7 @@ function facetapi_ctools_plugin_type() {
 }
 
 /**
- * Implements of hook_theme().
+ * Implements hook_theme().
  */
 function facetapi_theme() {
   return array(
@@ -346,7 +346,7 @@ function facetapi_get_searcher_info() {
 }
 
 /**
- * Invokes hook_facetapi_realm_info(), returns realm definitions.
+ * Returns realm definitions.
  *
  * @return
  *   An array of realm definitions.
@@ -373,7 +373,7 @@ function facetapi_get_realm_info() {
 }
 
 /**
- * Invokes hook_facetapi_facet_info(), returns all defined facets.
+ * Returns all defined facets for a searcher.
  *
  * @param $searcher
  *   A string containing the machine readable name of the searcher.
@@ -419,7 +419,7 @@ function facetapi_get_facet_info($searcher) {
 }
 
 /**
- * Invokes hook_facetapi_sort_info(), returns all defined sorts.
+ * Returns all defined sorts.
  *
  * @return
  *   An associative array of sort definitions keyed by sort name.
@@ -528,8 +528,8 @@ function facetapi_facetapi_facet_info($searcher_info) {
 
     $facets['bundle'] = array(
       'label' => t('Content type'),
-      'description'=> t('Filter by content type.'),
-      'map callback'=> 'facetapi_map_bundle',
+      'description' => t('Filter by content type.'),
+      'map callback' => 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
       'dependency plugins' => array('role'),
     );
@@ -587,7 +587,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
 }
 
 /**
- * Implementation of hook_facetapi_sort_info().
+ * Implements hook_facetapi_sort_info().
  */
 function facetapi_facetapi_sort_info() {
   $sorts = array();
