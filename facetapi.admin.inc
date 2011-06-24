@@ -136,7 +136,8 @@ function theme_facetapi_realm_settings_table($variables) {
   $output = '';
 
   // Adds CSS to ensure that the dropbutton looks nice.
-  drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
+  $path = drupal_get_path('module', 'facetapi');
+  drupal_add_css($path . '/facetapi.css', array('weight' => CSS_THEME - 1));
 
   // Gets variales for code readability.
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
@@ -315,8 +316,9 @@ function facetapi_requirement_property(array $definition, array $options) {
  * @ingroup forms
  */
 function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
-  drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
-  drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.admin.js');
+  $path = drupal_get_path('module', 'facetapi');
+  drupal_add_css($path . '/facetapi.css', array('weight' => CSS_THEME - 1));
+  drupal_add_js($path . '/facetapi.admin.js');
   ctools_include('plugins');
 
   // We have to set the title due to contextual link magic.
