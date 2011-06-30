@@ -55,13 +55,15 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   foreach ($form['#facetapi']['facet_info'] as $facet_name => $facet) {
     $settings = $adapter->getFacet($facet)->getSettings($realm);
 
-    $form['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
-    $form['table']['weight:' . $facet_name] = array(
-      '#type' => 'select',
-      '#options' => drupal_map_assoc(range(-50, 50)),
-      '#default_value' => $settings->settings['weight'],
-      '#attributes' => array('class' => array('facetapi-facet-weight')),
-    );
+    if ($realm['sortable']) {
+      $form['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
+      $form['table']['weight:' . $facet_name] = array(
+        '#type' => 'select',
+        '#options' => drupal_map_assoc(range(-50, 50)),
+        '#default_value' => $settings->settings['weight'],
+        '#attributes' => array('class' => array('facetapi-facet-weight')),
+      );
+    }
 
     $options[$facet_name] = '';
     $default_value[$facet_name] = (!$settings->enabled) ? 0 : $facet_name;
@@ -104,9 +106,9 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 
   // Builds settings object, saves to database.
   foreach ($facet_info as $facet_name => $facet) {
-    $weight = $form_state['values']['weight:' . $facet_name];
     $settings = $adapter->getFacet($facet)->getSettings($realm);
     $settings->enabled = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
+    $weight = $realm['sortable'] ? $form_state['values']['weight:' . $facet_name] : 0;
     $settings->settings['weight'] = $weight;
     if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
       drupal_set_message(t('Error saving settings.'), 'error');
@@ -141,14 +143,16 @@ function theme_facetapi_realm_settings_table($variables) {
 
   // Gets variales for code readability.
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
-  $realm_name = $variables['element']['#facetapi']['realm']['name'];
+  $realm = $variables['element']['#facetapi']['realm'];
 
   $header = array(
     'enabled' => array('data' => t('Enabled')),
     'label' => array('data' => t('Facet')),
     'operations' => array('data' => t('Operations')),
-    'weight' => array('data' => t('Weight')),
   );
+  if ($realm['sortable']) {
+    $header['weight'] = array('data' => t('Weight'));
+  }
 
   // Builds field options.
   $rows = array();
@@ -159,22 +163,22 @@ function theme_facetapi_realm_settings_table($variables) {
     $operations = array();
     $operations[] = array(
       'title' => t('Configure display'),
-      'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'edit')
+      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'edit')
     );
     if ($facet['dependency plugins']) {
       $operations[] = array(
         'title' => t('Configure dependencies'),
-        'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'dependencies')
+        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'dependencies')
       );
     }
     $operations[] = array(
       'title' => t('Export configuration'),
-      'href' => facetapi_get_settings_path($searcher, $realm_name, $facet_name, 'export')
+      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'export')
     );
 
     // Builds rows.
     $rows[$facet_name] = array(
-      'class' => array('draggable'),
+      'class' => $realm['sortable'] ? array('draggable') : array(),
       'data' => array(
         'indexed' => array(
           'data' => drupal_render($variables['element']['enabled_facets'][$facet_name]),
@@ -191,14 +195,18 @@ function theme_facetapi_realm_settings_table($variables) {
             ),
           )),
         ),
-        'weight' => array(
-          'data' => drupal_render($variables['element']['weight:' . $facet_name]),
-        ),
       ),
     );
+    if ($realm['sortable']) {
+      $rows[$facet_name]['data']['weight'] = array(
+        'data' => drupal_render($variables['element']['weight:' . $facet_name]),
+      );
+    }
   }
 
-  drupal_add_tabledrag('facetapi-ui-realm-settings', 'order', 'sibling', 'facetapi-facet-weight');
+  if ($realm['sortable']) {
+    drupal_add_tabledrag('facetapi-ui-realm-settings', 'order', 'sibling', 'facetapi-facet-weight');
+  }
   $output .= drupal_render_children($variables['element']);
   $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-ui-realm-settings')));
 
