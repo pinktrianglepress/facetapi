@@ -133,8 +133,7 @@ abstract class FacetapiAdapter {
     $this->facets = array();
 
     // We never want to use 'q' or 'page' params.
-    $this->params = $params;
-    unset($this->params['q'], $this->params['page']);
+    $this->params = drupal_get_query_parameters($params, array('q', 'page'));
     if (!isset($this->params[self::FILTER_KEY])) {
       $this->params[self::FILTER_KEY] = array();
     }
