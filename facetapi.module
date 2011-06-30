@@ -383,33 +383,39 @@ function facetapi_get_realm_info() {
  */
 function facetapi_get_facet_info($searcher) {
   $searcher_info = facetapi_get_searcher_info();
-  $facet_info = module_invoke_all('facetapi_facet_info', $searcher_info[$searcher]);
-  foreach ($facet_info as $facet_name => $info) {
-    $facet_info[$facet_name] += array(
-      'name' => $facet_name,
-      'label' => $facet_name,
-      'description' => '',
-      'field' => $facet_name,
-      'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
-      'field api name' => FALSE,
-      'query type' => 'term',
-      'dependency plugins' => array(),
-      'default widget' => FALSE,
-      'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
-      'facet missing allowed' => FALSE,
-      'weight' => 0,
-      'map callback' => FALSE,
-      'map options' => array(),
-      'hierarchy callback' => FALSE,
-      'values callback' => FALSE,
-      'min callback' => FALSE,
-      'max callback' => FALSE,
-      'default sorts' => array(
-        array('active', SORT_DESC),
-        array('count', SORT_DESC),
-        array('display', SORT_ASC),
-      ),
-    );
+  $facet_info = array();
+  foreach(module_implements('facetapi_facet_info') as $module) {
+    $facets = call_user_func($module . "_facetapi_facet_info", $searcher_info[$searcher]);
+    if (!empty($facets) && is_array($facets)) {
+      foreach($facets as $facet_name => $info) {
+        $facet_info[$facet_name] = $info;
+        $facet_info[$facet_name] += array(
+          'name' => $facet_name,
+          'label' => $facet_name,
+          'description' => '',
+          'field' => $facet_name,
+          'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
+          'field api name' => FALSE,
+          'query type' => 'term',
+          'dependency plugins' => array(),
+          'default widget' => FALSE,
+          'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
+          'facet missing allowed' => FALSE,
+          'weight' => 0,
+          'map callback' => FALSE,
+          'map options' => array(),
+          'hierarchy callback' => FALSE,
+          'values callback' => FALSE,
+          'min callback' => FALSE,
+          'max callback' => FALSE,
+          'default sorts' => array(
+            array('active', SORT_DESC),
+            array('count', SORT_DESC),
+            array('display', SORT_ASC),
+          ),
+        );
+      }
+    }
   }
 
   // Invokes alter hook, sorts and returns.
