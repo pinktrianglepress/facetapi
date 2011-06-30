@@ -382,14 +382,24 @@ function facetapi_get_realm_info() {
  *   An array containing the facet arrays, FALSE on errors.
  */
 function facetapi_get_facet_info($searcher) {
-  $searcher_info = facetapi_get_searcher_info();
-  $facet_info = array();
-  foreach(module_implements('facetapi_facet_info') as $module) {
-    $facets = call_user_func($module . "_facetapi_facet_info", $searcher_info[$searcher]);
-    if (!empty($facets) && is_array($facets)) {
+  $facet_info = &drupal_static(__FUNCTION__, array());
+
+  // Gets facet info if we haven't gotten it already.
+  if (!isset($facet_info[$searcher])) {
+    $searcher_info = facetapi_get_searcher_info();
+    $facet_info[$searcher] = array();
+
+    // Invokes hook_facetapi_facet_info(), normalizes facets.
+    foreach (module_implements('facetapi_facet_info') as $module) {
+      $facets = call_user_func($module . '_facetapi_facet_info', $searcher_info[$searcher]);
+      if (!$facets || !is_array($facets)) {
+        $facets = array();
+      }
+
+      // Iterates over facet definitions, merges defaults.
       foreach($facets as $facet_name => $info) {
-        $facet_info[$facet_name] = $info;
-        $facet_info[$facet_name] += array(
+        $facet_info[$searcher][$facet_name] = $info;
+        $facet_info[$searcher][$facet_name] += array(
           'name' => $facet_name,
           'label' => $facet_name,
           'description' => '',
@@ -416,12 +426,13 @@ function facetapi_get_facet_info($searcher) {
         );
       }
     }
+
+    // Invokes alter hook, sorts and returns.
+    drupal_alter('facetapi_facet_info', $facet_info[$searcher], $searcher_info[$searcher]);
+    uasort($facet_info[$searcher], 'drupal_sort_weight');
   }
 
-  // Invokes alter hook, sorts and returns.
-  drupal_alter('facetapi_facet_info', $facet_info, $searcher_info[$searcher]);
-  uasort($facet_info, 'drupal_sort_weight');
-  return $facet_info;
+  return $facet_info[$searcher];
 }
 
 /**
