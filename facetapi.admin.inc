@@ -78,6 +78,30 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
     '#default_value' => $default_value,
   );
 
+  // Checks whether block caching is enabled, sets description accordingly.
+  if (!$disabled = (module_implements('node_grants') || !variable_get('block_cache', FALSE))) {
+    $description = t('Configure the appropriate cache setting for facet blocks.');
+  }
+  else {
+    $description = t(
+      'To enable block caching, visit the <a href="@performance-page">performance page</a>.',
+      array('@performance-page' => url('admin/config/development/performance', array('query' => array('destination' => $_GET['q']))))
+    );
+  }
+  $form['block_cache'] = array(
+    '#type' => 'select',
+    '#access' => ('block' == $realm_name),
+    '#title' => t('Block cache settings'),
+    '#disabled' => $disabled,
+    '#options' => array(
+      DRUPAL_NO_CACHE => t('Do not cache'),
+      DRUPAL_CACHE_PER_ROLE | DRUPAL_CACHE_PER_PAGE => t('Per role'),
+      DRUPAL_CACHE_PER_USER | DRUPAL_CACHE_PER_PAGE => t('Per user'),
+    ),
+    '#default_value' => variable_get('facetapi:block_cache:' . $searcher, DRUPAL_NO_CACHE),
+    '#description' => $description,
+  );
+
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 20,
@@ -124,6 +148,16 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
         'To enable or arrange the facet blocks, visit the <a href="@block-page">blocks administration page</a>.',
         array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
       ));
+    }
+  }
+
+  // Saves block cache settings, clears block cache if setting was changed.
+  if (isset($form_state['values']['block_cache'])) {
+    $name = 'facetapi:block_cache:' . $adapter->getSearcher();
+    $original = variable_get($name, DRUPAL_NO_CACHE);
+    variable_set($name, $form_state['values']['block_cache']);
+    if ($original != $form_state['values']['block_cache']) {
+      cache_clear_all(NULL, 'cache_block');
     }
   }
 
