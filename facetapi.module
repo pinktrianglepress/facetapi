@@ -257,6 +257,9 @@ function facetapi_adapter_load($searcher) {
         $adapters[$searcher]->setParams($_GET);
       }
     }
+    else {
+      $adapters[$searcher] = FALSE;
+    }
   }
   return $adapters[$searcher];
 }
