@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * @file
+ * Tests for the Facet API module.
+ */
+
+class FacetapiAdapterTestCase extends DrupalWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Facet API functionality',
+      'description' => 'Tests the adapter system.',
+      'group' => 'Facet API',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('facetapi_test');
+  }
+
+  public function testValidAdapter() {
+    // Tests loading of a valid adapter plugin.
+    $adapter1 = facetapi_adapter_load('facetapi_test');
+    $value = ($adapter1 instanceof FacetapiAdapter);
+    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'));
+
+    // Sets a semaphore to see if singleton pattern works.
+    $adapter1->semaphore = 'test';
+    $adapter2 = facetapi_adapter_load('facetapi_test');
+    $value = (isset($adapter2->semaphore) && 'test' == $adapter2->semaphore);
+    $this->assertTrue($value, t('Singleton pattern implemented by facetapi_adapter_load().'));
+  }
+
+  public function testInvalidAdapter() {
+    $adapter = facetapi_adapter_load('bad_adapter');
+    $this->assertFalse($adapter, t('Loading an invalid adapter returns FALSE.'));
+  }
+
+  public function testSetParams() {
+    // Sets dummy parameters.
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $url = drupal_parse_url('http://example.com/index.php?q=test&page=1&f[0]=bundle:page');
+    $adapter->setParams($url['query']);
+
+    // Ensures that the "q" and "page" variables are stripped.
+    $params = $adapter->getParams();
+    $this->assertTrue(!isset($params['q']), t('The "q" variable is stripped by FacetapiAdapter::setParams().'));
+    $this->assertTrue(!isset($params['page']), t('The "page" variable is stripped by FacetapiAdapter::setParams().'));
+
+    // Tests that the "bundle:page" variable is set.
+    $value = (isset($params['f'][0]) && 'bundle:page' == $params['f'][0]);
+    $this->assertTrue($value, t('Facet value captured via FacetapiAdapter::setParams().'));
+  }
+}

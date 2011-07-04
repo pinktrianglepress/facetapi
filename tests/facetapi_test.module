@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Provides a test adapter and plugins.
+ */
+
+/**
+ * Implements hook_facetapi_adapters().
+ */
+function facetapi_test_facetapi_adapters() {
+  return array(
+    'facetapi_test' => array(
+      'handler' => array(
+        'class' => 'FacetapiTestAdapter',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_facetapi_searcher_info().
+ */
+function facetapi_test_facetapi_searcher_info() {
+  $info = array();
+
+  $info['facetapi_test'] = array(
+    'label' => t('Facet API Test'),
+    'adapter' => 'facetapi_test',
+    'path' => '',
+    'supports facet missing' => FALSE,
+  );
+
+  return $info;
+}
