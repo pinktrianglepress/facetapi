@@ -55,6 +55,7 @@ class FacetapiAdapterTestCase extends DrupalWebTestCase {
 }
 
 class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
+  protected $authenticatedUser;
   protected $adminUser;
 
   public static function getInfo() {
@@ -67,14 +68,23 @@ class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
 
   public function setUp() {
     parent::setUp('facetapi_test');
+    $this->authenticatedUser = $this->drupalCreateUser();
     $this->adminUser = $this->drupalCreateUser(array(
       'administer search',
       'access administration pages',
     ));
-    $this->drupalLogin($this->adminUser);
+  }
+
+  public function testAccess() {
+    $this->drupalLogin($this->authenticatedUser);
+
+    $this->drupalGet('admin/config/search/facetapi_test/facet');
+    $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'));
   }
 
   public function testSettingsForms() {
+    $this->drupalLogin($this->adminUser);
+
     // Looks for placeholder text in main settings form.
     $this->drupalGet('admin/config/search/facetapi_test');
     $this->assertRaw(FACETAPI_TEST_FORM_TEXT, t('Facet API test setting form exists.'));
@@ -89,6 +99,7 @@ class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
   }
 
   public function testEnableFacet() {
+    $this->drupalLogin($this->adminUser);
     $path = 'admin/config/search/facetapi_test/facets/block';
 
     // @todo Randomize this.
