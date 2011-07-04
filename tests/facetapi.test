@@ -114,5 +114,6 @@ class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
     $this->assertTrue($value, t('Bundle facet enabled.'));
     $value = facetapi_facet_enabled('facetapi_test', 'block', 'author');
     $this->assertFalse($value, t('Author facet disabled.'));
+
   }
 }
