@@ -80,6 +80,16 @@ class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
 
     $this->drupalGet('admin/config/search/facetapi_test/facet');
     $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'));
+
+    // @todo Randomize facet / realm combination?
+    $this->drupalGet('admin/config/search/facetapi/search/block/bundle/edit');
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet settings form.'));
+
+    $this->drupalGet('admin/config/search/facetapi/search/block/bundle/dependencies');
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet dependencies form.'));
+
+    $this->drupalGet('admin/config/search/facetapi/search/block/bundle/export');
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet export form.'));
   }
 
   public function testSettingsForms() {
