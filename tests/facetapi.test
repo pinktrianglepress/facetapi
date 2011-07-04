@@ -88,4 +88,31 @@ class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
     $this->assertRaw($description, t('Facet API test facet form exists.'));
   }
 
+  public function testEnableFacet() {
+    $path = 'admin/config/search/facetapi_test/facets/block';
+
+    // @todo Randomize this.
+    $values = array();
+    $values['enabled_facets[bundle]'] = 'bundle';
+    //$values['enabled_facets[author]'] = 0;
+    //$values['enabled_facets[language]'] = 0;
+    //$values['enabled_facets[created]'] = 0;
+    //$values['enabled_facets[changed]'] = 0;
+    //$values['block_cache'] = DRUPAL_NO_CACHE;
+
+    // Posts the form, ensures it was successfully submitted.
+    $this->drupalGet($path);
+    $this->drupalPost($path, $values, t('Save configuration'));
+    $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'));
+
+    // @todo Move this out of the test, include something in the API function
+    // that will enable and disable the facet.
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
+
+    // Tests the status of various facets.
+    $value = facetapi_facet_enabled('facetapi_test', 'block', 'bundle');
+    $this->assertTrue($value, t('Bundle facet enabled.'));
+    $value = facetapi_facet_enabled('facetapi_test', 'block', 'author');
+    $this->assertFalse($value, t('Author facet disabled.'));
+  }
 }

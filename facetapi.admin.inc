@@ -161,7 +161,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
     }
   }
 
-  // Clears delta map cache.
+  // Clears static cache and delta map delta map.
   cache_clear_all('facetapi:delta_map', 'cache');
 }
 
