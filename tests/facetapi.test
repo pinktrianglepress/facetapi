@@ -53,3 +53,39 @@ class FacetapiAdapterTestCase extends DrupalWebTestCase {
     $this->assertTrue($value, t('Facet value captured via FacetapiAdapter::setParams().'));
   }
 }
+
+class FacetapiUserInterfaceTestCase extends DrupalWebTestCase {
+  protected $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Facet API user interface',
+      'description' => 'Tests the UI for Facet API implementations.',
+      'group' => 'Facet API',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('facetapi_test');
+    $this->adminUser = $this->drupalCreateUser(array(
+      'administer search',
+      'access administration pages',
+    ));
+    $this->drupalLogin($this->adminUser);
+  }
+
+  public function testSettingsForms() {
+    // Looks for placeholder text in main settings form.
+    $this->drupalGet('admin/config/search/facetapi_test');
+    $this->assertRaw(FACETAPI_TEST_FORM_TEXT, t('Facet API test setting form exists.'));
+
+    // Searches for "block" link in description.
+    $description = t(
+      'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
+      array('@block-page' => url('admin/structure/block', array('query' => array('destination' => 'admin/config/search/facetapi_test/facets/block'))))
+    );
+    $this->drupalGet('admin/config/search/facetapi_test/facets/block');
+    $this->assertRaw($description, t('Facet API test facet form exists.'));
+  }
+
+}

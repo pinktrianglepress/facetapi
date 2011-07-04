@@ -6,6 +6,34 @@
  */
 
 /**
+ * Placeholder text on the admin settings form.
+ */
+define('FACETAPI_TEST_FORM_TEXT', t('Facet API test form'));
+
+/**
+ * Implements hook_menu().
+ */
+function facetapi_test_menu() {
+  $items = array();
+
+  $items['admin/config/search/facetapi_test'] = array(
+    'title' => 'Facet API test',
+    'description' => 'Settings for the Facet API module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_test_admin_settings'),
+    'access arguments' => array('administer search'),
+  );
+
+  $items['admin/config/search/facetapi_test/settings'] = array(
+    'title' => 'Settings',
+    'weight' => -10,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_facetapi_adapters().
  */
 function facetapi_test_facetapi_adapters() {
@@ -27,9 +55,17 @@ function facetapi_test_facetapi_searcher_info() {
   $info['facetapi_test'] = array(
     'label' => t('Facet API Test'),
     'adapter' => 'facetapi_test',
-    'path' => '',
+    'path' => 'admin/config/search/facetapi_test',
     'supports facet missing' => FALSE,
   );
 
   return $info;
+}
+
+/**
+ * Placeholder for the admin settings form.
+ */
+function facetapi_test_admin_settings($form, &$form_state) {
+  $form['text'] = array('#markup' => FACETAPI_TEST_FORM_TEXT);
+  return $form;
 }
