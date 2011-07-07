@@ -7,6 +7,16 @@
 
 class FacetapiTestCase extends DrupalWebTestCase {
 
+  public function setUp() {
+    parent::setUp('block', 'facetapi_test');
+    $this->authenticatedUser = $this->drupalCreateUser();
+    $this->adminUser = $this->drupalCreateUser(array(
+      'administer blocks',
+      'administer search',
+      'access administration pages',
+    ));
+  }
+
   public function loadAdapter($searcher) {
     $adapter = facetapi_adapter_load('facetapi_test');
     $value = ($adapter instanceof FacetapiAdapter);
@@ -53,14 +63,10 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
 
   public static function getInfo() {
     return array(
-      'name' => 'Facet API functionality',
+      'name' => 'Adapter functionality',
       'description' => 'Tests the adapter system.',
       'group' => 'Facet API',
     );
-  }
-
-  public function setUp() {
-    parent::setUp('facetapi_test');
   }
 
   public function testValidAdapter() {
@@ -95,26 +101,16 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
   }
 }
 
-class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
+class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
   protected $authenticatedUser;
   protected $adminUser;
 
   public static function getInfo() {
     return array(
-      'name' => 'Facet API user interface',
-      'description' => 'Tests the UI for Facet API implementations.',
+      'name' => 'Administrative UI',
+      'description' => 'Tests the UI for Facet API administrative pages.',
       'group' => 'Facet API',
     );
-  }
-
-  public function setUp() {
-    parent::setUp('block', 'facetapi_test');
-    $this->authenticatedUser = $this->drupalCreateUser();
-    $this->adminUser = $this->drupalCreateUser(array(
-      'administer blocks',
-      'administer search',
-      'access administration pages',
-    ));
   }
 
   public function testFormAccess() {
@@ -156,7 +152,47 @@ class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
   }
 
   public function testEnableFacetWithColon() {
+    // @todo Implement API to enable facets.
+    // @see http://drupal.org/node/1208326
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('colon:test', t('Colon test'));
   }
+}
+
+class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
+  protected $authenticatedUser;
+  protected $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Search page UI',
+      'description' => 'Tests the UI for search pages.',
+      'group' => 'Facet API',
+    );
+  }
+
+  public function testFormAccess() {
+    // @todo Implement API to enable facets.
+    // @see http://drupal.org/node/1208326
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacet('enabled', t('Enabled facet'));
+    $this->drupalLogin($this->authenticatedUser);
+
+    // @todo Randomize keys.
+
+    // Tests breadcrumb trail when search keys are in the path.
+    $path = 'facetapi_test/search/testkeys';
+    $options = array('query' => array('f' => array(0 => 'enabled:testone')));
+    $this->drupalGet($path, $options);
+    $this->clickLink('testkeys');
+    $this->assertUrl($path);
+
+    // Tests breadcrumb trail when search keys are in the query string.
+    $path = 'facetapi_test/search';
+    $options = array('query' => array('keys' => 'testkeys', 'f' => array(0 => 'enabled:testone')));
+    $this->drupalGet($path, $options);
+    $this->clickLink('testkeys');
+    $this->assertUrl($path, array('query' => array('keys' => 'testkeys')));
+  }
+
 }

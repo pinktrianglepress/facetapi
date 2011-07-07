@@ -134,6 +134,9 @@ function facetapi_test_search_callback() {
   $query = new stdClass();
   $adapter->addActiveFilters($query);
 
+  $keys = isset($_GET['keys']) ? $_GET['keys'] : arg(2);
+  $adapter->setSearchKeys($keys);
+
   $build['placeholder'] = array(
     '#markup' => t('Placeholder'),
   );
