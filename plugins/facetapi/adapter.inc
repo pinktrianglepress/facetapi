@@ -165,11 +165,12 @@ abstract class FacetapiAdapter {
 
       // Performs basic parsing of the filter.
       $parts = explode(':', $filter, 2);
-      if (isset($parts[1]) && isset($enabled_aliases[$parts[0]])) {
+      $field_alias = urldecode($parts[0]);
+      if (isset($parts[1]) && isset($enabled_aliases[$field_alias])) {
 
         // Stores the base item.
         $item = array(
-          'field alias' => $parts[0],
+          'field alias' => $field_alias,
           'value' => $parts[1],
           'pos' => $pos,
         );
@@ -179,7 +180,7 @@ abstract class FacetapiAdapter {
         $this->activeItems['filter'][$filter]['facets'] = array();
 
         // Stores active items per facet.
-        foreach ($enabled_aliases[$parts[0]] as $facet_name) {
+        foreach ($enabled_aliases[$field_alias] as $facet_name) {
           $this->activeItems['filter'][$filter]['facets'][] = $facet_name;
           $this->activeItems['facet'][$facet_name][$parts[1]] = $item;
         }
@@ -1263,7 +1264,8 @@ class FacetapiFacetProcessor {
         unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
       }
       elseif (!$active) {
-        $qstring[$this->filterKey][] = $this->facet['field alias'] . ':' . $value;
+        $field_alias = drupal_encode_path($this->facet['field alias']);
+        $qstring[$this->filterKey][] = $field_alias . ':' . $value;
       }
     }
 

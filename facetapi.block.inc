@@ -29,7 +29,7 @@ function facetapi_get_block_info($realm_name = 'block') {
     foreach ($facets as $facet_name => $facet) {
 
       // Gets the delta from the delta map.
-      $string = $searcher . ':' . $realm_name . ':' . $facet_name;
+      $string = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
       $delta = array_search($string, $map);
 
       // Defines the block.
@@ -60,6 +60,7 @@ function facetapi_get_block($delta) {
   // Process the parts from the end in case the searcher includes a ':'.
   $parts = explode(':', $map[$delta]);
   $facet_name = array_pop($parts);
+  $facet_name = urldecode($facet_name);
   $realm_name = array_pop($parts);
   $searcher = implode(':', $parts);
 
@@ -141,7 +142,7 @@ function facetapi_get_delta_map() {
         // @todo - some other way to define realms that are block-like.
         foreach (array('block') as $realm_name) {
           foreach (facetapi_get_enabled_facets($searcher, $realm_name) as $facet) {
-            $delta = $searcher . ':' . $realm_name . ':' . $facet['name'];
+            $delta = $searcher . ':' . $realm_name . ':' . urlencode($facet['name']);
             $map[facetapi_hash_delta($delta)] = $delta;
           }
         }
