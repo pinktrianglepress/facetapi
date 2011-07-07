@@ -502,16 +502,16 @@ abstract class FacetapiAdapter {
         $breadcrumb[] = $this_page;
       }
     }
-    // Adds the current search to the query.
-    // @todo Need a getBaseQuery() method or something.
-    if ($keys) {
-      // The last item should be text, not a link.
-      $breadcrumb[] = $active_items ? l($keys, $_GET['q']) : check_plain($keys);
-    }
 
     // Initializes base breadcrumb query.
     $query = $this->params;
     unset($query[self::FILTER_KEY]);
+
+    // Adds the current search to the query.
+    if ($keys) {
+      // The last item should be text, not a link.
+      $breadcrumb[] = $active_items ? l($keys, $_GET['q'], array('query' => $query)) : check_plain($keys);
+    }
 
     // Adds filters to the breadcrumb trail.
     $last = end($active_items);
