@@ -30,6 +30,14 @@ function facetapi_test_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
+  $items['facetapi_test/search'] = array(
+    'title' => 'Search',
+    'description' => 'Fake search page callback.',
+    'page callback' => 'facetapi_test_search_callback',
+    'access arguments' => array('access content'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   return $items;
 }
 
@@ -47,6 +55,20 @@ function facetapi_test_facetapi_adapters() {
 }
 
 /**
+ * Implements hook_facetapi_query_types().
+ */
+function facetapi_test_facetapi_query_types() {
+  return array(
+    'facetapi_test_term' => array(
+      'handler' => array(
+        'class' => 'FacetapiTestTerm',
+        'adapter' => 'facetapi_test',
+      ),
+    ),
+  );
+}
+
+/**
  * Implements hook_facetapi_searcher_info().
  */
 function facetapi_test_facetapi_searcher_info() {
@@ -55,6 +77,7 @@ function facetapi_test_facetapi_searcher_info() {
   $info['facetapi_test'] = array(
     'label' => t('Facet API Test'),
     'adapter' => 'facetapi_test',
+    'type' => 'test',
     'path' => 'admin/config/search/facetapi_test',
     'supports facet missing' => FALSE,
   );
@@ -68,4 +91,52 @@ function facetapi_test_facetapi_searcher_info() {
 function facetapi_test_admin_settings($form, &$form_state) {
   $form['text'] = array('#markup' => FACETAPI_TEST_FORM_TEXT);
   return $form;
+}
+
+/**
+ * Implements hook_facetapi_facet_info().
+ */
+function facetapi_test_facetapi_facet_info($searcher_info) {
+  $facets = array();
+  if ('test' == $searcher_info['type']) {
+
+    $facets['enabled'] = array(
+      'label' => t('Enabled facet'),
+      'description' => t('Facet that tests enabling.'),
+      'dependency plugins' => array('role'),
+    );
+
+    $facets['disabled'] = array(
+      'label' => t('Disabled facet'),
+      'description' => t('Facet that tests disabling.'),
+      'dependency plugins' => array('role'),
+    );
+
+    $facets['colon:test'] = array(
+      'label' => t('Colon test'),
+      'description' => t('Test facets names with colonss.'),
+      'dependency plugins' => array('role'),
+    );
+  }
+  return $facets;
+}
+
+/**
+ * Fake search page callback.
+ */
+function facetapi_test_search_callback() {
+  $build = array();
+
+  if (!$adapter = facetapi_adapter_load('facetapi_test')) {
+    throw new Exception(t('Error loading adapter.'));
+  }
+
+  $query = new stdClass();
+  $adapter->addActiveFilters($query);
+
+  $build['placeholder'] = array(
+    '#markup' => t('Placeholder'),
+  );
+
+  return $build;
 }

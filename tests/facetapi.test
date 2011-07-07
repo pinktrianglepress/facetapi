@@ -13,6 +13,40 @@ class FacetapiTestCase extends DrupalWebTestCase {
     $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'));
     return $adapter;
   }
+
+  public function enableFacet($name, $label, $realm = 'block') {
+    $path = 'admin/config/search/facetapi_test/facets/' . $realm;
+
+    $values = array();
+    $values['enabled_facets[' . $name . ']'] = $name;
+
+    // Posts the form, ensures it was successfully submitted.
+    $this->drupalGet($path);
+    $this->drupalPost($path, $values, t('Save configuration'));
+    $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'));
+
+    // We have to clear the static cache otherwise this test won't work. This is
+    // OK because the script execution persists when the form is submitted by
+    // the test unlike a real form post where the page has to reload.
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
+
+    // Tests the status of the enabled facet.
+    $value = facetapi_facet_enabled('facetapi_test', $realm, $name);
+    $this->assertTrue($value, t('Facet enabled via the interface.'));
+
+    // Adds realm to block if we are testing the block realm.
+    if ('block' == $realm) {
+      $edit = array();
+      $key = 'facetapi_facetapi_test:block:' . urlencode($name);
+      $edit['blocks[' . $key . '][region]'] = 'sidebar_first';
+      $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+
+      // Visits search page, raw value mimics return from default theme function.
+      $this->drupalGet('facetapi_test/search');
+      $raw = t('Filter by @title:', array('@title' => drupal_strtolower($label)));
+      $this->assertRaw($raw, t('Facet block displayed on search page.'));
+    }
+  }
 }
 
 class FacetapiAdapterTestCase extends FacetapiTestCase {
@@ -74,9 +108,10 @@ class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
   }
 
   public function setUp() {
-    parent::setUp('facetapi_test');
+    parent::setUp('block', 'facetapi_test');
     $this->authenticatedUser = $this->drupalCreateUser();
     $this->adminUser = $this->drupalCreateUser(array(
+      'administer blocks',
       'administer search',
       'access administration pages',
     ));
@@ -89,13 +124,13 @@ class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
     $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'));
 
     // @todo Randomize facet / realm combination?
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/bundle/edit');
+    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/edit');
     $this->assertResponse(403, t('The "administer search" permission is required to access the facet settings form.'));
 
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/bundle/dependencies');
+    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/dependencies');
     $this->assertResponse(403, t('The "administer search" permission is required to access the facet dependencies form.'));
 
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/bundle/export');
+    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/export');
     $this->assertResponse(403, t('The "administer search" permission is required to access the facet export form.'));
   }
 
@@ -117,31 +152,11 @@ class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
 
   public function testEnableFacet() {
     $this->drupalLogin($this->adminUser);
-    $path = 'admin/config/search/facetapi_test/facets/block';
+    $this->enableFacet('enabled', t('Enabled facet'));
+  }
 
-    // @todo Randomize this.
-    $values = array();
-    $values['enabled_facets[bundle]'] = 'bundle';
-    //$values['enabled_facets[author]'] = 0;
-    //$values['enabled_facets[language]'] = 0;
-    //$values['enabled_facets[created]'] = 0;
-    //$values['enabled_facets[changed]'] = 0;
-    //$values['block_cache'] = DRUPAL_NO_CACHE;
-
-    // Posts the form, ensures it was successfully submitted.
-    $this->drupalGet($path);
-    $this->drupalPost($path, $values, t('Save configuration'));
-    $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'));
-
-    // We have to clear the static cache otherwise this test won't work. This is
-    // OK because the script execution persists when the form is submitted by
-    // the test unlike a real form post where the page has to reload.
-    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
-
-    // Tests the status of various facets.
-    $value = facetapi_facet_enabled('facetapi_test', 'block', 'bundle');
-    $this->assertTrue($value, t('Bundle facet enabled.'));
-    $value = facetapi_facet_enabled('facetapi_test', 'block', 'author');
-    $this->assertFalse($value, t('Author facet disabled.'));
+  public function testEnableFacetWithColon() {
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacet('colon:test', t('Enabled facet'));
   }
 }
