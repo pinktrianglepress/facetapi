@@ -157,6 +157,6 @@ class FacetapiUserInterfaceTestCase extends FacetapiTestCase {
 
   public function testEnableFacetWithColon() {
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet('colon:test', t('Enabled facet'));
+    $this->enableFacet('colon:test', t('Colon test'));
   }
 }
