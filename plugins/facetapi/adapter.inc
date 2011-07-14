@@ -76,8 +76,10 @@ abstract class FacetapiAdapter {
 
   /**
    * Define the array key in the params that is used for filters.
+   *
+   * @var string
    */
-  const FILTER_KEY = 'f';
+  protected $filterKey = 'f';
 
   /**
    * Constructor, sets searcher and type of content being indexed.
@@ -95,6 +97,13 @@ abstract class FacetapiAdapter {
         $this->queryTypes[$type] = $plugin['handler']['class'];
       }
     }
+  }
+
+  /**
+   * Returns the filter key.
+   */
+  public function getFilterKey() {
+    return $this->filterKey;
   }
 
   /**
@@ -120,22 +129,26 @@ abstract class FacetapiAdapter {
   abstract public function suppressOutput($realm_name);
 
   /**
-   * Processes a raw arrray of active filters.
+   * Processes a raw array of active filters.
    *
    * @param array $params
    *   An array of keyed params, such as $_GET.
+   * @param string $filter_key
+   *   The array key in $params corresponding to filters.
    *
    * @return FacetapiAdapter
    *   An instance of this class.
    */
-  public function setParams(array $params = array()) {
+  public function setParams(array $params = array(), $filter_key = 'f') {
+    $this->filterKey = $filter_key;
+
     // Need to rebuild facets if we use different params.
     $this->facets = array();
 
     // We never want to use 'q' or 'page' params.
     $this->params = drupal_get_query_parameters($params, array('q', 'page'));
-    if (!isset($this->params[self::FILTER_KEY])) {
-      $this->params[self::FILTER_KEY] = array();
+    if (!isset($this->params[$this->filterKey])) {
+      $this->params[$this->filterKey] = array();
     }
 
     // Processes active items, returns this class.
@@ -157,7 +170,7 @@ abstract class FacetapiAdapter {
     }
 
     // Extracts valid filters from query string.
-    foreach ($this->params[self::FILTER_KEY] as $pos => $filter) {
+    foreach ($this->params[$this->filterKey] as $pos => $filter) {
       // Bails if an object or array.
       if (!is_scalar($filter)) {
         continue;
@@ -505,7 +518,7 @@ abstract class FacetapiAdapter {
 
     // Initializes base breadcrumb query.
     $query = $this->params;
-    unset($query[self::FILTER_KEY]);
+    unset($query[$this->filterKey]);
 
     // Adds the current search to the query.
     if ($keys) {
@@ -516,7 +529,7 @@ abstract class FacetapiAdapter {
     // Adds filters to the breadcrumb trail.
     $last = end($active_items);
     foreach ($active_items as $item) {
-      $query[self::FILTER_KEY][] = $item['field alias'] . ':' . $item['value'];
+      $query[$this->filterKey][] = $item['field alias'] . ':' . $item['value'];
 
       // Replaces with the mapped value.
       $value = $this->getMappedValue($item['facets'][0], $item['value']);
@@ -533,6 +546,40 @@ abstract class FacetapiAdapter {
 
     // Sets the breadcrumb trail with searck keys and filters.
     drupal_set_breadcrumb($breadcrumb);
+  }
+
+  /**
+   * Helper function that returns the query string variables for a facet item.
+   *
+   * @param array $facet
+   *   The facet definition.
+   * @param array $values
+   *   An array containing the item's values being added to or removed from the
+   *   query string dependent on whether or not the item is active.
+   * @param int $active
+   *   An integer flagging whether the item is active or not.
+   *
+   * @return array
+   *   The query string vriables.
+   */
+  public function getQueryString(array $facet, array $values, $active) {
+    $qstring = $this->params;
+    $active_items = $this->getActiveItems($facet);
+
+    // Appends to qstring if inactive, removes if active.
+    foreach ($values as $value) {
+      if ($active && isset($active_items[$value])) {
+        unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
+      }
+      elseif (!$active) {
+        $field_alias = drupal_encode_path($facet['field alias']);
+        $qstring[$this->filterKey][] = $field_alias . ':' . $value;
+      }
+    }
+
+    // Resets array keys, returns query string.
+    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
+    return array_filter($qstring);
   }
 
   /**
@@ -613,9 +660,8 @@ abstract class FacetapiAdapter {
 
       // Initializes each facet's render array.
       foreach ($this->getEnabledFacets() as $facet) {
-        $this->processors[$facet['name']] = new FacetapiFacetProcessor(
-          $this->getFacet($facet), self::FILTER_KEY
-        );
+        $processor = new FacetapiFacetProcessor($this->getFacet($facet));
+        $this->processors[$facet['name']] = $processor;
         $this->processors[$facet['name']]->process();
       }
 
@@ -1011,13 +1057,6 @@ class FacetapiFacetProcessor {
   protected $facet;
 
   /**
-   * The key in $params corresponding to filters.
-   *
-   * @var string
-   */
-  protected $filterKey;
-
-  /**
    * The facet's initialized render array.
    *
    * @var array
@@ -1035,15 +1074,11 @@ class FacetapiFacetProcessor {
    * Constructor, initializes render array.
    *
    * @param FacetapiFacet $facet
-   *
-   * @param $filter_key
-   *   The array key in $params corresponding to filters. $params[$filter_key]
-   *   must be an array.
+   *   The facet being processed.
    *
    */
-  public function __construct(FacetapiFacet $facet, $filter_key) {
+  public function __construct(FacetapiFacet $facet) {
     $this->facet = $facet;
-    $this->filterKey = $filter_key;
   }
 
   /**
@@ -1254,24 +1289,9 @@ class FacetapiFacetProcessor {
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
-    $adapter = $this->facet->getAdapter();
-    $qstring = $adapter->getParams();
-    $active_items = $adapter->getActiveItems($this->facet->getFacet());
-
-    // Appends to qstring if inactive, removes if inactive.
-    foreach ($values as $value) {
-      if ($active && isset($active_items[$value])) {
-        unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
-      }
-      elseif (!$active) {
-        $field_alias = drupal_encode_path($this->facet['field alias']);
-        $qstring[$this->filterKey][] = $field_alias . ':' . $value;
-      }
-    }
-
-    // Resets array keys, returns query string.
-    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
-    return array_filter($qstring);
+    return $this->facet
+      ->getAdapter()
+      ->getQueryString($this->facet->getFacet(), $values, $active);
   }
 }
 
