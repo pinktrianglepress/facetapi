@@ -130,13 +130,15 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 
   // Builds settings object, saves to database.
   foreach ($facet_info as $facet_name => $facet) {
-    $settings = $adapter->getFacet($facet)->getSettings($realm);
-    $settings->enabled = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
+    $status = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
     $weight = $realm['sortable'] ? $form_state['values']['weight:' . $facet_name] : 0;
-    $settings->settings['weight'] = $weight;
-    if (FALSE === ctools_export_crud_save('facetapi', $settings)) {
-      drupal_set_message(t('Error saving settings.'), 'error');
+    if (!facetapi_save_facet_status($adapter, $realm, $facet, $status, $weight, TRUE)) {
       $success = FALSE;
+      $message = t(
+        'Error saving configuration options for the %label facet.',
+        array('%label' => $facet['label'])
+      );
+      drupal_set_message($message, 'error');
     }
   }
 
@@ -161,7 +163,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
     }
   }
 
-  // Clears static cache and delta map delta map.
+  // Clears delta map cache.
   cache_clear_all('facetapi:delta_map', 'cache');
 }
 

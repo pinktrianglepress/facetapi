@@ -83,7 +83,12 @@ function facetapi_install() {
  * Implementation of hook_uninstall().
  */
 function facetapi_uninstall() {
-  // Nothing to do...
+  // Remove all variables that start with "facetapi:".
+  $args = array(':module' => 'facetapi%');
+  $result = db_query('SELECT name FROM {variable} WHERE name LIKE :module', $args);
+  foreach ($result as $record) {
+    variable_del($record->name);
+  }
 }
 
 /**

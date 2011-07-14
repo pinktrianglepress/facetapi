@@ -746,3 +746,197 @@ function facetapi_build_realm($searcher, $realm_name) {
   $adapter = facetapi_adapter_load($searcher);
   return ($adapter) ? $adapter->buildRealm($realm_name) : array();
 }
+
+/**
+ * Enables or disables a facet for this page load only.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm, pass NULL for all realms.
+ * @param $facet_name
+ *   The machine readable name of the facet.
+ * @param $status
+ *   A boolean flagging whether the facet is enabled or disabled.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.  If set to
+ *   TRUE, the list of enabled facets won't be rebuild and the active items
+ *   won't be re-processed.  Note that these tasks will have to be performed
+ *   manually in order for the status to be properly set.
+ */
+function facetapi_set_facet_status($searcher, $realm_name, $facet_name, $status, $batch_process) {
+  // Rebuild static if not batch processing.
+  if (!$batch_process) {
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
+  }
+
+  // Pulls the list of enabled facets so we can modify it here.
+  facetapi_get_enabled_facets($searcher, $realm_name);
+  $enabled_facets = &drupal_static('facetapi_get_enabled_facets', array());
+
+  // Performs the operation by setting or unsetting the facet.
+  $cid = $searcher . ':' . (string) $realm_name;
+  if ($status && !isset($enabled_facets[$cid][$facet_name])) {
+    if ($facet = facetapi_facet_load($facet_name, $searcher)) {
+      // Add facet to static, which enables it.
+      $enabled_facets[$cid][$facet_name] = $facet;
+      // If facet isn't already globally enabled, enable it.
+      if (!isset($enabled_facets[$searcher . ':'][$facet_name])) {
+        // Ensure sure static is set before modifying it.
+        facetapi_get_enabled_facets($searcher, NULL);
+        $enabled_facets[$searcher . ':'][$facet_name] = $facet;
+      }
+    }
+  }
+  elseif (!$status && isset($enabled_facets[$cid][$facet_name])) {
+    // Removes facet to static, which disables it.
+    unset($enabled_facets[$cid][$facet_name]);
+    // If acting globally, disable facet in all realms.
+    if (!$realm_name) {
+      foreach (facetapi_get_realm_info() as $realm) {
+        // Ensure sure static is set before unsetting the facet.
+        facetapi_get_enabled_facets($searcher, $realm['name']);
+        unset($enabled_facets[$searcher . ':' . $realm['name']][$facet_name]);
+      }
+    }
+  }
+  else {
+    return;
+  }
+
+  // Re-process the active items since the list of active facets has changed.
+  if (!$batch_process && ($adapter = facetapi_adapter_load($searcher))) {
+    $adapter->processActiveItems();
+  }
+}
+
+/**
+ * Enables a facet for this page load only.
+ *
+ * If you are enabling facets in the block realm, you will have to force the
+ * delta mapping so that the block can be configured even if it is disabled via
+ * the Facet API interface. Otherwise you will not be able to assign the block
+ * to a region because it won't be available in admin/structure/block.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm, pass NULL for all realms.
+ * @param $facet_name
+ *   The machine readable name of the facet.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.
+ *
+ * @see facetapi_set_facet_status()
+ * @see hook_facetapi_force_delta_mapping().
+ */
+function facetapi_set_facet_enabled($searcher, $realm_name, $facet_name, $batch_process = FALSE) {
+  return facetapi_set_facet_status($searcher, $realm_name, $facet_name, TRUE, $batch_process);
+}
+
+/**
+ * Disables a facet for this page load only.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm, pass NULL for all realms.
+ * @param $facet_name
+ *   The machine readable name of the facet.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.
+ *
+ * @see facetapi_set_facet_status()
+ */
+function facetapi_set_facet_disabled($searcher, $realm_name, $facet_name, $batch_process = FALSE) {
+  return facetapi_set_facet_status($searcher, $realm_name, $facet_name, FALSE, $batch_process);
+}
+
+/**
+ * Sets the facet status in a given realm, stores settings in the database.
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter object.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ * @param $status
+ *   Flags whether or not the facet is being enabled or disabled.
+ * @param $weight
+ *   If the realm is sortable, allows the assigning of a weight. Pass FALSE to
+ *   maintain the previously stored value.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.  If set to
+ *   TRUE, the caches and statics won't be reset.
+ *
+ * @reutrn boolean
+ *   The success of the operation.
+ */
+function facetapi_save_facet_status(FacetapiAdapter $adapter, array $realm, array $facet, $status, $weight, $batch_process) {
+  // Loads the realm settings, sets enabled flag and weight.
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  $settings->enabled = ($status) ? 1 : 0;
+  if (FALSE !== $weight) {
+    $settings->settings['weight'] = $realm['sortable'] ? $weight : 0;
+  }
+
+  // Saves the settings in the database, stores the result.
+  // NOTE: CTools export componenet loaded in the getSettings() method.
+  $success = (FALSE !== ctools_export_crud_save('facetapi', $settings));
+
+  // Clears caches and statics if we are not batch processing.
+  if ($success && !$batch_process) {
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
+    if ('block' == $realm['name']) {
+      cache_clear_all(NULL, 'cache_block');
+      cache_clear_all('facetapi:delta_map', 'cache');
+    }
+  }
+
+  return $success;
+}
+
+/**
+ * Enables a facet in a given realm, stores settings in the database.
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter object.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ * @param $weight
+ *   If the realm is sortable, allows the assigning of a weight. Pass FALSE to
+ *   maintain the previously stored value.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.
+ *
+ * @reutrn boolean
+ *   The success of the operation.
+ */
+function facetapi_save_facet_enabled(FacetapiAdapter $adapter, array $realm, array $facet, $weight = FALSE, $batch_process = FALSE) {
+  return facetapi_save_facet_status($adapter, $realm, $facet, TRUE, $weight, $batch_process);
+}
+
+/**
+ * Disables a facet in a given realm, stores settings in the database.
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter object.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ * @param $weight
+ *   If the realm is sortable, allows the assigning of a weight. Pass FALSE to
+ *   maintain the previously stored value.
+ * @param $batch_process
+ *   A boolean flagging whether batch processing is being performed.
+ *
+ * @reutrn boolean
+ *   The success of the operation.
+ */
+function facetapi_save_facet_disabled(FacetapiAdapter $adapter, array $realm, array $facet, $weight = FALSE, $batch_process = FALSE) {
+  return facetapi_save_facet_status($adapter, $realm, $facet, FALSE, $weight, $batch_process);
+}

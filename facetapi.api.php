@@ -144,3 +144,28 @@ function hook_facetapi_sort_info_alter(array &$sort_info) {
 function hook_facetapi_facets_alter(array &$build, FacetapiAdapter $adapter, array $realm) {
 
 }
+
+/**
+ * Forces delta mapping of a facet block.
+ *
+ * This obscure hook is useful for cases where facets are disabled, but their
+ * block positioning needs to be set anyways. If a facet is enabled via the
+ * facetapi_set_facet_enabled() API function, its block needs to be enabled
+ * and assigned to a region despite the facet not being enabled in the Facet API
+ * interface, which would normally prevent the block from being listed.
+ */
+function hook_facetapi_force_delta_mapping() {
+  return array(
+    // The machine-readable name of the searcher.
+    'my_searcher' => array(
+      // The realm we are mapping, usually block.
+      'block' => array(
+        // Machine readable names of facets whose mappping is forced. Regardless
+        // of whether they are enabled via the Facet API interface, their blocks
+        // will be available to enable and position via admin/structure/block.
+        'facet_one',
+        'facet_two',
+      ),
+    ),
+  );
+}

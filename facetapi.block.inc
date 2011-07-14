@@ -24,19 +24,19 @@ function facetapi_get_block_info($realm_name = 'block') {
       'cache' => $cache,
     );
 
-    // Adds facet blocks.
-    $facets = facetapi_get_enabled_facets($searcher, $realm_name);
-    foreach ($facets as $facet_name => $facet) {
+    // Adds blocks for facets that are enabled or whose delta mapping is forced.
+    foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
+      if ($facet = facetapi_facet_load($facet_name, $searcher)) {
+        // Gets the delta from the delta map.
+        $string = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
+        $delta = array_search($string, $map);
 
-      // Gets the delta from the delta map.
-      $string = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
-      $delta = array_search($string, $map);
-
-      // Defines the block.
-      $blocks[$delta] = array(
-        'info' => 'Facet API: ' . $info['label'] . ' : ' . $facet['label'],
-        'cache' => $cache,
-      );
+        // Defines the block.
+        $blocks[$delta] = array(
+          'info' => 'Facet API: ' . $info['label'] . ' : ' . $facet['label'],
+          'cache' => $cache,
+        );
+      }
     }
   }
 
@@ -70,7 +70,7 @@ function facetapi_get_block($delta) {
     $realm_name = $facet_name = FALSE;
   }
 
-  // Bails if output is suppressed, such as if a search hasn't been executed.
+  // Bails if adapter can't be loaded.
   if (!$adapter = facetapi_adapter_load($searcher)) {
     return;
   }
@@ -85,6 +85,11 @@ function facetapi_get_block($delta) {
 
   // Bails if the output should be suppressed.
   if ($adapter->suppressOutput($realm_name)) {
+    return;
+  }
+
+  // Bails if the facet isn't enabled.
+  if (!facetapi_facet_enabled($searcher, $realm_name, $facet_name)) {
     return;
   }
 
@@ -129,9 +134,8 @@ function facetapi_get_delta_map() {
       $map = $data->data;
     }
     else {
-      $map = array();
 
-      // Calculates deltas for facets in the block realm.
+      $map = array();
       foreach (facetapi_get_searcher_info() as $searcher => $info) {
 
         // Maps current search block.
@@ -141,8 +145,8 @@ function facetapi_get_delta_map() {
         // Maps facet deltas.
         // @todo - some other way to define realms that are block-like.
         foreach (array('block') as $realm_name) {
-          foreach (facetapi_get_enabled_facets($searcher, $realm_name) as $facet) {
-            $delta = $searcher . ':' . $realm_name . ':' . urlencode($facet['name']);
+          foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
+            $delta = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
             $map[facetapi_hash_delta($delta)] = $delta;
           }
         }
@@ -167,4 +171,30 @@ function facetapi_get_delta_map() {
  */
 function facetapi_hash_delta($delta) {
   return (strlen($delta) <= 32) ? $delta : substr(drupal_hash_base64($delta), 0, 32);
+}
+
+/**
+ * Returns facets that are enabled or whose delta mapping is forced.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm.
+ *
+ * @return array
+ *   A list of machine readable facet names.
+ */
+function facetapi_get_delta_map_queue($searcher, $realm_name) {
+  static $forced;
+  if (NULL === $forced) {
+    $forced = module_invoke_all('facetapi_force_delta_mapping');
+  }
+
+  $enabled = array_keys(facetapi_get_enabled_facets($searcher, $realm_name));
+  if (!isset($forced[$searcher][$realm_name])) {
+    $forced[$searcher][$realm_name] = array();
+  }
+
+  // Merges enabled facets and facets whose mapping is forced.
+  return array_unique(array_merge($enabled, $forced[$searcher][$realm_name]));
 }
