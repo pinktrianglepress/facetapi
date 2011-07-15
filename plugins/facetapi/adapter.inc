@@ -344,13 +344,23 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns TRUE if the back-end supports "missing".
+   * Returns TRUE if the back-end supports "missing" facets.
    *
    * @return bool
    *   TRUE or FALSE.
    */
   public function supportsFacetMissing() {
     return $this->info['supports facet missing'];
+  }
+
+  /**
+   * Returns TRUE if the back-end supports "minimum facet counts".
+   *
+   * @return bool
+   *   TRUE or FALSE.
+   */
+  public function supportsFacetMincount() {
+    return $this->info['supports facet mincount'];
   }
 
   /**
@@ -948,6 +958,7 @@ class FacetapiFacet implements ArrayAccess {
           'operator' => FACETAPI_OPERATOR_AND,
           'hard_limit' => 50,
           'dependencies' => array(),
+          'facet_mincount' => 1,
           'facet_missing' => 0,
           'flatten' => 0,
         );
@@ -976,6 +987,7 @@ class FacetapiFacet implements ArrayAccess {
     }
     else {
       $settings->settings += array(
+        'facet_mincount' => 1,
         'facet_missing' => 0,
         'flatten' => 0,
       );

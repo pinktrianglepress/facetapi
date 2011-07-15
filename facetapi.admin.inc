@@ -553,6 +553,18 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#description' => t('Do not process hierarchical relationships and display facet items as a flat list.'),
   );
 
+  $form['global']['facet_mincount'] = array(
+    '#type' => 'textfield',
+    '#access' => $facet['facet mincount allowed'] && $adapter->supportsFacetMincount(),
+    '#title' => t('Minimum facet count'),
+    '#size' => 5,
+    '#prefix' => '<div class="facetapi-global-setting">',
+    '#suffix' => '</div>',
+    '#default_value' => $global_settings->settings['facet_mincount'],
+    '#description' => t('Only display facets that are matched in at least this many documents.'),
+    '#element_validate' => array('facetapi_validate_positive_integer'),
+  );
+
   $form['global']['facet_missing'] = array(
     '#type' => 'radios',
     '#access' => $facet['facet missing allowed'] && $adapter->supportsFacetMissing(),
@@ -561,7 +573,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['facet_missing'],
     '#options' => array(0 => t('No'), 1 => t('Yes')),
-    '#description' => t('Adds an extra facet matching documents with no value at all for this field.')
+    '#description' => t('Adds an extra facet matching documents with no value at all for this field.'),
   );
 
   ////
@@ -617,6 +629,15 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   $adapter->settingsForm($form, $form_state);
 
   return $form;
+}
+
+/**
+ * Validates that a positive integer was passed.
+ */
+function facetapi_validate_positive_integer($element, &$form_state) {
+  if (!is_numeric($element['#value']) || $element['#value'] < 1) {
+    form_error($element, t('The "!name" option must contain a positive integer.', array('!name' => t($element['#title']))));
+  }
 }
 
 /**

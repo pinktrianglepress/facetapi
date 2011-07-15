@@ -342,6 +342,7 @@ function facetapi_get_searcher_info() {
       'name' => $searcher,
       'type' => 'node',
       'supports facet missing' => FALSE,
+      'supports facet mincount' => FALSE,
     );
   }
   drupal_alter('facetapi_searcher_info', $searcher_info);
@@ -414,6 +415,7 @@ function facetapi_get_facet_info($searcher) {
           'default widget' => FALSE,
           'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
           'facet missing allowed' => FALSE,
+          'facet mincount allowed' => FALSE,
           'weight' => 0,
           'map callback' => FALSE,
           'map options' => array(),
@@ -551,6 +553,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
       'description' => t('Filter by content type.'),
       'map callback' => 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
+      'facet mincount allowed' => TRUE,
       'dependency plugins' => array('role'),
     );
 
@@ -560,6 +563,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
       'field' => 'uid',
       'map callback' => 'facetapi_map_author',
       'values callback' => 'facetapi_callback_user_values',
+      'facet mincount allowed' => TRUE,
       'dependency plugins' => array('bundle', 'role'),
     );
 
@@ -569,6 +573,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
       'field' => 'language',
       'map callback' => 'facetapi_map_language',
       'values callback' => 'facetapi_callback_language_values',
+      'facet mincount allowed' => TRUE,
       'dependency plugins' => array('bundle', 'role'),
     );
 
