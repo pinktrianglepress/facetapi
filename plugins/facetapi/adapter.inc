@@ -26,13 +26,6 @@ abstract class FacetapiAdapter {
   protected $keys;
 
   /**
-   * An array of query type plugin definitions keyed by type.
-   *
-   * @var array
-   */
-  protected $queryTypes = array();
-
-  /**
    * An array of FacetapiFacet objects.
    *
    * @var array
@@ -51,7 +44,7 @@ abstract class FacetapiAdapter {
    *
    * @var array
    */
-  protected $facetQueries = array();
+  protected $queryTypes = array();
 
   /**
    * An array of active filters.
@@ -91,10 +84,22 @@ abstract class FacetapiAdapter {
     $this->info = $searcher_info;
 
     // Registers the query type plugins classes associated with this adapter.
+    $registered_types = array();
     foreach (ctools_get_plugins('facetapi', 'query_types') as $plugin) {
       if ($searcher_info['adapter'] == $plugin['handler']['adapter']) {
         $type = call_user_func(array($plugin['handler']['class'], 'getType'));
-        $this->queryTypes[$type] = $plugin['handler']['class'];
+        $registered_types[$type] = $plugin['handler']['class'];
+      }
+    }
+
+    // Instantiates query type plugin for each enabled facet.
+    foreach($this->getEnabledFacets() as $facet) {
+      if (isset($registered_types[$facet['query type']])) {
+        $plugin = new $registered_types[$facet['query type']]($this, $facet);
+        $this->queryTypes[$facet['name']] = $plugin;
+      }
+      else {
+        $this->queryTypes[$facet['name']] = FALSE;
       }
     }
   }
@@ -158,6 +163,8 @@ abstract class FacetapiAdapter {
 
   /**
    * Processes active items.
+   *
+   * @see FacetapiAdapter::setParams()
    */
   public function processActiveItems() {
     $this->activeItems = array('facet' => array(), 'filter' => array());
@@ -194,6 +201,7 @@ abstract class FacetapiAdapter {
 
         // Stores active items per facet.
         foreach ($enabled_aliases[$field_alias] as $facet_name) {
+          $item += $this->queryTypes[$facet_name]->extract($item);
           $this->activeItems['filter'][$filter]['facets'][] = $facet_name;
           $this->activeItems['facet'][$facet_name][$parts[1]] = $item;
         }
@@ -388,8 +396,8 @@ abstract class FacetapiAdapter {
       // Add query type plugin if dependencies were met, otherwise remove the
       // facet's active items so they don't display in the current search block
       // or appear as active in the breadcrumb trail.
-      if ($display) {
-        $this->addFacetQuery($facet, $query);
+      if ($display && $this->queryTypes[$facet['name']]) {
+        $this->queryTypes[$facet['name']]->execute($query);
       }
       else {
         foreach ($this->activeItems['facet'][$facet['name']] as $item) {
@@ -443,33 +451,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Adds a query type plugin to the queue.
-   *
-   * Parses additional information from the active items, invokes the plugin's
-   * execute() method to add any filters to the query object.
-   *
-   * @param array $facet
-   *   The facet definition.
-   * @param mixed $query
-   *   A mixed value containing the query in the backend's native API.
-   */
-  public function addFacetQuery(array $facet, $query) {
-    if (isset($this->queryTypes[$facet['query type']])) {
-
-      // Instantiates query type plugin.
-      $plugin = new $this->queryTypes[$facet['query type']]($this, $facet);
-      $this->facetQueries[$facet['name']] = $plugin;
-
-      // Parses additional info from the passed value.
-      foreach ($this->activeItems['facet'][$facet['name']] as $value => &$item) {
-        $item += $plugin->extract($item);
-      }
-      // Adds filters to backend.
-      $plugin->execute($query);
-    }
-  }
-
-  /**
    * Returns a registered facet query
    *
    * @param array|string $facet
@@ -480,8 +461,8 @@ abstract class FacetapiAdapter {
    */
   public function getFacetQuery($facet) {
     $facet_name = (is_array($facet)) ? $facet['name'] : $facet;
-    if (isset($this->facetQueries[$facet_name])) {
-      return $this->facetQueries[$facet_name];
+    if (isset($this->queryTypes[$facet_name])) {
+      return $this->queryTypes[$facet_name];
     }
   }
 

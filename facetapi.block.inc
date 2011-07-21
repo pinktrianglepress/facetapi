@@ -76,7 +76,10 @@ function facetapi_get_block($delta) {
   }
 
   // If there is no realm, we are rendering the curent search block.
-  if (FALSE === $realm_name && $adapter->searchExecuted()) {
+  if (FALSE === $realm_name) {
+    if (!$adapter->searchExecuted()) {
+      return;
+    }
     return array(
       'subject' => t('Current search'),
       'content' => $adapter->buildCurrentSearch(),
