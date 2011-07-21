@@ -18,10 +18,17 @@ class FacetapiDependencyBundle extends FacetapiDependency {
       case 'referenced':
         // @todo Do we need defensive coding here?
         $field_info = field_info_field($this->facet['field api name']);
-        $matches = array_intersect_key(
-          array_flip($field_info['bundles'][$this->adapter->getType()]),
-          $this->activeItems['bundle']
-        );
+
+        // Gets the bundles the searcher indexing.
+        $bundles = array();
+        foreach ($this->adapter->getTypes() as $type) {
+          if (isset($field_info['bundles'][$type])) {
+            $bundles += $field_info['bundles'][$type];
+          }
+        }
+
+        // Attempts to find a match.
+        $matches = array_intersect_key(array_flip($bundles), $this->activeItems['bundle']);
         return ($matches) ? NULL : FALSE;
 
       case 'selected':
