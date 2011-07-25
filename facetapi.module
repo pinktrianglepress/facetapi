@@ -341,7 +341,7 @@ function facetapi_get_searcher_info() {
     // @see http://drupal.org/node/1167974
     // Converts "type" to an array and stores in "types".
     if (isset($info['type']) && !isset($info['types'])) {
-      $info = array($info['type']);
+      $info['types'] = array($info['type']);
     }
 
     $info += array(
