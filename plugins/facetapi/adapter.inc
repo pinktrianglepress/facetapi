@@ -996,7 +996,10 @@ class FacetapiFacet implements ArrayAccess {
 
     // Instantiates the widget plugin and initializes.
     $widget_name = $settings->settings['widget'];
-    $class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler');
+    if (!$class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler')) {
+      watchdog('facetapi', 'Widget %name not valid.', array('%name' => $widget_name), WATCHDOG_ERROR);
+      return array();
+    }
     $widget_plugin = new $class($widget_name, $realm, $this, $settings);
     $widget_plugin->init();
 
