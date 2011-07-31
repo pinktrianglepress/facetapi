@@ -931,7 +931,7 @@ function theme_facetapi_filter_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_facet_display_form submissions.
+ * Processes facetapi_facet_filters_form submissions.
  */
 function facetapi_facet_filters_form_submit($form, &$form_state) {
   // Pulls variables for code readability.
