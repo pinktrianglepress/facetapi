@@ -123,7 +123,7 @@ function facetapi_menu() {
     'access arguments' => array('administer search'),
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
-    'weight' => -10,
+    'weight' => -15,
     'file' => 'facetapi.admin.inc',
   );
 
@@ -132,6 +132,18 @@ function facetapi_menu() {
     'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('facetapi_facet_dependencies_form', 4, 5, 6),
+    'access arguments' => array('administer search'),
+    'type' => MENU_LOCAL_ACTION,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => -10,
+    'file' => 'facetapi.admin.inc',
+  );
+
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_filters/filters'] = array(
+    'title' => 'Configure facet filters',
+    'load arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_facet_filters_form', 4, 5, 6),
     'access arguments' => array('administer search'),
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -164,6 +176,9 @@ function facetapi_ctools_plugin_type() {
       'use hooks' => TRUE,
     ),
     'empty_behaviors' => array(
+      'use hooks' => TRUE,
+    ),
+    'filters' => array(
       'use hooks' => TRUE,
     ),
     'query_types' => array(
@@ -205,6 +220,10 @@ function facetapi_theme() {
       'file' => 'facetapi.admin.inc',
     ),
     'facetapi_sort_settings_table' => array(
+      'render element' => 'element',
+      'file' => 'facetapi.admin.inc',
+    ),
+    'facetapi_filter_settings_table' => array(
       'render element' => 'element',
       'file' => 'facetapi.admin.inc',
     ),
@@ -288,6 +307,25 @@ function facetapi_dependencies_load($facet_name, $searcher) {
     }
   }
   return ($dependencies) ? $dependencies : FALSE;
+}
+
+/**
+ * Returns array of filter options available to the facet.
+ *
+ * @param $facet_name
+ *   The machine readable name of the facet.
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ *
+ * @return array
+ *   An array of available filter plugins.
+ */
+function facetapi_filters_load($facet_name, $searcher) {
+  $filters = array('plugins' => array());
+  if ($filters['facet'] = facetapi_facet_load($facet_name, $searcher)) {
+    $filters['plugins'] = facetapi_get_filters($filters['facet']);
+  }
+  return ($filters['plugins']) ? $filters : FALSE;
 }
 
 /**
@@ -479,6 +517,35 @@ function facetapi_get_sort_info() {
     drupal_alter('facetapi_sort_info', $sort_info);
   }
   return $sort_info;
+}
+
+/**
+ * Returns array of widget definitions available to the facet.
+ *
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @return array
+ *   An array of available widget plugins.
+ */
+function facetapi_get_filters(array $facet) {
+  $plugins = array();
+
+  // Iterates over all defined plugins.
+  foreach (ctools_get_plugins('facetapi', 'filters') as $id => $plugin) {
+    $plugin['handler'] += array(
+      'label' => $id,
+      'description' => '',
+      'requirements' => array(),
+    );
+
+    // Checks requirements.
+    if (facetapi_check_requirements($plugin['handler']['requirements'], array(), $facet)) {
+      $plugins[$id] = $plugin;
+    }
+  }
+
+  return $plugins;
 }
 
 /**
@@ -686,6 +753,27 @@ function facetapi_facetapi_widgets() {
 }
 
 /**
+ * Implements hook_facetapi_filters().
+ */
+function facetapi_facetapi_filters() {
+  return array(
+    'active_items' => array(
+      'handler' => array(
+        'label' => t('Do not display active items'),
+        'class' => 'FacetapiFilterActiveItems',
+      ),
+    ),
+    'current_depth' => array(
+      'handler' => array(
+        'label' => t('Only show items in the current level of the hierarchy'),
+        'class' => 'FacetapiFilterCurrentDepth',
+        'requirements' => array('facetapi_requirement_facet_hierarchical' => TRUE),
+      ),
+    ),
+  );
+}
+
+/**
  * Implements hook_facetapi_dependencies().
  */
 function facetapi_facetapi_dependencies() {
@@ -767,6 +855,33 @@ function facetapi_facet_enabled($searcher, $realm_name, $facet_name) {
 function facetapi_build_realm($searcher, $realm_name) {
   $adapter = facetapi_adapter_load($searcher);
   return ($adapter) ? $adapter->buildRealm($realm_name) : array();
+}
+
+/**
+ * Checks requirements.
+ *
+ * Requirements fail if at least one requirements callback returns FALSE.
+ *
+ * @param array $requirements
+ *   The requirements keyed by callback to options.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @return
+ *   A boolean flagging whether all requirements were passed.
+ */
+function facetapi_check_requirements(array $requirements, array $realm, array $facet) {
+  $return = TRUE;
+  module_load_include('inc', 'facetapi', 'facetapi.requirements');
+  foreach ($requirements as $callback => $options) {
+    if (!call_user_func($callback, $realm, $facet, $options)) {
+      $return = FALSE;
+      break;
+    }
+  }
+  return $return;
 }
 
 /**

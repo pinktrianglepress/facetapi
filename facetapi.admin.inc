@@ -207,6 +207,12 @@ function theme_facetapi_realm_settings_table($variables) {
         'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'dependencies')
       );
     }
+    if (facetapi_filters_load($facet_name, $searcher, $realm['name'])) {
+      $operations[] = array(
+        'title' => t('Configure filters'),
+        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'filters')
+      );
+    }
     $operations[] = array(
       'title' => t('Export configuration'),
       'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'export')
@@ -277,67 +283,19 @@ function facetapi_get_widgets(array $realm, array $facet) {
 
   // Iterates over all defined plugins.
   foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
-    $append = TRUE;
-
-    // Initializes the requirements if empty.
     $plugin['handler'] += array(
       'requirements' => array(
         'facetapi_requirement_realm_property' => array('element type' => 'links')
       ),
     );
 
-    // Requirements fail if at least one requirements callback returns FALSE.
-    foreach ($plugin['handler']['requirements'] as $callback => $options) {
-      if (!call_user_func($callback, $realm, $facet, $options)) {
-        $append = FALSE;
-        break;
-      }
-    }
-
-    // Appends plugin if no requiremetns failed.
-    if ($append) {
+    // Checks requirements.
+    if (facetapi_check_requirements($plugin['handler']['requirements'], $realm, $facet)) {
       $plugins[$id] = $plugin;
     }
   }
 
   return $plugins;
-}
-
-/**
- * Checks realm property requirement.
- */
-function facetapi_requirement_realm_property(array $realm, array $facet, array $options) {
-  return facetapi_requirement_property($realm, $options);
-}
-
-/**
- * Checks facet property requirement.
- */
-function facetapi_requirement_facet_property(array $realm, array $facet, array $options) {
-  return facetapi_requirement_property($facet, $options);
-}
-
-/**
- * Checks the equality of a property.
- */
-function facetapi_requirement_property(array $definition, array $options) {
-  $passed = TRUE;
-  foreach ($options as $key => $requirement) {
-    $condition = $definition[$key];
-    if (is_array($requirement)) {
-      if (array_intersect_key($condition, $requirement) != $requirement) {
-        $passed = FALSE;
-        break;
-      }
-    }
-    else {
-      if ($requirement != $condition) {
-        $passed = FALSE;
-        break;
-      }
-    }
-  }
-  return $passed;
 }
 
 /**
@@ -755,6 +713,248 @@ function facetapi_combine_settings($setting_name, $settings) {
       unset($settings->settings[$name]);
       $settings->settings[$setting_name][$key] = $value;
     }
+  }
+}
+
+/**
+ * Facet filters settings form.
+ *
+ * @param $form
+ *
+ * @param &$form_state
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter the settings apply to.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $filter_options
+ *   An array of filter options.
+ *
+ * @return
+ *   An array containing the form.
+ *
+ * @ingroup forms
+ */
+function facetapi_facet_filters_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $filters) {
+
+  // We have to set the title due to contextual link magic.
+  // @see http://drupal.org/node/1147588#comment-4428940
+  drupal_set_title(t('Configure facet filters'));
+
+  // Loads variables for code readability.
+  $facet = $filters['facet'];
+  $settings = $adapter->getFacet($facet)->getSettings($realm);
+
+  // Adds Facet API settings, excluded values aren't saved.
+  $form['#facetapi'] = array(
+    'adapter' => $adapter,
+    'realm' => $realm,
+    'facet' => $facet,
+    'settings' => $settings,
+  );
+
+  // Filter order (tabledrag).
+  $form['settings']['filters']['table'] = array(
+    '#type' => 'item',
+    '#title' => t('Active filters'),
+    '#theme' => 'facetapi_filter_settings_table',
+  );
+
+  $form['settings']['filters']['filter_settings_title'] = array(
+    '#type' => 'item',
+    '#title' => t('Filter settings'),
+    '#prefix' => '<div id="filters-status-wrapper">',
+    '#suffix' => '</div>',
+    '#weight' => 10,
+  );
+
+  $form['settings']['filters']['filter_settings'] = array(
+    '#type' => 'vertical_tabs',
+    '#weight' => 20,
+  );
+
+  // Builds plugins.
+  $weight = -50;
+  $plugins = array();
+  foreach ($filters['plugins'] as $id => $plugin) {
+    if ($class = ctools_plugin_load_class('facetapi', 'filters', $id, 'handler')) {
+      // Gets filter defaults.
+      $filter_plugin = new $class($id, $adapter, $settings);
+      $default = $filter_plugin->getDefaultSettings() + array(
+        'status' => 0,
+        'weight' => $weight++,
+      );
+      // Merges in default settings.
+      if (empty($settings->settings['filters'][$id])) {
+        $settings->settings['filters'][$id] = array();
+      }
+      $settings->settings['filters'][$id] += $default;
+      // Adds weight to plugin so we can sort it.
+      $plugins[$id] = $plugin + array(
+        'weight' => $settings->settings['filters'][$id]['weight'],
+      );
+    }
+  }
+  uasort($plugins, 'drupal_sort_weight');
+
+  // Builds table, adds settings to vertical tabs.
+  $has_settings = FALSE;
+  foreach ($plugins as $id => $plugin) {
+
+    // Instantiates filter plugins.
+    $filter_plugin = new $class($id, $adapter, $settings);
+    $defaults = $filter_plugin->getDefaultSettings();
+
+    // Table elements.
+    $form['settings']['filters']['table'][$id]['status'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enable @title', array('@title' => $plugin['handler']['label'])),
+      '#title_display' => 'invisible',
+      '#default_value' => $settings->settings['filters'][$id]['status'],
+      '#parents' => array('settings', 'filters', $id, 'status'),
+    );
+    $form['settings']['filters']['table'][$id]['filter'] = array(
+      '#markup' => filter_xss_admin($plugin['handler']['label']),
+    );
+    $form['settings']['filters']['table'][$id]['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight for @title', array('@title' => $plugin['handler']['label'])),
+      '#title_display' => 'invisible',
+      '#delta' => 50,
+      '#default_value' => $settings->settings['filters'][$id]['weight'],
+      '#parents' => array('settings', 'filters', $id, 'weight'),
+      '#weight' => 0,
+    );
+
+    // Initializes vertical tab.
+    $form['settings']['filters']['filter_settings'][$id] = array(
+      '#type' => 'fieldset',
+      '#title' => check_plain($plugin['handler']['label']),
+      '#group' => 'settings',
+    );
+
+    // Allows plugin to add settings to the form.
+    if ($class = ctools_plugin_load_class('facetapi', 'filters', $id, 'handler')) {
+      $filter = new $class($id, $adapter, $settings);
+      $filter->settingsForm($form['settings']['filters']['filter_settings'][$id], $form_state);
+    }
+
+    // Removes vertical tab if no settings were added.
+    if (element_children($form['settings']['filters']['filter_settings'][$id])) {
+      $has_settings = TRUE;
+    }
+    else {
+      unset($form['settings']['filters']['filter_settings'][$id]);
+    }
+  }
+
+  // Removes title and fieldset if there aren't any settings.
+  if (!$has_settings) {
+    unset($form['settings']['filters']['filter_settings']);
+    unset($form['settings']['filters']['filter_settings_title']);
+  }
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    '#weight' => 20,
+  );
+
+  // Gets destination from query string which is set when the page is navigated
+  // to via a contextual link. Builds messages based on where user came from.
+  if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
+    $submit_text = t('Save and go back to search page');
+    $cancel_title = t('Return to the search page without saving configuration changes.');
+    $url = drupal_parse_url($_GET['destination']);
+  }
+  else {
+    $submit_text = t('Save configuration');
+    $cancel_title = t('Return to the realm settings page without saving configuration changes.');
+    $url = array();
+  }
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => $submit_text,
+  );
+
+  // Do not show the button if the page was navigated to via a contextual link
+  // because it would redirect the user back to the search page.
+  $form['actions']['submit_realm'] = array(
+    '#type' => 'submit',
+    '#access' => (!$url),
+    '#value' => t('Save and go back to realm settings'),
+  );
+
+  $form['actions']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => (!$url) ? $adapter->getPath($realm['name']) : $url['path'],
+    '#options' => (!$url) ? array() : array('query' => $url['query']),
+    '#attributes' => array('title' => $cancel_title),
+  );
+
+  $form['#submit'][] = 'facetapi_facet_filters_form_submit';
+
+  return $form;
+}
+
+/**
+ * Returns facet filter order table.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form.
+ *
+ * @ingroup themeable
+ */
+function theme_facetapi_filter_settings_table($variables) {
+  $element = $variables['element'];
+
+  // Filter order (tabledrag).
+  $rows = array();
+  foreach (element_children($element, TRUE) as $name) {
+    $element[$name]['weight']['#attributes']['class'][] = 'facetapi-filter-weight';
+    $rows[] = array(
+      'data' => array(
+        drupal_render($element[$name]['status']),
+        drupal_render($element[$name]['filter']),
+        drupal_render($element[$name]['weight']),
+      ),
+      'class' => array('draggable'),
+    );
+  }
+  $output = drupal_render_children($element);
+  $output .= theme('table', array('rows' => $rows, 'attributes' => array('id' => 'facetapi-filter-settings')));
+  drupal_add_tabledrag('facetapi-filter-settings', 'order', 'sibling', 'facetapi-filter-weight', NULL, NULL, TRUE);
+
+  return $output;
+}
+
+/**
+ * Processes facetapi_facet_settings_form submissions.
+ */
+function facetapi_facet_filters_form_submit($form, &$form_state) {
+  // Pulls variables for code readability.
+  $adapter = $form['#facetapi']['adapter'];
+  $realm = $form['#facetapi']['realm'];
+  $facet = $form['#facetapi']['facet'];
+  $settings = $form['#facetapi']['settings'];
+
+  // Merges passed settings in with the settings object.
+  $settings->settings = array_merge($settings->settings, $form_state['values']['settings']);
+
+  // Saves the configuration options.
+  if (FALSE !== ctools_export_crud_save('facetapi', $settings)) {
+    drupal_set_message(t('The configuration options have been saved.'));
+  }
+  else {
+    drupal_set_message(t('Error saving configuration options.'), 'error');
+  }
+
+  // Redirects back to the realm settings page if necessary.
+  $clicked = $form_state['clicked_button']['#value'];
+  if (t('Save and go back to realm settings') == $clicked) {
+    $form_state['redirect'] = $adapter->getPath($realm['name']);
   }
 }
 

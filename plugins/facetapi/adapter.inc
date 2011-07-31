@@ -907,6 +907,7 @@ class FacetapiFacet implements ArrayAccess {
         $settings->settings = array(
           'weight' => 0,
           'widget' => $widget,
+          'filters' => array(),
           'active_sorts' => array(),
           'sort_weight' => array(),
           'sort_order' => array(),
@@ -931,7 +932,6 @@ class FacetapiFacet implements ArrayAccess {
         }
         $plugin = new $class($id, $realm, $this, $settings);
         $settings->settings += $plugin->getDefaultSettings();
-
       }
       else {
         // Initializes settings.
@@ -954,7 +954,6 @@ class FacetapiFacet implements ArrayAccess {
           $settings->settings['dependencies'] = array();
           $settings->settings['dependencies'] += $plugin->getDefaultSettings();
         }
-
       }
 
       // @todo Explore whether we should save settings for performance.
@@ -964,7 +963,10 @@ class FacetapiFacet implements ArrayAccess {
     // prevent undefuned index errors after upgrading.
     // @todo Remove in later versions.
     if ($realm) {
-      $settings->settings += array('empty_behavior' => 'none');
+      $settings->settings += array(
+        'empty_behavior' => 'none',
+        'filters' => array(),
+      );
     }
     else {
       $settings->settings += array(
@@ -994,7 +996,22 @@ class FacetapiFacet implements ArrayAccess {
     // Gets the base render array from the facet processor.
     $this->build = $processor->getBuild();
 
+    // Executes filter plugins.
+    // @todo Defensive coding here for filters?
+    $enabled_filters = array_filter($settings->settings['filters'], 'facetapi_filter_disabled_filters');
+    uasort($enabled_filters, 'drupal_sort_weight');
+    foreach ($enabled_filters as $filter_id => $filter_settings) {
+      if (!$class = ctools_plugin_load_class('facetapi', 'filters', $filter_id, 'handler')) {
+        $filter_plugin = new $class($filter_id, $this->adapter, $settings);
+        $this->build = $filter_plugin->execute($this->build);
+      }
+      else {
+        watchdog('facetapi', 'Filter %name not valid.', array('%name' => $filter_id), WATCHDOG_ERROR);
+      }
+    }
+
     // Instantiates the widget plugin and initializes.
+    // @todo Defensive coding here for widgets?
     $widget_name = $settings->settings['widget'];
     if (!$class = ctools_plugin_load_class('facetapi', 'widgets', $widget_name, 'handler')) {
       watchdog('facetapi', 'Widget %name not valid.', array('%name' => $widget_name), WATCHDOG_ERROR);
@@ -1003,9 +1020,8 @@ class FacetapiFacet implements ArrayAccess {
     $widget_plugin = new $class($widget_name, $realm, $this, $settings);
     $widget_plugin->init();
 
-    // Executes widget plugin if not empty, otherwise executes the empty
-    // behavior plugin.
     if ($this->build) {
+      // Executes widget plugin.
       $widget_plugin->execute();
       $build = $widget_plugin->getBuild();
     }
@@ -1336,4 +1352,17 @@ function facetapi_get_child_values(array $build) {
  */
 function facetapi_filter_inactive_parent(array $build) {
   return empty($build['#item_parents']);
+}
+
+/**
+ * Callback for array_filter() that strips out disabled filters.
+ *
+ * @param array $settings
+ *   The individual filter settings.
+ *
+ * @return
+ *   A boolean flagging whether the value should remain in the array.
+ */
+function facetapi_filter_disabled_filters($settings) {
+  return !empty($settings['status']);
 }

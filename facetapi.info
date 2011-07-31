@@ -9,6 +9,7 @@ files[] = plugins/facetapi/dependency_bundle.inc
 files[] = plugins/facetapi/dependency_role.inc
 files[] = plugins/facetapi/empty_behavior.inc
 files[] = plugins/facetapi/empty_behavior_text.inc
+files[] = plugins/facetapi/filter.inc
 files[] = plugins/facetapi/query_type.inc
 files[] = plugins/facetapi/widget.inc
 files[] = plugins/facetapi/widget_links.inc
