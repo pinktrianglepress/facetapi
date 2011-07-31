@@ -520,7 +520,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
     '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['facet_mincount'],
     '#description' => t('Only display facets that are matched in at least this many documents.'),
-    '#element_validate' => array('facetapi_validate_positive_integer'),
+    '#element_validate' => array('facetapi_validate_positive_or_zero'),
   );
 
   $form['global']['facet_missing'] = array(
@@ -592,9 +592,9 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
 /**
  * Validates that a positive integer was passed.
  */
-function facetapi_validate_positive_integer($element, &$form_state) {
-  if (!is_numeric($element['#value']) || $element['#value'] < 1) {
-    form_error($element, t('The "!name" option must contain a positive integer.', array('!name' => t($element['#title']))));
+function facetapi_validate_positive_or_zero($element, &$form_state) {
+  if (!is_numeric($element['#value']) || $element['#value'] < 0) {
+    form_error($element, t('The "!name" option must contain an integer greater than or equal to 0.', array('!name' => t($element['#title']))));
   }
 }
 
