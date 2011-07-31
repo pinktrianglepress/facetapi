@@ -28,7 +28,7 @@ function facetapi_get_block_info($realm_name = 'block') {
     foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
       if ($facet = facetapi_facet_load($facet_name, $searcher)) {
         // Gets the delta from the delta map.
-        $string = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
+        $string = facetapi_build_delta($searcher, $realm_name, $facet_name);
         $delta = array_search($string, $map);
 
         // Defines the block.
@@ -149,7 +149,7 @@ function facetapi_get_delta_map() {
         // @todo - some other way to define realms that are block-like.
         foreach (array('block') as $realm_name) {
           foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
-            $delta = $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
+            $delta = facetapi_build_delta($searcher, $realm_name, $facet_name);
             $map[facetapi_hash_delta($delta)] = $delta;
           }
         }
@@ -161,6 +161,22 @@ function facetapi_get_delta_map() {
   }
 
   return $map;
+}
+
+/**
+ * Build a delta from the searcher, realm name, and facet name.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm.
+ * @param $facet_name
+ *   The machine readable name of the facet.
+ * @return
+ *   A string containing the raw delta.
+ */
+function facetapi_build_delta($searcher, $realm_name, $facet_name) {
+  return $searcher . ':' . $realm_name . ':' . urlencode($facet_name);
 }
 
 /**
