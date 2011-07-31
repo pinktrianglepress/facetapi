@@ -153,13 +153,6 @@ function hook_facetapi_sort_info_alter(array &$sort_info) {
 }
 
 /**
- * Alter a realm's render array.
- */
-function hook_facetapi_facets_alter(array &$build, FacetapiAdapter $adapter, array $realm) {
-
-}
-
-/**
  * Forces delta mapping of a facet block.
  *
  * This obscure hook is useful for cases where facets are disabled, but their
