@@ -75,6 +75,20 @@ function hook_facetapi_widgets() {
 }
 
 /**
+ * Defines facet filters.
+ */
+function facetapi_facetapi_filters() {
+  return array(
+    'active_items' => array(
+      'handler' => array(
+        'label' => t('Do not display active items'),
+        'class' => 'FacetapiFilterActiveItems',
+      ),
+    ),
+  );
+}
+
+/**
  * Defines facet realms.
  */
 function hook_facetapi_realm_info() {
