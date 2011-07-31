@@ -317,7 +317,7 @@ function facetapi_get_widgets(array $realm, array $facet) {
  *
  * @ingroup forms
  */
-function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $path = drupal_get_path('module', 'facetapi');
   drupal_add_css($path . '/facetapi.css', array('weight' => CSS_THEME - 1));
   drupal_add_js($path . '/facetapi.admin.js');
@@ -580,7 +580,7 @@ function facetapi_facet_settings_form($form, &$form_state, FacetapiAdapter $adap
   );
 
   // Adds submit handler, allow the realm and adapter to alter the form.
-  $form['#submit'][] = 'facetapi_facet_settings_form_submit';
+  $form['#submit'][] = 'facetapi_facet_display_form_submit';
   if ($realm['settings callback']) {
     $realm['settings callback']($form, $form_state);
   }
@@ -645,9 +645,9 @@ function theme_facetapi_sort_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_facet_settings_form submissions.
+ * Processes facetapi_facet_display_form submissions.
  */
-function facetapi_facet_settings_form_submit($form, &$form_state) {
+function facetapi_facet_display_form_submit($form, &$form_state) {
 
   // Pulls variables for code readability.
   $adapter = $form['#facetapi']['adapter'];
@@ -931,7 +931,7 @@ function theme_facetapi_filter_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_facet_settings_form submissions.
+ * Processes facetapi_facet_display_form submissions.
  */
 function facetapi_facet_filters_form_submit($form, &$form_state) {
   // Pulls variables for code readability.
@@ -1074,7 +1074,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
 }
 
 /**
- * Processes facetapi_facet_settings_form submissions.
+ * Processes facetapi_facet_dependencies_form submissions.
  */
 function facetapi_facet_dependencies_form_submit($form, &$form_state) {
   $success = TRUE;
