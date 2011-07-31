@@ -563,7 +563,7 @@ abstract class FacetapiAdapter {
         unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
       }
       elseif (!$active) {
-        $field_alias = drupal_encode_path($facet['field alias']);
+        $field_alias = rawurlencode($facet['field alias']);
         $qstring[$this->filterKey][] = $field_alias . ':' . $value;
       }
     }
