@@ -185,7 +185,7 @@ abstract class FacetapiAdapter {
 
       // Performs basic parsing of the filter.
       $parts = explode(':', $filter, 2);
-      $field_alias = urldecode($parts[0]);
+      $field_alias = rawurldecode($parts[0]);
       if (isset($parts[1]) && isset($enabled_aliases[$field_alias])) {
 
         // Stores the base item.

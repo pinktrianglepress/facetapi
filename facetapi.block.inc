@@ -60,7 +60,7 @@ function facetapi_get_block($delta) {
   // Process the parts from the end in case the searcher includes a ':'.
   $parts = explode(':', $map[$delta]);
   $facet_name = array_pop($parts);
-  $facet_name = urldecode($facet_name);
+  $facet_name = rawurldecode($facet_name);
   $realm_name = array_pop($parts);
   $searcher = implode(':', $parts);
 
