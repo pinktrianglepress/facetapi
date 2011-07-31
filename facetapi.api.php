@@ -109,21 +109,61 @@ function hook_facetapi_facet_info(array $searcher_info) {
   $facets = array();
   if ('node' == $searcher_info['type']) {
 
-    $facets['created'] = array(
-      'label' => t('Post date'),
-      'description' => t('Filter by the date the node was posted.'),
-      'field' => 'created',
-      'field alias' => 'created',
-      'query type' => 'date',
-      'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE),
+    $facets['my_field'] = array(
+      // Machine readable name fo the facet, defaults to array key.
+      'name' => 'my_field',
+      // Human readable name of the facet as displayed in settings forms.
+      'label' => t('My field'),
+      // Brief description of the facet.
+      'description' => t('My field index some content we can facet by.'),
+      // The field name used by the actual index, defaults to the array key.
+      'field' => 'my_field_index_field_name',
+      // The key used when passing filter data through the query string,
+      // defaults the the value in "field" above.
+      'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
+      // The machine readable name of the Field API field this data is
+      // associated with, FALSE if it is not associated with a field.
+      'field api name' => FALSE,
+      // The ID of the query type plugin the backend uses to execute the facet
+      // query.
+      'query type' => 'term',
+      // The dependency plugins this facet supports.
+      'dependency plugins' => array('role'),
+      // The default widget plugin used if no plugin has been selected or the
+      // one selected is not valid.
+      'default widget' => FALSE,
+      // A list of operators supported by the facet, defaults to "AND".
+      'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),
+      // Whether or not missing facets are allowed.  Default to FALSE.
+      'facet missing allowed' => FALSE,
+      // Whether or not the facet supports the "minimum facet count" setting.
+      // Defaults to FALSE.
+      'facet mincount allowed' => FALSE,
+      // If the order of the facets is controlled in the Facet API GUI, the
+      // default weight of the facet.  Defaults to 0.
       'weight' => 0,
+      // The map callback used to map the raw values returned by the index to
+      // something human readable, defaults to FALSE.
+      'map callback' => FALSE,
+      // An array of options passed to the map callback.
+      'map options' => array(),
+      // A callback that maps the parent / child relationships of the facet
+      // data, defaults to FALSE meaning the list is flat.
+      'hierarchy callback' => FALSE,
+      // In instances where facet data is not returned by the backend, provide a
+      // list of values that can be used.
       'values callback' => FALSE,
-      'map callback' => 'facetapi_map_date',
-      'min callback' => 'facetapi_get_min_date',
-      'max callback' => 'facetapi_get_max_date',
+      // For facets containing ranges, a callback returning the minimum value in
+      // the index. Defaults to FALSE meaning the facet does not contain ranges.
+      'min callback' => FALSE,
+      // For facets containing ranges, a callback returning the maximum value in
+      // the index. Defaults to FALSE meaning the facet does not contain ranges.
+      'max callback' => FALSE,
+      // An array of available sorts that are executed during display.
       'default sorts' => array(
         array('active', SORT_DESC),
-        array('indexed', SORT_ASC),
+        array('count', SORT_DESC),
+        array('display', SORT_ASC),
       ),
     );
   }
