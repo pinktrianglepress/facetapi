@@ -2,25 +2,53 @@
 
 /**
  * @file
- * Contains requirements callbacks.
+ * Requirement checking callbacks.
  */
 
 /**
- * Checks equality of a realm property.
+ * Checks equality of one or more realm properties.
+ *
+ * @param array $realm
+ *   The realm definition as returned by facetapi_realm_load().
+ * @param array $facet
+ *   The facet definition as returned by facetapi_facet_load().
+ * @param array $options
+ *   An array of values keyed by properties that are being compared.
+ *
+ * @return
+ *   TRUE if all property values are equal, FALSE otherwise.
  */
 function facetapi_requirement_realm_property(array $realm, array $facet, array $options) {
   return facetapi_requirement_property($realm, $options);
 }
 
 /**
- * Checks equality of a facet property.
+ * Checks equality of one or more facet properties.
+ *
+ * @param array $realm
+ *   The realm definition as returned by facetapi_realm_load().
+ * @param array $facet
+ *   The facet definition as returned by facetapi_facet_load().
+ * @param array $options
+ *   An array of values keyed by properties that are being compared.
+ *
+ * @return
+ *   TRUE if all property values are equal, FALSE otherwise.
  */
 function facetapi_requirement_facet_property(array $realm, array $facet, array $options) {
   return facetapi_requirement_property($facet, $options);
 }
 
 /**
- * Checks the equality of a property.
+ * Checks the equality of one or more properties.
+ *
+ * @param array $definition
+ *   The facet or realm definition.
+ * @param array $options
+ *   An array of values keyed by properties that are being compared.
+ *
+ * @return
+ *   TRUE if all property values are equal, FALSE otherwise.
  */
 function facetapi_requirement_property(array $definition, array $options) {
   $passed = TRUE;
@@ -43,21 +71,49 @@ function facetapi_requirement_property(array $definition, array $options) {
 }
 
 /**
- * Checks whether a realm property is set.
+ * Checks whether one or more realm properties are set.
+ *
+ * @param array $realm
+ *   The realm definition as returned by facetapi_realm_load().
+ * @param array $facet
+ *   The facet definition as returned by facetapi_facet_load().
+ * @param array $options
+ *   An array of boolean statuses keyed by properties being checked.
+ *
+ * @return
+ *   TRUE if all properties match the passed statues, FALSE otherwise.
  */
 function facetapi_requirement_realm_property_set(array $realm, array $facet, array $options) {
   return facetapi_requirement_property_set($realm, $options);
 }
 
 /**
- * Checks whether a facet property is set.
+ * Checks whether one or more facet properties are set.
+ *
+ * @param array $realm
+ *   The realm definition as returned by facetapi_realm_load().
+ * @param array $facet
+ *   The facet definition as returned by facetapi_facet_load().
+ * @param array $options
+ *   An array of boolean statuses keyed by properties being checked.
+ *
+ * @return
+ *   TRUE if all properties match the passed statues, FALSE otherwise.
  */
 function facetapi_requirement_facet_property_set(array $realm, array $facet, array $options) {
   return facetapi_requirement_property_set($facet, $options);
 }
 
 /**
- * Checks whether a property is set.
+ * Checks whether one or more properties are set.
+ *
+ * @param array $definition
+ *   The facet or realm definition.
+ * @param array $options
+ *   An array of boolean statuses keyed by properties being checked.
+ *
+ * @return
+ *   TRUE if all properties match the passed statues, FALSE otherwise.
  */
 function facetapi_requirement_property_set(array $definition, array $options) {
   $passed = TRUE;
@@ -72,6 +128,16 @@ function facetapi_requirement_property_set(array $definition, array $options) {
 
 /**
  * Checks whether the facet is hierarchical.
+ *
+ * @param array $realm
+ *   The realm definition as returned by facetapi_realm_load().
+ * @param array $facet
+ *   The facet definition as returned by facetapi_facet_load().
+ * @param $option
+ *   TRUE if the facet should be hierarchical, FALSE if it should be flat.
+ *
+ * @return
+ *   TRUE if the hierarchical status matches $option, FALSE otherwise.
  */
 function facetapi_requirement_facet_hierarchical(array $realm, array $facet, $option) {
   $options = array('hierarchy callback' => (bool) $option);
