@@ -253,7 +253,7 @@ function facetapi_block_view($delta = '') {
 ////
 
 /**
- * Instantiates and adapter plugin associated with the searcher.
+ * Instantiates the adapter plugin associated with the searcher.
  *
  * @param $searcher
  *   The machine readable name of searcher.
