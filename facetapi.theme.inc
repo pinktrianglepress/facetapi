@@ -49,7 +49,7 @@ function theme_facetapi_link_inactive($variables) {
 }
 
 /**
- * Returns HTML for an active facet item.
+ * Returns HTML for the inactive facet item's count.
  *
  * @param $variables
  *   An associative array containing:
