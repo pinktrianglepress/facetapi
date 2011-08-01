@@ -2,24 +2,18 @@
 
 /**
  * @file
- * Facet API administrative settings forms.
+ * Admin page callbacks for the Facet API module.
  */
 
 /**
- * Realm settings form.
- *
- * @param $form
- *
- * @param &$form_state
+ * Form constructor for the realm settings form.
  *
  * @param $searcher
- *   A string containing the machine readable name of the searcher.
+ *   The machine readable name of the searcher.
  * @param $realm_name
- *   A string containing the machine readable name of the realm.
+ *   The machine readable name of the realm.
  *
- * @return
- *   An array containing the form.
- *
+ * @see facetapi_realm_settings_form_submit()
  * @ingroup forms
  */
 function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_name) {
@@ -27,6 +21,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   // Instantiates adapter, loads realm.
   $adapter = facetapi_adapter_load($searcher);
   $realm = facetapi_realm_load($realm_name);
+
   $form['#facetapi'] = array(
     'adapter' => $adapter,
     'realm' => $realm,
@@ -118,7 +113,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
 }
 
 /**
- * Processes facetapi_realm_settings_form form submissions.
+ * Form submission handler for facetapi_realm_settings_form().
  */
 function facetapi_realm_settings_form_submit($form, &$form_state) {
   $success = TRUE;
@@ -168,7 +163,13 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
 }
 
 /**
- * Themes a realm settings table.
+ * Returns the realm settings table.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form.
+ *
+ * @ingroup themable
  */
 function theme_facetapi_realm_settings_table($variables) {
   $output = '';
@@ -256,7 +257,23 @@ function theme_facetapi_realm_settings_table($variables) {
 }
 
 /**
- * Returns path to search page.
+ * Returns the path to a facet's settings page.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ * @param $realm_name
+ *   The machine readable name of the realm.
+ * @param $facet_name
+ *   The machine readable name of the realm.
+ * @param $op
+ *   The operation being requested, one of the following values:
+ *   - edit: The display settings form.
+ *   - dependencies: The dependency settings form.
+ *   - filters: The filters settings form.
+ *   - export: The settings export form.
+ *
+ * @return
+ *   The path to the settings page.
  */
 function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
   $path_parts = array('admin', 'config', 'search', 'facetapi');
@@ -268,7 +285,10 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 }
 
 /**
- * Returns array of widget definitions available to the facet.
+ * Returns the widget plugin definitions available to the facet.
+ *
+ * All widget plugins are checked against their requirmenets. Only widgets that
+ * pall all requirements are returned by this function.
  *
  * @param array $realm
  *   The realm definition.
@@ -281,7 +301,7 @@ function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
 function facetapi_get_widgets(array $realm, array $facet) {
   $plugins = array();
 
-  // Iterates over all defined plugins.
+  // Iterates over all defined plugins, initializes requirements.
   foreach (ctools_get_plugins('facetapi', 'widgets') as $id => $plugin) {
     $plugin['handler'] += array(
       'requirements' => array(
@@ -289,7 +309,7 @@ function facetapi_get_widgets(array $realm, array $facet) {
       ),
     );
 
-    // Checks requirements.
+    // Checks requirements, only saves widgets that pass all requirements.
     if (facetapi_check_requirements($plugin['handler']['requirements'], $realm, $facet)) {
       $plugins[$id] = $plugin;
     }
@@ -299,22 +319,14 @@ function facetapi_get_widgets(array $realm, array $facet) {
 }
 
 /**
- * Facet display settings form.
+ * Form constructor for the facet display settings form.
  *
- * @param $form
- *
- * @param &$form_state
- *
- * @param FacetapiAdapter $adapter
- *   The adapter the settings apply to.
  * @param array $realm
  *   The realm definition.
  * @param array $facet
  *   The facet definition.
  *
- * @return
- *   An array containing the form.
- *
+ * @see facetapi_facet_display_form_submit()
  * @ingroup forms
  */
 function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
@@ -520,7 +532,7 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
     '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['facet_mincount'],
     '#description' => t('Only display facets that are matched in at least this many documents.'),
-    '#element_validate' => array('facetapi_validate_positive_or_zero'),
+    '#element_validate' => array('facetapi_element_validate_integer'),
   );
 
   $form['global']['facet_missing'] = array(
@@ -590,16 +602,25 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
 }
 
 /**
- * Validates that a positive integer was passed.
+ * Helper form element validator: integer.
+ *
+ * @see _element_validate_integer
  */
-function facetapi_validate_positive_or_zero($element, &$form_state) {
-  if (!is_numeric($element['#value']) || $element['#value'] < 0) {
-    form_error($element, t('The "!name" option must contain an integer greater than or equal to 0.', array('!name' => t($element['#title']))));
+function facetapi_element_validate_integer($element, &$form_state) {
+  $value = $element['#value'];
+  if ($value !== '' && (!is_numeric($value) || intval($value) != $value)) {
+    form_error($element, t('%name must be an integer.', array('%name' => $element['#title'])));
   }
 }
 
 /**
- * Themes a sort settings table.
+ * Returns facet sort order table.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form.
+ *
+ * @ingroup themeable
  */
 function theme_facetapi_sort_settings_table($variables) {
   $output = '';
@@ -645,7 +666,9 @@ function theme_facetapi_sort_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_facet_display_form submissions.
+ * Form submission handler for facetapi_facet_display_form().
+ *
+ * @see facetapi_element_validate_integer()
  */
 function facetapi_facet_display_form_submit($form, &$form_state) {
 
@@ -664,6 +687,8 @@ function facetapi_facet_display_form_submit($form, &$form_state) {
   ));
 
   // Converts sort_weight:* and sort_order:* settings to associative arrays.
+  // @todo Remove facetapi_combine_settings() calls.
+  // @see http://drupal.org/node/1221432
   facetapi_combine_settings('sort_weight', $facet_settings);
   facetapi_combine_settings('sort_order', $facet_settings);
 
@@ -703,6 +728,9 @@ function facetapi_facet_display_form_submit($form, &$form_state) {
  *   A string containing the name of the setting.
  * @param $settings
  *   An object containing the settings loaded from CTools.
+ *
+ * @todo Remove this.
+ * @see http://drupal.org/node/1221432
  */
 function facetapi_combine_settings($setting_name, $settings) {
   $start = strlen($setting_name) + 1;
@@ -717,22 +745,16 @@ function facetapi_combine_settings($setting_name, $settings) {
 }
 
 /**
- * Facet filters settings form.
- *
- * @param $form
- *
- * @param &$form_state
+ * Form constructor for the facet filter settings form.
  *
  * @param FacetapiAdapter $adapter
- *   The adapter the settings apply to.
+ *   The adapter object.
  * @param array $realm
  *   The realm definition.
  * @param array $filter_options
- *   An array of filter options.
+ *   The available filter options.
  *
- * @return
- *   An array containing the form.
- *
+ * @see facetapi_facet_filters_form_submit()
  * @ingroup forms
  */
 function facetapi_facet_filters_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $filters) {
@@ -931,7 +953,7 @@ function theme_facetapi_filter_settings_table($variables) {
 }
 
 /**
- * Processes facetapi_facet_filters_form submissions.
+ * Form submission handler for facetapi_facet_filters_form().
  */
 function facetapi_facet_filters_form_submit($form, &$form_state) {
   // Pulls variables for code readability.
@@ -959,22 +981,16 @@ function facetapi_facet_filters_form_submit($form, &$form_state) {
 }
 
 /**
- * Facet dependency settings form.
- *
- * @param $form
- *
- * @param &$form_state
+ * Form constructor for the facet dependency settings form.
  *
  * @param FacetapiAdapter $adapter
- *   The adapter the settings apply to.
+ *   The adapter object the settings apply to.
  * @param array $realm
  *   The realm definition.
  * @param array $dependencies
  *   An array of dependencies.
  *
- * @return
- *   An array containing the form.
- *
+ * @see facetapi_facet_dependencies_form_submit()
  * @ingroup forms
  */
 function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $dependencies) {
@@ -1074,7 +1090,7 @@ function facetapi_facet_dependencies_form($form, &$form_state, FacetapiAdapter $
 }
 
 /**
- * Processes facetapi_facet_dependencies_form submissions.
+ * Form submission handler for facetapi_facet_dependencies_form().
  */
 function facetapi_facet_dependencies_form_submit($form, &$form_state) {
   $success = TRUE;
@@ -1108,17 +1124,19 @@ function facetapi_facet_dependencies_form_submit($form, &$form_state) {
 }
 
 /**
- * Export form, wrapper around ctools_export_form().
+ * Form constructor for the export form.
  *
- * @param $form
- *
- * @param &$form_state
- *
- * @param $settings
+ * @param FacetapiAdapter $adapter
+ *   The adapter object the settings apply to.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
  *
  * @see ctools_export_form()
+ * @ingroup forms
  */
-function facetapi_export_form($form, &$form_state, $adapter, $realm, $facet) {
+function facetapi_export_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
 
   // Adds link to get back to list page.
   $form['back'] = array(
