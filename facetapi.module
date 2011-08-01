@@ -291,7 +291,7 @@ function facetapi_adapter_load($searcher) {
  * @param $searcher
  *   The machine readable name of the searcher module.
  *
- * @return
+ * @return array
  *   An array of FacetapiDependency objects, FALSE if no plugins.
  */
 function facetapi_dependencies_load($facet_name, $searcher) {
@@ -333,7 +333,7 @@ function facetapi_filters_load($facet_name, $searcher) {
  * @param $realm_name
  *   The machine readable name of the realm.
  *
- * @return
+ * @return array
  *   An array containing the realm definition, FALSE if the realm is invalid.
  *   - name: The machine name of the realm.
  *   - label: The human readable name of the realm displayed in the admin UI.
@@ -549,7 +549,7 @@ function facetapi_get_facet_info($searcher) {
 /**
  * Returns all sort definitions.
  *
- * @return
+ * @return array
  *   An associative array of sort definitions keyed by sort name. Each sort
  *   definition contains:
  *   - name: The machine readable name of the sort.
@@ -1078,8 +1078,8 @@ function facetapi_set_facet_disabled($searcher, $realm_name, $facet_name, $batch
  *   A boolean flagging whether batch processing is being performed.  If set to
  *   TRUE, the caches and statics won't be reset.
  *
- * @reutrn boolean
- *   The success of the operation.
+ * @reutrn
+ *   TRUE if the operation succeeded, FALSE otherwise.
  */
 function facetapi_save_facet_status(FacetapiAdapter $adapter, array $realm, array $facet, $status, $weight, $batch_process) {
   // Loads the realm settings, sets enabled flag and weight.
@@ -1120,8 +1120,8 @@ function facetapi_save_facet_status(FacetapiAdapter $adapter, array $realm, arra
  * @param $batch_process
  *   A boolean flagging whether batch processing is being performed.
  *
- * @reutrn boolean
- *   The success of the operation.
+ * @reutrn
+ *   TRUE if the operation succeeded, FALSE otherwise.
  */
 function facetapi_save_facet_enabled(FacetapiAdapter $adapter, array $realm, array $facet, $weight = FALSE, $batch_process = FALSE) {
   return facetapi_save_facet_status($adapter, $realm, $facet, TRUE, $weight, $batch_process);
@@ -1142,8 +1142,8 @@ function facetapi_save_facet_enabled(FacetapiAdapter $adapter, array $realm, arr
  * @param $batch_process
  *   A boolean flagging whether batch processing is being performed.
  *
- * @reutrn boolean
- *   The success of the operation.
+ * @reutrn
+ *   TRUE if the operation succeeded, FALSE otherwise.
  */
 function facetapi_save_facet_disabled(FacetapiAdapter $adapter, array $realm, array $facet, $weight = FALSE, $batch_process = FALSE) {
   return facetapi_save_facet_status($adapter, $realm, $facet, FALSE, $weight, $batch_process);
