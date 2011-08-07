@@ -172,6 +172,7 @@ function facetapi_get_delta_map() {
  *   The machine readable name of the realm.
  * @param $facet_name
  *   The machine readable name of the facet.
+ *
  * @return
  *   A string containing the raw delta.
  */

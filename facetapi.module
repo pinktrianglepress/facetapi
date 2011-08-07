@@ -88,6 +88,7 @@ function facetapi_menu() {
       if ($first) {
         $first = FALSE;
 
+        // Add the first realm as a default local task.
         $items[$searcher_info['path'] . '/facets'] = array(
           'title' => 'Facets',
           'page callback' => 'drupal_get_form',
@@ -103,6 +104,7 @@ function facetapi_menu() {
         );
       }
       else {
+        // Add all additional realms as local tasks.
         $items[$searcher_info['path'] . '/facets/' . $realm_name] = array(
           'title' => $realm['label'],
           'page callback' => 'drupal_get_form',
@@ -338,11 +340,12 @@ function facetapi_filters_load($facet_name, $searcher) {
  *   - name: The machine name of the realm.
  *   - label: The human readable name of the realm displayed in the admin UI.
  *   - description: The description of the realm displayed in the admin UI.
- *   - default widget: The default widget plugin id for facets in the realm.
- *   - settings callback: A callback that alters the realm settings form.
  *   - element type: The type of element facets are rendered as, such as 'links'
  *     or 'form elements'.
+ *   - default widget: The default widget plugin id for facets in the realm.
+ *   - settings callback: A callback that alters the realm settings form.
  *   - sortable: Whether the facets can be sorted via the admin UI.
+ *   - weight: The weight of the realm's menu item in comparison to the others.
  */
 function facetapi_realm_load($realm_name) {
   $realm_info = facetapi_get_realm_info();
@@ -412,10 +415,15 @@ function facetapi_facet_load($facet_name, $searcher) {
  * @return array
  *   An array of searcher information. Each array is keyed by the machine
  *   readable searcher name and contains the following items:
- *   - name: The machine readable name of the
+ *   - name: The machine readable name of the searcher.
+ *   - label: The human readable name of the searcher displayed in the admin UI.
+ *   - adapter: The adapter plugin ID associated with the searcher.
  *   - types: An array containing the types of content indexed by the searcher.
  *     A type is usually an entity such as 'node', but it can be a non-entity
  *     value as well.
+ *   - path: The MENU_DEFAULT_LOCAL_TASK item which the admin UI page is added
+ *     to as a MENU_LOCAL_TASK. An empty string if the backend manages the admin
+ *     UI menu items internally.
  *   - supports facet missing: TRUE if the searcher supports "missing" facets.
  *   - supports facet mincount: TRUE is the searcher supports the minimum facet
  *     count setting.
@@ -431,6 +439,7 @@ function facetapi_get_searcher_info() {
 
     $info += array(
       'name' => $searcher,
+      'path' => '',
       'types' => array('node'),
       'supports facet missing' => FALSE,
       'supports facet mincount' => FALSE,
@@ -472,6 +481,7 @@ function facetapi_get_realm_info() {
         'settings callback' => FALSE,
         'element type' => 'links',
         'sortable' => TRUE,
+        'weight' => 0,
       );
     }
     drupal_alter('facetapi_realm_info', $realm_info);
@@ -554,7 +564,7 @@ function facetapi_get_facet_info($searcher) {
  *   definition contains:
  *   - name: The machine readable name of the sort.
  *   - title: The human readable name of the sort displayed in the admin UI.
- *   - callback: The uasort() callback used to execute the sort.
+ *   - callback: The uasort() callback the render array is passed to.
  *   - description: The description of the sort displayed in the admin UI.
  *   - weight: The default weight of the sort specifying its processing order.
  */
@@ -931,7 +941,8 @@ function facetapi_build_realm($searcher, $realm_name) {
 /**
  * Checks requirements.
  *
- * Requirements fail if at least one requirements callback returns FALSE.
+ * Requirements fail if at least one requirements callback returns FALSE. Note
+ * that if no requirement callbacks are passed, this function will return TRUE.
  *
  * @param array $requirements
  *   The requirements keyed by callback to options.
