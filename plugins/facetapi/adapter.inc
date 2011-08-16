@@ -1001,7 +1001,7 @@ class FacetapiFacet implements ArrayAccess {
     $enabled_filters = array_filter($settings->settings['filters'], 'facetapi_filter_disabled_filters');
     uasort($enabled_filters, 'drupal_sort_weight');
     foreach ($enabled_filters as $filter_id => $filter_settings) {
-      if (!$class = ctools_plugin_load_class('facetapi', 'filters', $filter_id, 'handler')) {
+      if ($class = ctools_plugin_load_class('facetapi', 'filters', $filter_id, 'handler')) {
         $filter_plugin = new $class($filter_id, $this->adapter, $settings);
         $this->build = $filter_plugin->execute($this->build);
       }
