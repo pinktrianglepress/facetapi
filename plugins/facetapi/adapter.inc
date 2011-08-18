@@ -47,6 +47,13 @@ abstract class FacetapiAdapter {
   protected $queryTypes = array();
 
   /**
+   * The URL processor associated with this adapter.
+   *
+   * @var FacetapiUrlProcessor
+   */
+  protected $urlProcessor;
+
+  /**
    * An array of active filters.
    *
    * @var array
@@ -54,25 +61,11 @@ abstract class FacetapiAdapter {
   protected $activeItems;
 
   /**
-   * An array of parameters, such as from $_GET.
-   *
-   * @var array
-   */
-  protected $params;
-
-  /**
    * A boolean flagging whether the facets have been processed.
    *
    * @var boolean
    */
   protected $processed = FALSE;
-
-  /**
-   * Define the array key in the params that is used for filters.
-   *
-   * @var string
-   */
-  protected $filterKey = 'f';
 
   /**
    * Constructor, sets searcher and type of content being indexed.
@@ -102,13 +95,19 @@ abstract class FacetapiAdapter {
         $this->queryTypes[$facet['name']] = FALSE;
       }
     }
-  }
 
-  /**
-   * Returns the filter key.
-   */
-  public function getFilterKey() {
-    return $this->filterKey;
+    // Instantiates URL processor plugin.
+    $id = $searcher_info['url_processor'];
+    $class = ctools_plugin_load_class('facetapi', 'url_processors', $id, 'handler');
+    if (!$class) {
+      $class = ctools_plugin_load_class('facetapi', 'url_processors', 'standard', 'handler');
+    }
+    $this->urlProcessor = new $class($this);
+
+    // Fetches, normalizes, and sets filter params.
+    $filter_key = $this->urlProcessor->getFilterKey();
+    $params = $this->urlProcessor->normalizeParams($this->urlProcessor->fetchParams(), $filter_key);
+    $this->setParams($params, $filter_key);
   }
 
   /**
@@ -145,18 +144,8 @@ abstract class FacetapiAdapter {
    *   An instance of this class.
    */
   public function setParams(array $params = array(), $filter_key = 'f') {
-    $this->filterKey = $filter_key;
-
-    // Need to rebuild facets if we use different params.
     $this->facets = array();
-
-    // We never want to use 'q' or 'page' params.
-    $this->params = drupal_get_query_parameters($params, array('q', 'page'));
-    if (!isset($this->params[$this->filterKey])) {
-      $this->params[$this->filterKey] = array();
-    }
-
-    // Processes active items, returns this class.
+    $this->urlProcessor->setParams($params, $filter_key);
     $this->processActiveItems();
     return $this;
   }
@@ -177,7 +166,9 @@ abstract class FacetapiAdapter {
     }
 
     // Extracts valid filters from query string.
-    foreach ($this->params[$this->filterKey] as $pos => $filter) {
+    $filter_key = $this->urlProcessor->getFilterKey();
+    $params = $this->urlProcessor->getParams();
+    foreach ($params[$filter_key] as $pos => $filter) {
       // Bails if an object or array.
       if (!is_scalar($filter)) {
         continue;
@@ -210,13 +201,13 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns the set parameters.
+   * Returns the URL Processor.
    *
-   * @return array
-   *   The set parameters.
+   * @return FacetapiUrlProcessor
+   *   The URL Processor plugin.
    */
-  public function getParams() {
-    return $this->params;
+  public function getUrlProcessor() {
+    return $this->urlProcessor;
   }
 
   /**
@@ -487,59 +478,6 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Sets the breadcrumb trail on searches.
-   */
-  public function setBreadcrumb() {
-    $breadcrumb = drupal_get_breadcrumb();
-    $enabled_facets = $this->getEnabledFacets();
-
-    $keys = $this->getSearchKeys();
-    $active_items = $this->getAllActiveItems();
-    // Make sure the search page itself is in the breadcrumb if we are going to
-    // add more crumbs. Wow this breadcrumb code sucks.
-    $item = menu_get_item();
-    $last_load_func = is_array($item['load_functions']) ? end($item['load_functions']) : NULL;
-    if ((!$keys && $active_items) || ($keys && $last_load_func != 'menu_tail_load')) {
-      $last = end($breadcrumb);
-      $this_page = l($item['title'], $item['href'], $item['localized_options']);
-      if ($last != $this_page) {
-        $breadcrumb[] = $this_page;
-      }
-    }
-
-    // Initializes base breadcrumb query.
-    $query = $this->params;
-    unset($query[$this->filterKey]);
-
-    // Adds the current search to the query.
-    if ($keys) {
-      // The last item should be text, not a link.
-      $breadcrumb[] = $active_items ? l($keys, $_GET['q'], array('query' => $query)) : check_plain($keys);
-    }
-
-    // Adds filters to the breadcrumb trail.
-    $last = end($active_items);
-    foreach ($active_items as $item) {
-      $query[$this->filterKey][] = $item['field alias'] . ':' . $item['value'];
-
-      // Replaces with the mapped value.
-      $value = $this->getMappedValue($item['facets'][0], $item['value']);
-
-      // The last item should be text, not a link.
-      if ($last == $item) {
-        $breadcrumb[] = !empty($value['#html']) ? $value['#markup'] : check_plain($value['#markup']);
-      }
-      else {
-        // Appends the filter to the breadcrumb trail.
-        $breadcrumb[] = l($value['#markup'], $_GET['q'], array('query' => $query, 'html' => !empty($value['#html'])));
-      }
-    }
-
-    // Sets the breadcrumb trail with searck keys and filters.
-    drupal_set_breadcrumb($breadcrumb);
-  }
-
-  /**
    * Helper function that returns the query string variables for a facet item.
    *
    * @param array $facet
@@ -554,23 +492,7 @@ abstract class FacetapiAdapter {
    *   The query string vriables.
    */
   public function getQueryString(array $facet, array $values, $active) {
-    $qstring = $this->params;
-    $active_items = $this->getActiveItems($facet);
-
-    // Appends to qstring if inactive, removes if active.
-    foreach ($values as $value) {
-      if ($active && isset($active_items[$value])) {
-        unset($qstring[$this->filterKey][$active_items[$value]['pos']]);
-      }
-      elseif (!$active) {
-        $field_alias = rawurlencode($facet['field alias']);
-        $qstring[$this->filterKey][] = $field_alias . ':' . $value;
-      }
-    }
-
-    // Resets array keys, returns query string.
-    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
-    return array_filter($qstring);
+    return $this->urlProcessor->getQueryString($facet, $values, $active);
   }
 
   /**
@@ -658,7 +580,7 @@ abstract class FacetapiAdapter {
 
       // Sets the breadcrumb trail if a search was executed.
       if ($this->searchExecuted()) {
-        $this->setBreadcrumb();
+        $this->urlProcessor->setBreadcrumb();
       }
     }
   }
@@ -760,13 +682,6 @@ class FacetapiFacet implements ArrayAccess {
    * @var array
    */
   protected $build = array();
-
-  /**
-   * The initialized query string for all facets.
-   *
-   * @var array
-   */
-  protected $params;
 
   /**
    * Constructor, sets adapter and facet definition.

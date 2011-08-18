@@ -91,7 +91,7 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
     $adapter->setParams($url['query']);
 
     // Ensures that the "q" and "page" variables are stripped.
-    $params = $adapter->getParams();
+    $params = $adapter->getUrlProcessor()->getParams();
     $this->assertTrue(!isset($params['q']), t('The "q" variable is stripped by FacetapiAdapter::setParams().'));
     $this->assertTrue(!isset($params['page']), t('The "page" variable is stripped by FacetapiAdapter::setParams().'));
 

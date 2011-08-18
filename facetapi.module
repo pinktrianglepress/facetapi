@@ -186,6 +186,9 @@ function facetapi_ctools_plugin_type() {
     'query_types' => array(
       'use hooks' => TRUE,
     ),
+    'url_processors' => array(
+      'use hooks' => TRUE,
+    ),
     'widgets' => array(
       'use hooks' => TRUE,
     ),
@@ -268,15 +271,10 @@ function facetapi_adapter_load($searcher) {
   if (!isset($adapters[$searcher])) {
     $searcher_info = facetapi_get_searcher_info();
     if (isset($searcher_info[$searcher]['adapter'])) {
-      // Loads plugin class.
       ctools_include('plugins');
       $id = $searcher_info[$searcher]['adapter'];
       $class = ctools_plugin_load_class('facetapi', 'adapters', $id, 'handler');
-      // Instantiates adapter, sets "params" if class was instantiated.
       $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher]) : FALSE;
-      if ($adapters[$searcher]) {
-        $adapters[$searcher]->setParams($_GET);
-      }
     }
     else {
       $adapters[$searcher] = FALSE;
@@ -441,6 +439,7 @@ function facetapi_get_searcher_info() {
       'name' => $searcher,
       'path' => '',
       'types' => array('node'),
+      'url_processor' => 'standard',
       'supports facet missing' => FALSE,
       'supports facet mincount' => FALSE,
     );
@@ -889,6 +888,20 @@ function facetapi_facetapi_empty_behaviors() {
       'handler' => array(
         'label' => t('Display text'),
         'class' => 'FacetapiEmptyBehaviorText',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_facetapi_url_processors().
+ */
+function facetapi_facetapi_url_processors() {
+  return array(
+    'standard' => array(
+      'handler' => array(
+        'label' => t('Standard URL processors'),
+        'class' => 'FacetapiUrlProcessorStandard',
       ),
     ),
   );
