@@ -43,6 +43,8 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   $form['table'] = array(
     '#theme' => 'facetapi_realm_settings_table',
     '#facetapi' => &$form['#facetapi'],
+    'operations' => array('#tree' => TRUE),
+    'weight' => array('#tree' => TRUE),
   );
 
   // Builds "enabled_facets" options.
@@ -50,10 +52,45 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   foreach ($form['#facetapi']['facet_info'] as $facet_name => $facet) {
     $settings = $adapter->getFacet($facet)->getSettings($realm);
 
+    // Builds array of operations to use in the dropbutton.
+    $operations = array();
+    $operations[] = array(
+      'title' => t('Configure display'),
+      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'edit')
+    );
+    if ($facet['dependency plugins']) {
+      $operations[] = array(
+        'title' => t('Configure dependencies'),
+        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'dependencies')
+      );
+    }
+    if (facetapi_filters_load($facet_name, $searcher, $realm['name'])) {
+      $operations[] = array(
+        'title' => t('Configure filters'),
+        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'filters')
+      );
+    }
+    $operations[] = array(
+      'title' => t('Export configuration'),
+      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'export')
+    );
+
+    $form['table']['operations'][$facet_name] = array(
+      '#theme' => 'links__ctools_dropbutton',
+      '#links' => $operations,
+      '#attributes' => array(
+        'class' => array('inline', 'links', 'actions', 'horizontal', 'right')
+      ),
+    );
+
+    // Adds weight if sortable.
     if ($realm['sortable']) {
+
       $form['#facetapi']['facet_info'][$facet_name]['weight'] = $settings->settings['weight'];
-      $form['table']['weight:' . $facet_name] = array(
+      $form['table']['weight'][$facet_name] = array(
         '#type' => 'select',
+        '#title' => t('Weight for @title', array('@title' => $facet['label'])),
+        '#title_display' => 'invisible',
         '#options' => drupal_map_assoc(range(-50, 50)),
         '#default_value' => $settings->settings['weight'],
         '#attributes' => array('class' => array('facetapi-facet-weight')),
@@ -126,7 +163,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
   // Builds settings object, saves to database.
   foreach ($facet_info as $facet_name => $facet) {
     $status = empty($form_state['values']['enabled_facets'][$facet_name]) ? 0 : 1;
-    $weight = $realm['sortable'] ? $form_state['values']['weight:' . $facet_name] : 0;
+    $weight = $realm['sortable'] ? $form_state['values']['weight'][$facet_name] : 0;
     if (!facetapi_save_facet_status($adapter, $realm, $facet, $status, $weight, TRUE)) {
       $success = FALSE;
       $message = t(
@@ -196,62 +233,28 @@ function theme_facetapi_realm_settings_table($variables) {
   $facet_info = $variables['element']['#facetapi']['facet_info'];
   foreach ($facet_info as $facet_name => $facet) {
 
-    // Builds array of operations to use in the dropbutton.
-    $operations = array();
-    $operations[] = array(
-      'title' => t('Configure display'),
-      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'edit')
-    );
-    if ($facet['dependency plugins']) {
-      $operations[] = array(
-        'title' => t('Configure dependencies'),
-        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'dependencies')
-      );
-    }
-    if (facetapi_filters_load($facet_name, $searcher, $realm['name'])) {
-      $operations[] = array(
-        'title' => t('Configure filters'),
-        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'filters')
-      );
-    }
-    $operations[] = array(
-      'title' => t('Export configuration'),
-      'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'export')
-    );
-
     // Builds rows.
     $rows[$facet_name] = array(
       'class' => $realm['sortable'] ? array('draggable') : array(),
       'data' => array(
-        'indexed' => array(
-          'data' => drupal_render($variables['element']['enabled_facets'][$facet_name]),
-        ),
-        'label' => array(
-          'data' => check_plain($facet['label']) . "<div class='description'>" . filter_xss($facet['description']) . '</div>',
-        ),
-        'operations' => array(
+        drupal_render($variables['element']['enabled_facets'][$facet_name]),
+        check_plain($facet['label']) . "<div class='description'>" . filter_xss($facet['description']) . '</div>',
+        array(
           'class' => 'facetapi-operations',
-          'data' => theme('links__ctools_dropbutton', array(
-            'links' => $operations,
-            'attributes' => array(
-              'class' => array('inline', 'links', 'actions', 'horizontal', 'right')
-            ),
-          )),
+          'data' => drupal_render($variables['element']['operations'][$facet_name]),
         ),
       ),
     );
     if ($realm['sortable']) {
-      $rows[$facet_name]['data']['weight'] = array(
-        'data' => drupal_render($variables['element']['weight:' . $facet_name]),
-      );
+      $rows[$facet_name]['data'][] = drupal_render($variables['element']['weight'][$facet_name]);
     }
   }
 
   if ($realm['sortable']) {
-    drupal_add_tabledrag('facetapi-ui-realm-settings', 'order', 'sibling', 'facetapi-facet-weight');
+    drupal_add_tabledrag('facetapi-realm-settings', 'order', 'sibling', 'facetapi-facet-weight');
   }
   $output .= drupal_render_children($variables['element']);
-  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-ui-realm-settings')));
+  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-realm-settings')));
 
   return $output;
 }
@@ -344,9 +347,6 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
   $facet_settings = $adapter->getFacet($facet)->getSettings($realm);
   $global_settings = $adapter->getFacet($facet)->getSettings();
 
-  // Stores required items that are related to the facet being configured in
-  // this form. The excluded values are items submitted through the form that
-  // should not be stores as configuration options.
   $form['#facetapi'] = array(
     'adapter' => $adapter,
     'realm' => $realm,
@@ -402,6 +402,8 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
   $form['widget']['sort']['table'] = array(
     '#theme' => 'facetapi_sort_settings_table',
     '#facetapi' => &$form['#facetapi'],
+    'sort_weight' => array('#tree' => TRUE),
+    'sort_order' => array('#tree' => TRUE),
   );
 
   // Initializes sorts with default settings, orders by default weight. Ordering
@@ -424,9 +426,10 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
     $sort_options[$sort_name] = '';
 
     $order_default = (isset($sort_order[$sort_name])) ? $sort_order[$sort_name] : SORT_ASC;
-    $form['widget']['sort']['table']['sort_order:' . $sort_name] = array(
+    $form['widget']['sort']['table']['sort_order'][$sort_name] = array(
       '#type' => 'select',
-      '#title' => '',
+      '#title' => t('Order for sort @title', array('@title' => $sort['label'])),
+      '#title_display' => 'invisible',
       '#options' => array(
         SORT_DESC => t('Descending'),
         SORT_ASC => t('Ascending'),
@@ -435,9 +438,10 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
     );
 
     $weight_default = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
-    $form['widget']['sort']['table']['sort_weight:' . $sort_name] = array(
+    $form['widget']['sort']['table']['sort_weight'][$sort_name] = array(
       '#type' => 'weight',
-      '#title' => '',
+      '#title' => t('Weight for sort @title', array('@title' => $sort['label'])),
+      '#title_display' => 'invisible',
       '#delta' => 50,
       '#default_value' => $weight_default,
       '#attributes' => array('class' => array('facetapi-sort-weight')),
@@ -642,25 +646,17 @@ function theme_facetapi_sort_settings_table($variables) {
     $rows[$sort_name] = array(
       'class' => array('draggable'),
       'data' => array(
-        'active' => array(
-          'data' => drupal_render($variables['element']['active_sorts'][$sort_name]),
-        ),
-        'label' => array(
-          'data' => check_plain($sort['label']) . "<div class='description'>" . filter_xss($sort['description']) . '</div>',
-        ),
-        'order' => array(
-          'data' => drupal_render($variables['element']['sort_order:' . $sort_name]),
-        ),
-        'weight' => array(
-          'data' => drupal_render($variables['element']['sort_weight:' . $sort_name]),
-        ),
+        drupal_render($variables['element']['active_sorts'][$sort_name]),
+        check_plain($sort['label']) . "<div class='description'>" . filter_xss($sort['description']) . '</div>',
+        drupal_render($variables['element']['sort_order'][$sort_name]),
+        drupal_render($variables['element']['sort_weight'][$sort_name]),
       ),
     );
   }
 
-  drupal_add_tabledrag('facetapi-ui-sort-settings', 'order', 'sibling', 'facetapi-sort-weight');
+  drupal_add_tabledrag('facetapi-sort-settings', 'order', 'sibling', 'facetapi-sort-weight');
   $output .= drupal_render_children($variables['element']);
-  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-ui-sort-settings')));
+  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'facetapi-sort-settings')));
 
   return $output;
 }
@@ -686,12 +682,6 @@ function facetapi_facet_display_form_submit($form, &$form_state) {
     array_flip($form['#facetapi']['excluded_values'])
   ));
 
-  // Converts sort_weight:* and sort_order:* settings to associative arrays.
-  // @todo Remove facetapi_combine_settings() calls.
-  // @see http://drupal.org/node/1221432
-  facetapi_combine_settings('sort_weight', $facet_settings);
-  facetapi_combine_settings('sort_order', $facet_settings);
-
   $global_settings = $adapter->getFacet($facet)->getSettings();
   foreach ($global_values as $key => $value) {
     $global_settings->settings[$key] = $value;
@@ -716,31 +706,6 @@ function facetapi_facet_display_form_submit($form, &$form_state) {
   $clicked = $form_state['clicked_button']['#value'];
   if (t('Save and go back to realm settings') == $clicked) {
     $form_state['redirect'] = $adapter->getPath($realm['name']);
-  }
-}
-
-/**
- * Combines settings named "setting:*" into a single array of settings.
- *
- * This makes it easier to process settings at runtime.
- *
- * @param $setting_name
- *   A string containing the name of the setting.
- * @param $settings
- *   An object containing the settings loaded from CTools.
- *
- * @todo Remove this.
- * @see http://drupal.org/node/1221432
- */
-function facetapi_combine_settings($setting_name, $settings) {
-  $start = strlen($setting_name) + 1;
-  $settings->settings[$setting_name] = array();
-  foreach ($settings->settings as $name => $value) {
-    if (0 === strpos($name, $setting_name . ':')) {
-      $key = substr($name, $start);
-      unset($settings->settings[$name]);
-      $settings->settings[$setting_name][$key] = $value;
-    }
   }
 }
 
