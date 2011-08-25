@@ -574,7 +574,7 @@ function facetapi_get_sort_info() {
     foreach ($sort_info as $sort_name => $info) {
       $sort_info[$sort_name] += array(
         'name' => $sort_name,
-        'title' => $sort_name,
+        'label' => $sort_name,
         'callback' => '',
         'description' => '',
         'weight' => 0,
