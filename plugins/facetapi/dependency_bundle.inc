@@ -19,17 +19,27 @@ class FacetapiDependencyBundle extends FacetapiDependency {
         // @todo Do we need defensive coding here?
         $field_info = field_info_field($this->facet['field api name']);
 
-        // Gets the bundles the searcher indexing.
-        $bundles = array();
-        foreach ($this->adapter->getTypes() as $type) {
-          if (isset($field_info['bundles'][$type])) {
-            $bundles += $field_info['bundles'][$type];
-          }
+        // Iterate over field info, collect bundles this field is attached to.
+        $field_bundles = array();
+        foreach ($field_info['bundles'] as $entity => $bundles) {
+          $field_bundles[$entity] = array_flip($bundles);
         }
 
-        // Attempts to find a match.
-        $matches = array_intersect_key(array_flip($bundles), $this->activeItems['bundle']);
-        return ($matches) ? NULL : FALSE;
+        // Find active facets that contain bundle data.
+        $enabled = array_filter($this->adapter->getEnabledFacets(), array($this, 'filterBundleFacets'));
+        $active = array_filter($this->activeItems);
+        $active_bundles = array_intersect_key($enabled, $active);
+
+        // Check if there is any match.
+        foreach ($active_bundles as $facet) {
+          foreach ($facet['field api bundles'] as $entity) {
+            $bundles = (isset($field_bundles[$entity])) ? $field_bundles[$entity] : array();
+            if (array_intersect_key($active[$facet['name']], $bundles)) {
+              return NULL;
+            }
+          }
+        }
+        return FALSE;
 
       case 'selected':
         $matches = array_intersect_key(
@@ -38,6 +48,19 @@ class FacetapiDependencyBundle extends FacetapiDependency {
         );
         return ($matches) ? NULL : FALSE;
     }
+  }
+
+  /**
+   * Returns TRUE if the facet contains bundle information.
+   *
+   * @param array $facet
+   *   The facet definition beinf filtered.
+   *
+   * @return
+   *   A boolean flagging whether the item should remain in the array.
+   */
+  public function filterBundleFacets($facet) {
+    return !empty($facet['field api bundles']);
   }
 
   /**

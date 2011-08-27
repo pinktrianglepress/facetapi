@@ -369,6 +369,8 @@ function facetapi_realm_load($realm_name) {
  *     pass the filter information through the query string.
  *   - field api name: The machine readable name of the Field API field data the
  *     facet is associated with, FALSE if it is not associated with a field.
+ *   - field api bundles: An array of entity names that this field contains
+ *     bundle information for.
  *   - query type: The query type plugin ID used by the backend to execute the
  *     facet query for this field.
  *   - dependency plugins: An array of dependency plugin IDs that are supported
@@ -450,12 +452,11 @@ function facetapi_get_searcher_info() {
       $info['type'] = $info['types'][key($info['types'])];
     }
 
-    // Maps "types" so we can do faster lookups via isset().
-    $info['types'] = drupal_map_assoc($info['types']);
     $searcher_info[$searcher] = $info;
   }
 
   drupal_alter('facetapi_searcher_info', $searcher_info);
+  array_walk($searcher_info, 'facetapi_map_assoc', 'types');
   return $searcher_info;
 }
 
@@ -525,6 +526,7 @@ function facetapi_get_facet_info($searcher) {
           'field' => $facet_name,
           'field alias' => isset($info['field']) ? $info['field'] : $facet_name,
           'field api name' => FALSE,
+          'field api bundles' => array(),
           'query type' => 'term',
           'dependency plugins' => array(),
           'default widget' => FALSE,
@@ -549,10 +551,27 @@ function facetapi_get_facet_info($searcher) {
 
     // Invokes alter hook, sorts and returns.
     drupal_alter('facetapi_facet_info', $facet_info[$searcher], $searcher_info[$searcher]);
+    array_walk($facet_info[$searcher], 'facetapi_map_assoc', 'field api bundles');
     uasort($facet_info[$searcher], 'drupal_sort_weight');
   }
 
   return $facet_info[$searcher];
+}
+
+/**
+ * Wrapper around drupal_map_assoc() for a key in all items of an array.
+ *
+ * Useful as an array_walk() callback.
+ *
+ * @param array &$array
+ *   The array being modified.
+ * @param $name
+ *   The key of the array being modified, usually the name of a definition.
+ * @param $key
+ *   The key in the array being passed to drupal_map_assoc().
+ */
+function facetapi_map_assoc(&$array, $name, $key) {
+  $array[$key] = drupal_map_assoc($array[$key]);
 }
 
 /**
@@ -715,6 +734,7 @@ function facetapi_facetapi_facet_info($searcher_info) {
     $facets['bundle'] = array(
       'label' => t('Content type'),
       'description' => t('Filter by content type.'),
+      'field api bundles' => array('node'),
       'map callback' => 'facetapi_map_bundle',
       'values callback' => 'facetapi_callback_type_values',
       'facet mincount allowed' => TRUE,

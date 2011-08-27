@@ -135,6 +135,8 @@ function hook_facetapi_realm_info_alter(array &$realm_info) {
  *   - field api name: (optional) The machine readable name of the Field API
  *     field data the facet is associated with, FALSE if it is not associated
  *     with a field.
+ *   - field api bundles: (optional) An array of entity names that this field
+ *     contains bundle information for. Defaults to an empty array.
  *   - query type: The query type plugin ID used by the backend to execute the
  *     facet query for this field.
  *   - dependency plugins: (optional) An array of dependency plugin IDs that are
