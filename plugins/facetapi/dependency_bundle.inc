@@ -25,8 +25,8 @@ class FacetapiDependencyBundle extends FacetapiDependency {
           $field_bundles[$entity] = array_flip($bundles);
         }
 
-        // Checks match between the field's bundles and active bundle items.
-        foreach ($this->getActiveBundleFacets()  as $facet) {
+        // Check match between the field's bundles and active bundle items.
+        foreach ($this->getEnabledBundleFacets()  as $facet) {
           foreach ($facet['field api bundles'] as $entity) {
             $bundles = (isset($field_bundles[$entity])) ? $field_bundles[$entity] : array();
             if (array_intersect_key($this->activeItems[$facet['name']], $bundles)) {
@@ -39,9 +39,9 @@ class FacetapiDependencyBundle extends FacetapiDependency {
         return FALSE;
 
       case 'selected':
-        // Checks match between selected bundles and active bundle items.
+        // Check match between selected bundles and active bundle items.
         $selected = array_filter($this->settings['bundle_selected']);
-        foreach ($this->getActiveBundleFacets() as $facet) {
+        foreach ($this->getEnabledBundleFacets() as $facet) {
           if (array_intersect_key($this->activeItems[$facet['name']], $selected)) {
             return NULL;
           }
@@ -53,12 +53,12 @@ class FacetapiDependencyBundle extends FacetapiDependency {
   }
 
   /**
-   * Returns an array of active facets that filter by bundle.
+   * Returns an array of enabled facets that filter by bundle.
    *
    * @return array
-   *   An array of active bundle facets.
+   *   An array of enabled bundle facets.
    */
-  public function getActiveBundleFacets() {
+  public function getEnabledBundleFacets() {
     $enabled = array_filter($this->adapter->getEnabledFacets(), array($this, 'filterBundleFacets'));
     $active = array_filter($this->activeItems);
     return array_intersect_key($enabled, $active);
