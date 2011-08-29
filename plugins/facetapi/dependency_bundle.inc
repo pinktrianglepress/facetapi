@@ -2,11 +2,11 @@
 
 /**
  * @file
- * Performs a dependency check against the passed content type.
+ * Performs a dependency check against the passed bundle.
  */
 
 /**
- * Adds a dependency on content type.
+ * Adds a dependency on bundle.
  */
 class FacetapiDependencyBundle extends FacetapiDependency {
 
@@ -26,6 +26,7 @@ class FacetapiDependencyBundle extends FacetapiDependency {
         }
 
         // Find active facets that contain bundle data.
+        // @todo Find a way to reduce code duplication.
         $enabled = array_filter($this->adapter->getEnabledFacets(), array($this, 'filterBundleFacets'));
         $active = array_filter($this->activeItems);
         $active_bundles = array_intersect_key($enabled, $active);
@@ -39,16 +40,34 @@ class FacetapiDependencyBundle extends FacetapiDependency {
             }
           }
         }
+
+        // There was no match.
         return FALSE;
 
       case 'selected':
-        $matches = array_intersect_key(
-          array_filter($this->settings['bundle_selected']),
-          $this->activeItems['bundle']
-        );
-        return ($matches) ? NULL : FALSE;
+
+        // Find active facets that contain bundle data.
+        // @todo Find a way to reduce code duplication.
+        $enabled = array_filter($this->adapter->getEnabledFacets(), array($this, 'filterBundleFacets'));
+        $active = array_filter($this->activeItems);
+        $active_bundles = array_intersect_key($enabled, $active);
+
+        // Check if there is any match.
+        $selected = array_filter($this->settings['bundle_selected']);
+        foreach ($active_bundles as $facet) {
+          if (array_intersect_key($active[$facet['name']], $selected)) {
+            return NULL;
+          }
+        }
+
+        // There was no match.
+        return FALSE;
     }
   }
+
+  /**
+   * Returns an array of active
+   */
 
   /**
    * Returns TRUE if the facet contains bundle information.
@@ -72,9 +91,9 @@ class FacetapiDependencyBundle extends FacetapiDependency {
     $options = array();
     $options['none'] = t('No dependencies.');
     if ($this->facet['field api name']) {
-      $options['referenced'] = t('A content type this field is attached to must be active.');
+      $options['referenced'] = t('A bundle this field is attached to must be active.');
     }
-    $options['selected'] = t('At least one of the selected content types must be active.');
+    $options['selected'] = t('At least one of the selected bundles must be active.');
 
     $form[$this->id]['bundle'] = array(
       '#title' => t('Dependency settings'),
@@ -84,16 +103,38 @@ class FacetapiDependencyBundle extends FacetapiDependency {
     );
 
     $form[$this->id]['bundle_selected'] = array(
-      '#title' => t('Content types'),
+      '#title' => t('Required bundles'),
       '#type' => 'checkboxes',
-      '#options' => array_map('check_plain', node_type_get_names()),
+      '#options' => $this->getBundleOptions($form['#facetapi']['adapter']->getTypes()),
       '#default_value' => $this->settings['bundle_selected'],
       '#states' => array(
         'visible' => array(
           'input[name="bundle"]' => array('value' => 'selected'),
         ),
       ),
+      '#description' => t('At least one of the selected bundles must be active for this facet to be rendered.')
     );
+  }
+
+  /**
+   * Gets bundles.
+   *
+   * @param array $entity_types
+   *   An array containing the machine readable name of the entities.
+   *
+   * @return
+   *   An array of bundles associates with the entities.
+   */
+  public function getBundleOptions(array $entity_types) {
+    $options = array();
+    foreach ($entity_types as $entity_type) {
+      if ($entity_info = entity_get_info($entity_type)) {
+        foreach ($entity_info['bundles'] as $bundle => $bundle_info) {
+          $options[$bundle] = check_plain($bundle_info['label']);
+        }
+      }
+    }
+    return $options;
   }
 
   /**

@@ -187,6 +187,7 @@ function hook_facetapi_facet_info(array $searcher_info) {
       'field' => 'my_field_index_field_name',
       'field alias' => 'my_alias',
       'field api name' => FALSE,
+      'field api bundles' => array(),
       'query type' => 'term',
       'dependency plugins' => array('role'),
       'default widget' => 'links',

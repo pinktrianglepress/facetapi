@@ -880,7 +880,7 @@ function facetapi_facetapi_dependencies() {
   return array(
     'bundle' => array(
       'handler' => array(
-        'label' => t('Content types'),
+        'label' => t('Bundles'),
         'class' => 'FacetapiDependencyBundle',
       ),
     ),
