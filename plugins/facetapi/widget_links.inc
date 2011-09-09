@@ -78,7 +78,7 @@ class FacetapiWidgetLinks extends FacetapiWidget {
       // Initializes variables passed to theme hook.
       $variables = array(
         'text' => $item['#markup'],
-        'path' => $_GET['q'],
+        'path' => $item['#path'],
         'count' => $item['#count'],
         'options' => array(
           'attributes' => array('class' => $this->getItemClasses()),

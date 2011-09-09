@@ -68,6 +68,13 @@ abstract class FacetapiAdapter {
   protected $processed = FALSE;
 
   /**
+   * Stores the search path so we only need to calculate it once.
+   *
+   * @var string
+   */
+  protected $searchPath;
+
+  /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param array $searcher_info
@@ -289,6 +296,26 @@ abstract class FacetapiAdapter {
    */
   public function getPath($realm_name) {
     return $this->info['path'] . '/facets/' . $realm_name;
+  }
+
+  /**
+   * Returns the search path.
+   *
+   * @return string
+   *   A string containing the search path.
+   *
+   * @todo D8 should provide an API function for this.
+   */
+  public function getSearchPath() {
+    if (NULL === $this->searchPath) {
+      if ($path = module_invoke($this->info['module'] . '_search', 'search_info')) {
+        $this->searchPath = 'search/' . $path['path'];
+        if (!isset($_GET['keys']) && ($keys = $this->getSearchKeys())) {
+          $this->searchPath .= '/' . $keys;
+        }
+      }
+    }
+    return $this->searchPath;
   }
 
   /**
@@ -1089,6 +1116,7 @@ class FacetapiFacetProcessor {
     // Build array defaults.
     $defaults = array(
       '#markup' => '',
+      '#path' => $this->facet->getAdapter()->getSearchPath(),
       '#html' => FALSE,
       '#indexed_value' => '',
       '#count' => 0,

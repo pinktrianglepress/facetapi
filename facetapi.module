@@ -429,30 +429,36 @@ function facetapi_facet_load($facet_name, $searcher) {
  *     count setting.
  */
 function facetapi_get_searcher_info() {
-  $searcher_info = module_invoke_all('facetapi_searcher_info');
-  foreach ($searcher_info as $searcher => $info) {
-    // @see http://drupal.org/node/1167974
-    // Converts "type" to an array and stores in "types".
-    if (isset($info['type']) && !isset($info['types'])) {
-      $info['types'] = array($info['type']);
+  $searcher_info = array();
+  foreach (module_implements('facetapi_searcher_info') as $module) {
+    // Iterates over the module's searcher definition.
+    foreach ((array) module_invoke($module, 'facetapi_searcher_info') as $searcher => $info) {
+      // @see http://drupal.org/node/1167974
+      // Converts "type" to an array and stores in "types".
+      if (isset($info['type']) && !isset($info['types'])) {
+        $info['types'] = array($info['type']);
+      }
+
+      $info += array(
+        'module' => $module,
+        'name' => $searcher,
+        'path' => '',
+        'types' => array('node'),
+        'url_processor' => 'standard',
+        'supports facet missing' => FALSE,
+        'supports facet mincount' => FALSE,
+      );
+
+      // @see http://drupal.org/node/1167974
+      // Makes sure old style "type" is present.
+      if (!isset($info['type'])) {
+        $info['type'] = $info['types'][key($info['types'])];
+      }
+
+      // Maps "types" so we can do faster lookups via isset().
+      $info['types'] = drupal_map_assoc($info['types']);
+      $searcher_info[$searcher] = $info;
     }
-
-    $info += array(
-      'name' => $searcher,
-      'path' => '',
-      'types' => array('node'),
-      'url_processor' => 'standard',
-      'supports facet missing' => FALSE,
-      'supports facet mincount' => FALSE,
-    );
-
-    // @see http://drupal.org/node/1167974
-    // Makes sure old style "type" is present.
-    if (!isset($info['type'])) {
-      $info['type'] = $info['types'][key($info['types'])];
-    }
-
-    $searcher_info[$searcher] = $info;
   }
 
   drupal_alter('facetapi_searcher_info', $searcher_info);
