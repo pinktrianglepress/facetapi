@@ -1226,18 +1226,18 @@ class FacetapiFacetProcessor {
   protected function processQueryStrings(array &$build) {
     foreach ($build as $value => &$item) {
       $values = array($value);
-      if ($item['#active']) {
-        // If the item is active an has children, gets the paths for the
-        // children. Merges child values with this facet item's value so that
-        // unclicking the parent deactivates the children as well.
-        if (!empty($item['#item_children'])) {
-          $this->processQueryStrings($item['#item_children']);
+      // Calculate paths for the children.
+      if (!empty($item['#item_children'])) {
+        $this->processQueryStrings($item['#item_children']);
+        // Merges the childrens' values if the item is active so the children
+        // are deactivated along with the parent.
+        if ($item['#active']) {
           $values = array_merge(facetapi_get_child_values($item['#item_children']), $values);
         }
-        // Stores this item's active children so we can deactivate them in the
-        // current search block as well.
-        $this->activeChildren[$value] = $values;
       }
+      // Stores this item's active children so we can deactivate them in the
+      // current search block as well.
+      $this->activeChildren[$value] = $values;
 
       // Formats query string for facet item, sets theme function.
       $item['#query'] = $this->getQueryString($values, $item['#active']);
