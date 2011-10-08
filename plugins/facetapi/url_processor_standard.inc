@@ -63,7 +63,7 @@ class FacetapiUrlProcessorStandard extends FacetapiUrlProcessor {
 
     $item = menu_get_item();
     $last_load_func = is_array($item['load_functions']) ? end($item['load_functions']) : NULL;
-    if ((!$keys && $active_items) || ($keys && $last_load_func != 'menu_tail_load')) {
+    if (!empty($item['title']) && ((!$keys && $active_items) || ($keys && $last_load_func != 'menu_tail_load'))) {
       $last = end($breadcrumb);
       $this_page = l($item['title'], $item['href'], $item['localized_options']);
       if ($last != $this_page) {
