@@ -34,8 +34,11 @@
  *     the backend is responsible for adding the admin UI menu items.
  *   - supports facet missing: (optional) TRUE if the searcher supports
  *     "missing" facets. Defaults to FALSE.
- *   - supports facet mincount: (optional) TRUE is the searcher supports the
+ *   - supports facet mincount: (optional) TRUE if the searcher supports the
  *     minimum facet count setting. Defaults to FALSE.
+ *   - include default facets: (optional) TRUE if the searcher should include
+ *     the facets defined in facetapi_facetapi_facet_info() when indexing node
+ *     content, FALSE if they should be skipped.
  */
 function hook_facetapi_searcher_info() {
   return array(
@@ -46,6 +49,7 @@ function hook_facetapi_searcher_info() {
       'path' => 'admin/config/search/settings',
       'supports facet missing' => TRUE,
       'supports facet mincount' => TRUE,
+      'include default facets' => TRUE,
     ),
   );
 }
