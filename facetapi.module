@@ -425,8 +425,11 @@ function facetapi_facet_load($facet_name, $searcher) {
  *     to as a MENU_LOCAL_TASK. An empty string if the backend manages the admin
  *     UI menu items internally.
  *   - supports facet missing: TRUE if the searcher supports "missing" facets.
- *   - supports facet mincount: TRUE is the searcher supports the minimum facet
+ *   - supports facet mincount: TRUE if the searcher supports the minimum facet
  *     count setting.
+ *   - include default facets: TRUE if the searcher should include the facets
+ *     defined in facetapi_facetapi_facet_info() when indexing node content,
+ *     FALSE if they should be skipped.
  */
 function facetapi_get_searcher_info() {
   $searcher_info = array();
