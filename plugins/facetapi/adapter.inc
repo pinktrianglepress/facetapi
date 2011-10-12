@@ -308,10 +308,15 @@ abstract class FacetapiAdapter {
    */
   public function getSearchPath() {
     if (NULL === $this->searchPath) {
-      if ($path = module_invoke($this->info['module'] . '_search', 'search_info')) {
-        $this->searchPath = 'search/' . $path['path'];
-        if (!isset($_GET['keys']) && ($keys = $this->getSearchKeys())) {
-          $this->searchPath .= '/' . $keys;
+      // Backwards compatibility with apachesolr <= beta8.
+      // @see http://drupal.org/node/1305748#comment-5102352
+      foreach (array($this->info['module'], $this->info['module'] . '_search') as $module) {
+        if ($path = module_invoke($module, 'search_info')) {
+          $this->searchPath = 'search/' . $path['path'];
+          if (!isset($_GET['keys']) && ($keys = $this->getSearchKeys())) {
+            $this->searchPath .= '/' . $keys;
+          }
+          break;
         }
       }
     }
