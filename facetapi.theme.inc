@@ -77,7 +77,7 @@ function theme_facetapi_link_active($variables) {
       $suffix = ' ' . check_plain($variables['text']);
     }
     else {
-      $suffix  = ' ' . $variables['text'];
+      $suffix = ' ' . $variables['text'];
     }
   }
   $variables['text'] = '(-) ';
