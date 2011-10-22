@@ -42,7 +42,7 @@ function theme_facetapi_title($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_link_inactive($variables) {
-  if (!empty($variables['count'])) {
+  if (isset($variables['count'])) {
     $variables['text'] .= ' ' . theme('facetapi_count', $variables);
   }
   return theme_link($variables);
@@ -58,7 +58,7 @@ function theme_facetapi_link_inactive($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_count($variables) {
-  return '(' . check_plain($variables['count']) . ')';
+  return '(' . (int) $variables['count'] . ')';
 }
 
 /**
