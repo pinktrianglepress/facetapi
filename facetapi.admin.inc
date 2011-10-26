@@ -818,6 +818,7 @@ function facetapi_facet_filters_form($form, &$form_state, FacetapiAdapter $adapt
       '#type' => 'fieldset',
       '#title' => check_plain($plugin['handler']['label']),
       '#group' => 'settings',
+      '#tree' => TRUE,
     );
 
     // Allows plugin to add settings to the form.
@@ -928,7 +929,14 @@ function facetapi_facet_filters_form_submit($form, &$form_state) {
   $settings = $form['#facetapi']['settings'];
 
   // Merges passed settings in with the settings object.
-  $settings->settings = array_merge($settings->settings, $form_state['values']['settings']);
+  $form_state_values_settings = $form_state['values']['settings'];
+  // Go though all filters and if filter is enabled save its form settings.
+  foreach ($form_state_values_settings['filters'] as $filter_name => $filter_settings) {
+    if ($filter_settings['status']) {
+      $form_state_values_settings += $form_state['values'][$filter_name];
+    }
+  }
+  $settings->settings = array_merge($settings->settings, $form_state_values_settings);
 
   // Saves the configuration options.
   if (FALSE !== ctools_export_crud_save('facetapi', $settings)) {
