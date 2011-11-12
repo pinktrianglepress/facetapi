@@ -80,6 +80,8 @@ function theme_facetapi_link_active($variables) {
       $suffix = ' ' . $variables['text'];
     }
   }
-  $variables['text'] = '(-) ';
+  $accessible_link_text = '<span class="element-invisible">' . t('Remove @text filter', array('@text' => $variables['text'])) . '</span>';
+  $variables['options']['html'] = TRUE;
+  $variables['text'] = '(-) ' . $accessible_link_text;
   return theme_link($variables) . $suffix;
 }
