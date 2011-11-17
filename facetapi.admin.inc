@@ -519,13 +519,16 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
     '#description' => t('AND filters are exclusive and narrow the result set. OR filters are inclusive and widen the result set.')
   );
 
+  $hard_limit_options = drupal_map_assoc(array(3, 5, 10, 15, 20, 30, 40, 50, 75, 100));
+  $hard_limit_options[-1] = t('No limit');
+
   $form['global']['hard_limit'] = array(
     '#type' => 'select',
     '#title' => t('Hard limit'),
     '#prefix' => '<div class="facetapi-global-setting">',
     '#suffix' => '</div>',
     '#default_value' => $global_settings->settings['hard_limit'],
-    '#options' => drupal_map_assoc(array(100, 75, 50, 40, 30, 20, 15, 10, 5, 3)),
+    '#options' => $hard_limit_options,
     '#description' => t('Display no more than this number of facet items.')
   );
 
