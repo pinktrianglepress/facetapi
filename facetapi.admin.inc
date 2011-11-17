@@ -968,7 +968,7 @@ function facetapi_facet_filters_form_submit($form, &$form_state) {
   $form_state_values_settings = $form_state['values']['settings'];
   // Go though all filters and if filter is enabled save its form settings.
   foreach ($form_state_values_settings['filters'] as $filter_name => $filter_settings) {
-    if ($filter_settings['status']) {
+    if ($filter_settings['status'] && !empty($form_state['values'][$filter_name])) {
       $form_state_values_settings += $form_state['values'][$filter_name];
     }
   }
