@@ -124,7 +124,7 @@ abstract class FacetapiAdapter {
 
     // Fetches, normalizes, and sets filter params.
     $filter_key = $this->urlProcessor->getFilterKey();
-    $params = $this->urlProcessor->normalizeParams($this->urlProcessor->fetchParams(), $filter_key);
+    $params = $this->urlProcessor->fetchParams();
     $this->setParams($params, $filter_key);
   }
 
@@ -163,7 +163,8 @@ abstract class FacetapiAdapter {
    */
   public function setParams(array $params = array(), $filter_key = 'f') {
     $this->facets = array();
-    $this->urlProcessor->setParams($params, $filter_key);
+    $normalized = $this->urlProcessor->normalizeParams($params, $filter_key);
+    $this->urlProcessor->setParams($normalized, $filter_key);
     $this->processActiveItems();
     return $this;
   }
