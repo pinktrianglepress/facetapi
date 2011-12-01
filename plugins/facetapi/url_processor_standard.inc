@@ -46,8 +46,9 @@ class FacetapiUrlProcessorStandard extends FacetapiUrlProcessor {
       }
     }
 
-    // Resets array keys, returns query string.
-    $qstring[$this->filterKey] = array_values($qstring[$this->filterKey]);
+    // Removes duplicates, resets array keys and returns query string.
+    // @see http://drupal.org/node/1340528
+    $qstring[$this->filterKey] = array_values(array_unique($qstring[$this->filterKey]));
     return array_filter($qstring);
   }
 
