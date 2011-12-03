@@ -1111,9 +1111,10 @@ class FacetapiFacetProcessor {
     // Only initializes facet if a query type plugin is registered for it.
     // NOTE: We don't use the chaining pattern so the methods can be tested.
     if ($this->facet->getAdapter()->getFacetQuery($this->facet->getFacet())) {
-      if ($this->build = $this->initializeBuild($this->build)) {
+      $this->build = $this->initializeBuild($this->build);
+      $this->build = $this->mapValues($this->build);
+      if ($this->build) {
         $settings = $this->facet->getSettings();
-        $this->build = $this->mapValues($this->build);
         if (!$settings->settings['flatten']) {
           $this->build = $this->processHierarchy($this->build);
         }
