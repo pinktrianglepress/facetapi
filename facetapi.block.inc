@@ -190,7 +190,10 @@ function facetapi_build_delta($searcher, $realm_name, $facet_name) {
  *   The hashed delta value.
  */
 function facetapi_hash_delta($delta) {
-  return substr(drupal_hash_base64($delta), 0, 32);
+  // Ensure hashes are URL safe and alpha-numeric.
+  // @see http://drupal.org/node/1355270
+  $hash = substr(drupal_hash_base64($delta), 0, 32);
+  return strtr($hash, array('-' => '0', '_' => '1'));
 }
 
 /**

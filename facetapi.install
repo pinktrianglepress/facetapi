@@ -168,3 +168,23 @@ function facetapi_update_7001() {
       ->execute();
   }
 }
+
+/**
+ * Ensures hashes are alpha-numeric.
+ */
+function facetapi_update_7002() {
+
+  // Updates the block table with alpha-numeric hashes.
+  $result = db_query("SELECT delta, bid FROM {block} WHERE module = 'facetapi'");
+  foreach ($result as $record) {
+    $hash = strtr($record->delta, array('-' => '0', '_' => '1'));
+    db_update('block')
+      ->fields(array('delta' => $hash))
+      ->condition('module', 'facetapi')
+      ->condition('delta', $record->delta)
+      ->execute();
+  }
+
+  // Clears the delta cache.
+  cache_clear_all('facetapi:delta_map', 'cache');
+}
