@@ -42,9 +42,27 @@ function theme_facetapi_title($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_link_inactive($variables) {
+  // Builds accessible markup.
+  // @see http://drupal.org/node/1316580
+  $accessible_vars = array(
+    'text' => $variables['text'],
+    'active' => FALSE,
+  );
+  $accessible_markup = theme('facetapi_accessible_markup', $accessible_vars);
+
+  // Sanitizes the link text if necessary.
+  $sanitize = empty($variables['options']['html']);
+  $variables['text'] = ($sanitize) ? check_plain($variables['text']) : $variables['text'];
+
+  // Adds count to link if one was passed.
   if (isset($variables['count'])) {
     $variables['text'] .= ' ' . theme('facetapi_count', $variables);
   }
+
+  // Resets link text, sets to options to HTML since we already sanitized the
+  // link text and are providing additional markup for accessibility.
+  $variables['text'] .= $accessible_markup;
+  $variables['options']['html'] = TRUE;
   return theme_link($variables);
 }
 
@@ -71,16 +89,17 @@ function theme_facetapi_count($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_link_active($variables) {
+  // Builds accessible markup.
+  // @see http://drupal.org/node/1316580
+  $accessible_vars = array(
+    'text' => $variables['text'],
+    'active' => TRUE,
+  );
+  $accessible_markup = theme('facetapi_accessible_markup', $accessible_vars);
+
   // Sanitizes the link text if necessary.
   $sanitize = empty($variables['options']['html']);
   $link_text = ($sanitize) ? check_plain($variables['text']) : $variables['text'];
-
-  // Builds accessible markup.
-  $accessible_vars = array(
-    'text' => $link_text,
-    'active' => TRUE
-  );
-  $accessible_markup = theme('facetapi_accessible_markup', $accessible_vars);
 
   // Resets link text, sets to options to HTML since we already sanitized the
   // link text and are providing additional markup for accessibility.
@@ -90,7 +109,7 @@ function theme_facetapi_link_active($variables) {
 }
 
 /**
- * Returns HTML for an inactive facet item.
+ * Returns HTML that adds accessible markup to facet links.
  *
  * @param $variables
  *   An associative array containing:
@@ -98,6 +117,8 @@ function theme_facetapi_link_active($variables) {
  *   - active: Whether the item is active or not.
  *
  * @ingroup themeable
+ *
+ * @see http://drupal.org/node/1316580
  */
 function theme_facetapi_accessible_markup($variables) {
   $vars = array('@text' => $variables['text']);
