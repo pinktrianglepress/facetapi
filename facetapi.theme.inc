@@ -71,17 +71,36 @@ function theme_facetapi_count($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_link_active($variables) {
-  $suffix = '';
-  if (isset($variables['text'])) {
-    if (empty($variables['options']['html'])) {
-      $suffix = ' ' . check_plain($variables['text']);
-    }
-    else {
-      $suffix = ' ' . $variables['text'];
-    }
-  }
-  $accessible_link_text = '<span class="element-invisible">' . t('Remove @text filter', array('@text' => $variables['text'])) . '</span>';
+  // Sanitizes the link text if necessary.
+  $sanitize = empty($variables['options']['html']);
+  $link_text = ($sanitize) ? check_plain($variables['text']) : $variables['text'];
+
+  // Builds accessible markup.
+  $accessible_vars = array(
+    'text' => $link_text,
+    'active' => TRUE
+  );
+  $accessible_markup = theme('facetapi_accessible_markup', $accessible_vars);
+
+  // Resets link text, sets to options to HTML since we already sanitized the
+  // link text and are providing additional markup for accessibility.
+  $variables['text'] = '(-) ' . $accessible_markup;
   $variables['options']['html'] = TRUE;
-  $variables['text'] = '(-) ' . $accessible_link_text;
-  return theme_link($variables) . $suffix;
+  return theme_link($variables) . $link_text;
+}
+
+/**
+ * Returns HTML for an inactive facet item.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - text: The text of the facet link.
+ *   - active: Whether the item is active or not.
+ *
+ * @ingroup themeable
+ */
+function theme_facetapi_accessible_markup($variables) {
+  $vars = array('@text' => $variables['text']);
+  $text = ($variables['active']) ? t('Remove @text filter', $vars) : t('Apply @text filter', $vars);
+  return '<span class="element-invisible">' . $text . '</span>';
 }
