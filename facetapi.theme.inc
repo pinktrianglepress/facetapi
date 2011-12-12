@@ -103,7 +103,7 @@ function theme_facetapi_link_active($variables) {
 
   // Resets link text, sets to options to HTML since we already sanitized the
   // link text and are providing additional markup for accessibility.
-  $variables['text'] = '(-) ' . $accessible_markup;
+  $variables['text'] = t('(-) !markup', array('!markup' => $accessible_markup));
   $variables['options']['html'] = TRUE;
   return theme_link($variables) . $link_text;
 }
