@@ -725,7 +725,7 @@ abstract class FacetapiAdapter {
 
       $variables = array(
         'text' => $mapped['#markup'],
-        'path' => $_GET['q'],
+        'path' => current_path(),
         'options' => array(
           'attributes' => array('class' => array()),
           'html' => !empty($mapped['#html']),

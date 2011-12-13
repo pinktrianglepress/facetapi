@@ -117,7 +117,7 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   else {
     $description = t(
       'To enable block caching, visit the <a href="@performance-page">performance page</a>.',
-      array('@performance-page' => url('admin/config/development/performance', array('query' => array('destination' => $_GET['q']))))
+      array('@performance-page' => url('admin/config/development/performance', array('query' => array('destination' => current_path()))))
     );
   }
   $form['block_cache'] = array(
@@ -180,7 +180,7 @@ function facetapi_realm_settings_form_submit($form, &$form_state) {
     if ('block' == $form['#facetapi']['realm']['name']) {
       drupal_set_message(t(
         'To enable or arrange the facet blocks, visit the <a href="@block-page">blocks administration page</a>.',
-        array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
+        array('@block-page' => url('admin/structure/block', array('query' => array('destination' => current_path()))))
       ));
     }
   }
