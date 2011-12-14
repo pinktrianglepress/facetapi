@@ -414,7 +414,7 @@ abstract class FacetapiAdapter {
    *   The backend's native object.
    */
   function addActiveFilters($query) {
-    require_once drupal_get_path('module', 'facetapi') . '/facetapi.callbacks.inc';
+    module_load_include('inc', 'facetapi', 'facetapi.callbacks');
 
     // Runs initActiveFilters hook, finds active facets.
     $this->initActiveFilters($query);
