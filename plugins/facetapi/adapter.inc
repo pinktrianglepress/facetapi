@@ -847,8 +847,6 @@ abstract class FacetapiAdapter {
       }
     }
 
-    // Allows modules to alter the render array before returning.
-    drupal_alter('facetapi_facets', $build, $this, $realm);
     return $build;
   }
 }
