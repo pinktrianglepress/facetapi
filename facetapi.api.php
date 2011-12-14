@@ -143,6 +143,8 @@ function hook_facetapi_realm_info_alter(array &$realm_info) {
  *     contains bundle information for. Defaults to an empty array.
  *   - query types: The query type plugins that that this facet supports. For
  *     example, numeric fields support "term" and "range_filter" queries.
+ *   - alter callbacks: (optional) Callbacks that alter the initialized render
+ *     array returned by the query type plugin. Defaults to an empty array.
  *   - dependency plugins: (optional) An array of dependency plugin IDs that are
  *     supported by this facet.
  *   - default widget: (optional) The widget plugin ID used if no plugin has

@@ -394,6 +394,8 @@ function facetapi_realm_load($realm_name) {
  *     bundle information for.
  *   - query types: The query type plugins that that this facet supports. For
  *     example, numeric fields support "term" and "range_filter" queries.
+ *   - alter callbacks: Callbacks that alter the initialized render array
+ *     returned by the query type plugin. Defaults to an empty array.
  *   - dependency plugins: An array of dependency plugin IDs that are supported
  *     by this facet.
  *   - default widget: The widget plugin ID used if no plugin has been selected
@@ -568,6 +570,7 @@ function facetapi_get_facet_info($searcher) {
           'field api name' => FALSE,
           'field api bundles' => array(),
           'query types' => array('term'),
+          'alter callbacks' => array(),
           'dependency plugins' => array(),
           'default widget' => FALSE,
           'allowed operators' => array(FACETAPI_OPERATOR_AND => TRUE, FACETAPI_OPERATOR_OR => TRUE),

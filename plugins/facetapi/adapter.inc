@@ -1191,6 +1191,13 @@ class FacetapiFacetProcessor {
     // Builds render arrays for each item.
     $adapter = $this->facet->getAdapter();
     $build = $adapter->getFacetQuery($this->facet->getFacet())->build();
+
+    // Invoke the alter callbacks for the facet.
+    foreach ($this->facet['alter callbacks'] as $callback) {
+      $callback($build, $adapter);
+    }
+
+    // Iterates over the render array and merges in defaults.
     foreach (element_children($build) as $value) {
       $item_defaults = array(
         '#markup' => $value,
