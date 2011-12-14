@@ -65,11 +65,6 @@ define('FACETAPI_REGEX_DATE', '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})
  */
 define('FACETAPI_REGEX_DATE_RANGE', '/^\[(' . trim(FACETAPI_REGEX_DATE, '/^$') . ') TO (' . trim(FACETAPI_REGEX_DATE, '/^$') . ')\]$/');
 
-// Loads file containing various callback functions.
-// @todo Can we lazy-load this file somehow?
-// @todo It all comes back to the listener/indexer conversation.
-require_once dirname(__FILE__) . '/facetapi.callbacks.inc';
-
 /**
  * Implements hook_menu().
  */
