@@ -1178,12 +1178,6 @@ class FacetapiFacetProcessor {
   protected function initializeBuild() {
     $build = array();
 
-    // Bails if there is no field attached to the facet, in other words if the
-    // facet is simply rendering markup.
-    if (!$this->facet['field']) {
-      return $build;
-    }
-
     // Build array defaults.
     $defaults = array(
       '#markup' => '',
