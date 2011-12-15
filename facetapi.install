@@ -49,7 +49,7 @@ function facetapi_schema() {
       'facet' => array(
         'description' => 'The machine readable name of the facet.',
         'type' => 'varchar',
-        'length' => 64,
+        'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
@@ -187,4 +187,18 @@ function facetapi_update_7002() {
 
   // Clears the delta cache.
   cache_clear_all('facetapi:delta_map', 'cache');
+}
+
+/**
+ * Increase the length of the facetapi.facet column.
+ */
+function facetapi_update_7101() {
+  // Change the length of the facet field.
+  db_change_field('facetapi', 'facet', 'facet', array(
+    'description' => 'The machine readable name of the facet.',
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+    'default' => '',
+  ));
 }
