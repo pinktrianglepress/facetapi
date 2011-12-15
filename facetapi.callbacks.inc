@@ -40,7 +40,7 @@ function facetapi_map_language(array $values) {
   $language_list = language_list();
   foreach ($values as $language) {
     if (isset($language_list[$language])) {
-      $map[$language] = $language_list[$language]->name;
+      $map[$language] = t($language_list[$language]->name);
     }
     else {
       $map[$language] = t('Language neutral');
