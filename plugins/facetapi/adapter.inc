@@ -983,7 +983,7 @@ class FacetapiFacet implements ArrayAccess {
    */
   public function getSettings($realm = NULL) {
     if ($realm && !is_array($realm)) {
-      $realm = facetapi_realm_load($realm_name);
+      $realm = facetapi_realm_load($realm);
     }
     $method = ($realm) ? 'getFacetSettings' : 'getFacetSettingsGlobal';
     return $this->adapter->$method($this->facet, $realm);
