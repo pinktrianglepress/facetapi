@@ -366,7 +366,40 @@ abstract class FacetapiAdapter {
    *   An integer containing the number of results.
    */
   public function getResultCount() {
-    return;
+    global $pager_total;
+    return isset($pager_total[0]) ? $pager_total[0] : 0;
+  }
+
+  /**
+   * Returns the number of results per page.
+   *
+   * @return int
+   *   The number of results per page, or the limit.
+   */
+  public function getPageLimit() {
+    global $pager_limits;
+    return isset($pager_limits[0]) ? $pager_limits[0] : 10;
+  }
+
+  /**
+   * Returns the page number of the search result set.
+   *
+   * @return int
+   *   The current page of the result set.
+   */
+  public function getPageNumber() {
+    return pager_find_page() + 1;
+  }
+
+  /**
+   * Returns the total number of pages in the result set.
+   *
+   * @return int
+   *   The total number of pages.
+   */
+  public function getPageTotal() {
+    global $pager_total;
+    return isset($pager_total[0]) ? $pager_total[0] : 0;
   }
 
   /**
@@ -415,6 +448,7 @@ abstract class FacetapiAdapter {
    */
   function addActiveFilters($query) {
     module_load_include('inc', 'facetapi', 'facetapi.callbacks');
+    facetapi_add_active_searcher($this->info['name']);
 
     // Runs initActiveFilters hook, finds active facets.
     $this->initActiveFilters($query);
@@ -674,6 +708,23 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Returns the processor associates with the facet.
+   *
+   * @param string $facet_name
+   *   The machine readable name of the facet.
+   *
+   * @return FacetapiFacetProcessor
+   */
+  public function getProcessor($facet_name) {
+    if (isset($this->processors[$facet_name])) {
+      return $this->processors[$facet_name];
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  /**
    * Helper function that returns the query string variables for a facet item.
    *
    * @param array $facet
@@ -692,78 +743,9 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Builds the content for the current search block.
-   *
-   * @return array
-   *   The block's render array.
-   */
-  public function buildCurrentSearch() {
-    $items = array();
-
-    // Makes sure facet builds are initialized.
-    $this->processFacets();
-
-    // Adds search keys.
-    // @todo Need a getBaseQuery() method or something.
-    if ($keys = $this->getSearchKeys()) {
-      $items[] = check_plain($keys);
-    }
-
-    // Adds active facets to the current search block.
-    foreach ($this->getAllActiveItems() as $item) {
-
-      // Gets all children so they can be deactivated as well.
-      $values = array();
-      foreach ($item['facets'] as $facet_name) {
-        $values = array_merge($values, $this->processors[$facet_name]->getActiveChildren($item['value']));
-      }
-      // Handle the case of a URL value that matches no actual
-      // facet values. Otherwise, it can't be unclicked.
-      if (!in_array($item['value'], $values)) {
-        $values[] = $item['value'];
-      }
-
-      // Builds variables for active link theme.
-      $mapped = $this->getMappedValue($item['facets'][0], $item['value']);
-
-      $variables = array(
-        'text' => $mapped['#markup'],
-        'path' => current_path(),
-        'options' => array(
-          'attributes' => array('class' => array()),
-          'html' => !empty($mapped['#html']),
-          'query' => $this->processors[$item['facets'][0]]->getQueryString($values, 1),
-        ),
-      );
-
-      // Renders the active link.
-      $items[] = theme('facetapi_link_active', $variables);
-    }
-
-    // If there are items, return the render array.
-    if ($items) {
-      $content = array(
-        '#title' => t('Current search'),
-        'block' => array(
-          '#theme' => 'item_list',
-          '#items' => $items,
-        ),
-      );
-
-      // Set message as title if list if result count was returned.
-      if (NULL !== ($count = $this->getResultCount())) {
-        $content['block']['#title'] = format_plural($count, 'Search found 1 item', 'Search found @count items');
-      }
-
-      // Returns the render array for the block.
-      return $content;
-    }
-  }
-
-  /**
    * Initializes facet builds, adds breadcrumb trail.
    */
-  protected function processFacets() {
+  public function processFacets() {
     if (!$this->processed) {
       $this->processed = TRUE;
 

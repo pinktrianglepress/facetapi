@@ -65,6 +65,9 @@ define('FACETAPI_REGEX_DATE', '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})
  */
 define('FACETAPI_REGEX_DATE_RANGE', '/^\[(' . trim(FACETAPI_REGEX_DATE, '/^$') . ') TO (' . trim(FACETAPI_REGEX_DATE, '/^$') . ')\]$/');
 
+// Calls block specific hooks and overrides.
+require_once dirname(__FILE__) . '/facetapi.block.inc';
+
 /**
  * Implements hook_menu().
  */
@@ -78,6 +81,7 @@ function facetapi_menu() {
       continue;
     }
 
+    // Builds realm settings.
     $first = TRUE;
     foreach (facetapi_get_realm_info() as $realm_name => $realm) {
       if ($first) {
@@ -232,22 +236,6 @@ function facetapi_theme() {
       'file' => 'facetapi.admin.inc',
     ),
   );
-}
-
-/**
- * Implements hook_block_info().
- */
-function facetapi_block_info() {
-  module_load_include('inc', 'facetapi', 'facetapi.block');
-  return facetapi_get_block_info();
-}
-
-/**
- * Implements hook_block_view().
- */
-function facetapi_block_view($delta = '') {
-  module_load_include('inc', 'facetapi', 'facetapi.block');
-  return facetapi_get_block($delta);
 }
 
 /**
@@ -492,6 +480,21 @@ function facetapi_get_searcher_info() {
   drupal_alter('facetapi_searcher_info', $searcher_info);
   array_walk($searcher_info, 'facetapi_map_assoc', 'types');
   return $searcher_info;
+}
+
+/**
+ * Returns a list of active searchers.
+ *
+ * An active searcher means that facet data is parsed and processed by the
+ * backend. Any searcher's adapter who's FacetapiAdapter::addActiveFilters() was
+ * called is automatically added to this list.
+ *
+ * @return array
+ *   An associative array of active adapters
+ */
+function facetapi_get_active_searchers() {
+  $searchers = &drupal_static('facetapi_active_searchers', array());
+  return $searchers;
 }
 
 /**
@@ -985,6 +988,33 @@ function facetapi_facetapi_url_processors() {
 //// Utility functions
 ////
 ////
+
+/**
+ * Tests whether a searcher is active or not.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ *
+ * @return FacetapiAdapter
+ *   The adapter object, FALSE if the object can't be loaded.
+ */
+function facetapi_is_active_searcher($searcher) {
+  $searchers = facetapi_get_active_searchers();
+  return (isset($searchers[$searcher]));
+}
+
+/**
+ * Adds an active searcher to the list.
+ *
+ * @param $searcher
+ *   The machine readable name of the searcher.
+ *
+ * @see facetapi_get_active_searchers();
+ */
+function facetapi_add_active_searcher($searcher) {
+  $searchers = &drupal_static('facetapi_active_searchers', array());
+  $searchers[$searcher] = $searcher;
+}
 
 /**
  * Tests whether a single facet is enabled in a given realm.
