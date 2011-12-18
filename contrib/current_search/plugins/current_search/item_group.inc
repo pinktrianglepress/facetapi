@@ -31,6 +31,10 @@ class CurrentSearchGroup extends CurrentSearchItem {
       $groups[$facet_name][$facet_value] = $item;
     }
 
+    // Initializes links attributes, adds rel="nofollow" if configured.
+    $attributes = ($this->settings['nofollow']) ? array('rel' => 'nofollow') : array();
+    $attributes += array('class' => array());
+
     // Iterates over groups, builds list.
     $build = array();
     foreach ($groups as $facet_name => $group) {
@@ -44,7 +48,7 @@ class CurrentSearchGroup extends CurrentSearchItem {
           'text' => $text,
           'path' => current_path(),
           'options' => array(
-            'attributes' => array('class' => array()),
+            'attributes' => $attributes,
             'html' => TRUE,
             'query' => $this->getQueryString($item, $adapter),
           ),
@@ -86,6 +90,13 @@ class CurrentSearchGroup extends CurrentSearchItem {
       '#description' => t('The pattern of the field label preceeding the links. Token replacement patterns are allowed.'),
     );
 
+    $form['nofollow'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Prevent crawlers from following active item links'),
+      '#default_value' => $this->settings['nofollow'],
+      '#description' => t('Add the <code>rel="nofollow"</code> attribute to active item links to maximize SEO by preventing crawlers from indexing duplicate content and getting stuck in loops.'),
+    );
+
     // Adds token tree.
     $form['tokens'] = $this->getTokenTree(array('facetapi_facet'));
   }
@@ -96,6 +107,7 @@ class CurrentSearchGroup extends CurrentSearchItem {
   public function getDefaultSettings() {
     return array(
       'field_pattern' => '[facetapi_facet:facet-label]:',
+      'nofollow' => 1,
     );
   }
 }

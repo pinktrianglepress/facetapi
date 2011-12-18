@@ -24,6 +24,10 @@ class CurrentSearchItemActive extends CurrentSearchItem {
       $items[] = check_plain($adapter->getSearchKeys());
     }
 
+    // Initializes links attributes, adds rel="nofollow" if configured.
+    $attributes = ($this->settings['nofollow']) ? array('rel' => 'nofollow') : array();
+    $attributes += array('class' => array());
+
     // Adds active facets to the current search block.
     foreach ($adapter->getAllActiveItems() as $item) {
       // Adds adapter to the active item for token replacement.
@@ -34,7 +38,7 @@ class CurrentSearchItemActive extends CurrentSearchItem {
         'text' => token_replace($this->settings['pattern'], array('facetapi_active_item' => $item)),
         'path' => current_path(),
         'options' => array(
-          'attributes' => array('class' => array()),
+          'attributes' => $attributes,
           'html' => TRUE,
           'query' => $this->getQueryString($item, $adapter),
         ),
@@ -93,6 +97,13 @@ class CurrentSearchItemActive extends CurrentSearchItem {
       ),
     );
 
+    $form['nofollow'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Prevent crawlers from following active item links'),
+      '#default_value' => $this->settings['nofollow'],
+      '#description' => t('Add the <code>rel="nofollow"</code> attribute to active item links to maximize SEO by preventing crawlers from indexing duplicate content and getting stuck in loops.'),
+    );
+
     // Adds token tree.
     $form['tokens'] = $this->getTokenTree(array('facetapi_active'));
   }
@@ -106,6 +117,7 @@ class CurrentSearchItemActive extends CurrentSearchItem {
       'keys' => FALSE,
       'css' => FALSE,
       'classes' => '',
+      'nofollow' => 1,
     );
   }
 }
