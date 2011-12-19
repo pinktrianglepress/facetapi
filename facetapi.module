@@ -649,6 +649,7 @@ function facetapi_get_sort_info() {
         'name' => $sort_name,
         'label' => $sort_name,
         'callback' => '',
+        'requirements' => array(),
         'description' => '',
         'weight' => 0,
       );

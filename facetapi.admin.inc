@@ -322,6 +322,30 @@ function facetapi_get_widgets(array $realm, array $facet) {
 }
 
 /**
+ * Returns the sorts available to the facet.
+ *
+ * All sorts are checked against their requirmenets. Only sorts that pass all
+ * requirements are returned by this function.
+ *
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @return array
+ *   An array of available sorts plugins.
+ */
+function facetapi_get_available_sorts(array $realm, array $facet) {
+  $sort_info = array();
+  foreach (facetapi_get_sort_info() as $name => $info) {
+    if (!$info['requirements'] || facetapi_check_requirements($info['requirements'], $realm, $facet)) {
+      $sort_info[$name] = $info;
+    }
+  }
+  return $sort_info;
+}
+
+/**
  * Form constructor for the facet display settings form.
  *
  * @param array $realm
@@ -411,7 +435,7 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
   // form elements in the foreach() loop below.
   $sort_weight = $facet_settings->settings['sort_weight'];
   $sort_order = $facet_settings->settings['sort_order'];
-  foreach (facetapi_get_sort_info() as $sort_name => $sort_info) {
+  foreach (facetapi_get_available_sorts($realm, $facet) as $sort_name => $sort_info) {
     $weight = (isset($sort_weight[$sort_name])) ? $sort_weight[$sort_name] : 0;
     $form['#facetapi']['sort_info'][$sort_name] = $sort_info;
     $form['#facetapi']['sort_info'][$sort_name]['weight'] = $weight;
