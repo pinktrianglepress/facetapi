@@ -1265,8 +1265,10 @@ class FacetapiFacetProcessor {
       }
     } while ($active);
 
-    // Strips children whose parents are inactive.
-    return array_filter($build, 'facetapi_filter_inactive_parent');
+    // Since the children are copied to their parent's "#item_parents" property
+    // during processing, we have to filter the original child items from the
+    // top level of the hierarchy.
+    return array_filter($build, 'facetapi_filter_top_level_children');
   }
 
   /**
@@ -1336,8 +1338,12 @@ function facetapi_get_child_values(array $build) {
 }
 
 /**
- * Callback for array_filter() that strips out all children whose parents are
- * inactive.
+ * Callback for array_filter() that strips child items at the top level.
+ *
+ * When hierarchies are processed, all children are copied to their parent's
+ * "#item_children" property to establish the relationship. This callback
+ * filters the original child items from the top level of the hierarchy so the
+ * aren't also displayed along-side their parents.
  *
  * @param $build
  *   The facet item's render array.
@@ -1345,7 +1351,7 @@ function facetapi_get_child_values(array $build) {
  * @return
  *   A boolean flagging whether the value should remain in the array.
  */
-function facetapi_filter_inactive_parent(array $build) {
+function facetapi_filter_top_level_children(array $build) {
   return empty($build['#item_parents']);
 }
 
