@@ -28,7 +28,7 @@ function current_search_form_block_admin_configure_alter(&$form, &$form_state) {
     // Gets the default value for this block.
     $searcher = db_query("SELECT searcher FROM {block_current_search} WHERE delta = :delta", array(
       ':delta' => $form['delta']['#value'],
-    ))->fetchCol();
+    ))->fetchField();
 
     $form['visibility']['current_search']['searcher'] = array(
       '#type' => 'radios',
