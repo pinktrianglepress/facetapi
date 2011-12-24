@@ -89,23 +89,40 @@ function theme_facetapi_count($variables) {
  * @ingroup themeable
  */
 function theme_facetapi_link_active($variables) {
-  // Builds accessible markup.
-  // @see http://drupal.org/node/1316580
-  $accessible_vars = array(
-    'text' => $variables['text'],
-    'active' => TRUE,
-  );
-  $accessible_markup = theme('facetapi_accessible_markup', $accessible_vars);
 
   // Sanitizes the link text if necessary.
   $sanitize = empty($variables['options']['html']);
   $link_text = ($sanitize) ? check_plain($variables['text']) : $variables['text'];
 
-  // Resets link text, sets to options to HTML since we already sanitized the
-  // link text and are providing additional markup for accessibility.
-  $variables['text'] = t('(-) !markup', array('!markup' => $accessible_markup));
+  // Theme function variables fro accessible markup.
+  // @see http://drupal.org/node/1316580
+  $accessible_vars = array(
+    'text' => $variables['text'],
+    'active' => TRUE,
+  );
+
+  // Builds link, passes through t() which gives us the ability to change the
+  // position of the widget on a per-language basis.
+  $replacements = array(
+    '!facetapi_deactivate_widget' => theme('facetapi_deactivate_widget'),
+    '!facetapi_accessible_markup' => theme('facetapi_accessible_markup', $accessible_vars),
+  );
+  $variables['text'] = t('!facetapi_deactivate_widget !facetapi_accessible_markup', $replacements);
   $variables['options']['html'] = TRUE;
   return theme_link($variables) . $link_text;
+}
+
+/**
+ * Returns HTML for the deactivation widget.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - text: The text of the facet link.
+ *
+ * @ingroup themable
+ */
+function theme_facetapi_deactivate_widget($variables) {
+  return '(-)';
 }
 
 /**

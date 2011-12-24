@@ -219,6 +219,10 @@ function facetapi_theme() {
       'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
       'file' => 'facetapi.theme.inc',
     ),
+    'facetapi_deactivate_widget' => array(
+      'arguments' => array('text' => NULL),
+      'file' => 'facetapi.theme.inc',
+    ),
     'facetapi_accessible_markup' => array(
       'arguments' => array('text' => NULL, 'active' => NULL),
       'file' => 'facetapi.theme.inc',
