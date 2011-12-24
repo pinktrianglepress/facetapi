@@ -94,6 +94,11 @@ class FacetapiWidgetLinks extends FacetapiWidget {
         ),
       );
 
+      // Adds the facetapi-zero-results class to items that have no results.
+      if (!$item['#count']) {
+        $variables['options']['attributes']['class'][] = 'facetapi-zero-results';
+      }
+
       // If the item has no children, it is a leaf.
       if (empty($item['#item_children'])) {
         $row['class'][] = 'leaf';
