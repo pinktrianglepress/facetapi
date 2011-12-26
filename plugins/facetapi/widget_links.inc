@@ -210,6 +210,7 @@ class FacetapiWidgetCheckboxLinks extends FacetapiWidgetLinks {
   public function init() {
     parent::init();
     $this->jsSettings['makeCheckboxes'] = 1;
+    drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
   }
 
   /**

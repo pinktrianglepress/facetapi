@@ -96,7 +96,7 @@ Drupal.facetapi.makeCheckbox = function() {
       $link.before(checkbox).hide();
     }
     else {
-      $link.before(checkbox).before('&nbsp;');
+      $link.before(checkbox);
     }
     $link.removeClass('facetapi-checkbox').addClass('facetapi-checkbox-processed');
   }

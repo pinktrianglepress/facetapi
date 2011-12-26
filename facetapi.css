@@ -132,3 +132,7 @@ td.facetapi-operations {
 .facetapi-empty-setting {
   clear: right;
 }
+
+.facetapi-checkbox {
+  margin-right: .5em;
+}
