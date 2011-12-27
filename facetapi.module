@@ -995,6 +995,31 @@ function facetapi_facetapi_url_processors() {
 ////
 
 /**
+ * Translates a string via the translator module.
+ *
+ * @param $name
+ *   The name of the string in "textgroup:object_type:object_key:property_name"
+ *   format.
+ * @param $string
+ *   The string being translated.
+ * @param $langcode
+ *   The language code to translate to a language other than what is used to
+ *   display the page. Defaults to NULL, which uses the current language.
+ *
+ * @return
+ *   The translated string.
+ */
+function facetapi_translate_string($name, $string, $langcode = NULL) {
+  if ($module = variable_get('facetapi:translator_module', NULL)) {
+    $function = $module . '_facetapi_translate_string';
+    if (function_exists($function)) {
+      $string = $function($name, $string, $langcode);
+    }
+  }
+  return $string;
+}
+
+/**
  * Tests whether a searcher is active or not.
  *
  * @param $searcher

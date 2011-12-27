@@ -14,9 +14,10 @@ class CurrentSearchItemText extends CurrentSearchItem {
    * Implements CurrentSearchItem::execute().
    */
   public function execute(FacetapiAdapter $adapter) {
+    $text = $this->translate('text', $this->settings['text']);
     $data = array('facetapi_adapter' => $adapter);
     $variables = array(
-      'text' => filter_xss(token_replace($this->settings['text'], $data)),
+      'text' => filter_xss(token_replace($text, $data)),
       'wrapper' => $this->settings['wrapper'],
       'element' => $this->settings['element'],
       'css' => $this->settings['css'],

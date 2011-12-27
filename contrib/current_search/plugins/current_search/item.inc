@@ -11,6 +11,13 @@
 abstract class CurrentSearchItem {
 
   /**
+   * The machine readable name of the current search block configuration.
+   *
+   * @var string
+   */
+  protected $configName;
+
+  /**
    * The machine readable name of the item this instance is associated with.
    *
    * @var string
@@ -29,12 +36,18 @@ abstract class CurrentSearchItem {
    *
    * @param string $name
    *   The machine readable name of the item this instance is associated with.
-   * @param stdClass $settings
-   *   An array containing the settings for the instance of the class.
+   * @param stdClass $config
+   *   The full current search block configuration.
    */
-  public function __construct($name, array $settings = array()) {
+  public function __construct($name, $config = NULL) {
     $this->name = $name;
-    $this->settings = $settings + $this->getDefaultSettings();
+    if (isset($config->settings[$name])) {
+      $this->configName = $config->name;
+      $this->settings = $config->settings[$name] + $this->getDefaultSettings();
+    }
+    else {
+      $this->settings = $this->getDefaultSettings();
+    }
   }
 
   /**
@@ -60,6 +73,24 @@ abstract class CurrentSearchItem {
    */
   public function getDefaultSettings() {
     return array();
+  }
+
+  /**
+   * Helper function for translating strings.
+   *
+   * @param string $key
+   *   The array key of the element being translated.
+   * @param string $string
+   *   The string being translated.
+   *
+   * @return
+   *   The translated string.
+   *
+   * @see facetapi_translate_string()
+   */
+  public function translate($key, $string) {
+    $name = 'current_search:' . $this->configName . ':' . $this->name . ':' . $key;
+    return facetapi_translate_string($name, $string);
   }
 
   /**

@@ -387,7 +387,7 @@ function current_search_settings_form(&$form, &$form_state) {
   $has_settings = FALSE;
   foreach ($item->settings as $name => $settings) {
     if ($class = ctools_plugin_load_class('current_search', 'items', $settings['id'], 'handler')) {
-      $plugin = new $class($name, $settings);
+      $plugin = new $class($name, $item);
 
       // Initializes vertical tab for the item's settings.
       $form['plugin_settings'][$name] = array(

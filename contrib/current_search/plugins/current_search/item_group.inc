@@ -35,6 +35,9 @@ class CurrentSearchGroup extends CurrentSearchItem {
     $attributes = ($this->settings['nofollow']) ? array('rel' => 'nofollow') : array();
     $attributes += array('class' => array());
 
+    // Gets the translated pattern with token replacements in tact.
+    $field_pattern = $this->translate('field_pattern', $this->settings['field_pattern']);
+
     // Iterates over groups, builds list.
     $build = array();
     foreach ($groups as $facet_name => $group) {
@@ -61,8 +64,8 @@ class CurrentSearchGroup extends CurrentSearchItem {
         $build[$facet_name]['#theme_wrappers'] = array('current_search_group_wrapper');
 
         // Performs token replacemenets and themes the group title.
-        $facet = facetapi_facet_load($facet_name, $searcher);
-        $title = filter_xss(token_replace($this->settings['field_pattern'], array('facetapi_facet' => $facet)));
+        $data = array('facetapi_facet' => facetapi_facet_load($facet_name, $searcher));
+        $title = filter_xss(token_replace($field_pattern, $data));
         $build[$facet_name]['title']['#markup'] = theme('current_search_group_title', array('title' => $title));
 
         // Builds the list.

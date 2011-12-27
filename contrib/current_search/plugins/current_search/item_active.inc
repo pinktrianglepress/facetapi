@@ -28,14 +28,18 @@ class CurrentSearchItemActive extends CurrentSearchItem {
     $attributes = ($this->settings['nofollow']) ? array('rel' => 'nofollow') : array();
     $attributes += array('class' => array());
 
+    // Gets the translated pattern with token replacements in tact.
+    $pattern = $this->translate('pattern', $this->settings['pattern']);
+
     // Adds active facets to the current search block.
     foreach ($adapter->getAllActiveItems() as $item) {
       // Adds adapter to the active item for token replacement.
       $item['adapter'] = $adapter;
 
       // Builds variables to pass to theme function.
+      $data = array('facetapi_active_item' => $item);
       $variables = array(
-        'text' => token_replace($this->settings['pattern'], array('facetapi_active_item' => $item)),
+        'text' => token_replace($pattern, $data),
         'path' => current_path(),
         'options' => array(
           'attributes' => $attributes,

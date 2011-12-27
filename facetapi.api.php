@@ -458,5 +458,31 @@ function hook_facetapi_force_delta_mapping() {
 }
 
 /**
+ * Implemented by the translator module to translate a string.
+ *
+ * This hook is invoked by the facetapi_translate_string() function. The
+ * "facetapi:translator_module" variable stores which translator module is
+ * active since it wouldn't make sense to have multiple translator modules.
+ *
+ * @param $name
+ *   The name of the string in "textgroup:object_type:object_key:property_name"
+ *   format.
+ * @param $string
+ *   The string being translated.
+ * @param $langcode
+ *   The language code to translate to a language other than what is used to
+ *   display the page. Defaults to NULL, which uses the current language.
+ *
+ * @return
+ *   The translated string.
+ *
+ * @see facetapi_translate_string()
+ */
+function hook_facetapi_translate_string($name, $string, $langcode = NULL) {
+  // In this instance, the translator module integrates with the i18n project.
+  return i18n_string($name, $string, array('langcode' => $langcode));
+}
+
+/**
  * @} End of "addtogroup hooks".
  */
