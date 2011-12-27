@@ -213,7 +213,7 @@ function theme_facetapi_realm_settings_table($variables) {
 
   // Adds CSS to ensure that the dropbutton looks nice.
   $path = drupal_get_path('module', 'facetapi');
-  drupal_add_css($path . '/facetapi.css', array('weight' => CSS_THEME - 1));
+  drupal_add_css($path . '/facetapi.admin.css', array('weight' => CSS_THEME - 1));
 
   // Gets variales for code readability.
   $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
@@ -358,7 +358,7 @@ function facetapi_get_available_sorts(array $realm, array $facet) {
  */
 function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $path = drupal_get_path('module', 'facetapi');
-  drupal_add_css($path . '/facetapi.css', array('weight' => CSS_THEME - 1));
+  drupal_add_css($path . '/facetapi.admin.css', array('weight' => CSS_THEME - 1));
   drupal_add_js($path . '/facetapi.admin.js');
   ctools_include('plugins');
 
