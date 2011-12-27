@@ -83,7 +83,7 @@ function facetapi_block_view($delta = '') {
     );
 
     // Returns the subject and content of the block.
-    $variables = array('title' => $builds[$group][$facet_name]['#title']);
+    $variables = array('title' => $builds[$group][$facet_name]['#title'], 'facet' => $builds[$group][$facet_name]);
     return array(
       'subject' => theme('facetapi_title', $variables),
       'content' => $builds[$group][$facet_name]

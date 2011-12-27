@@ -24,6 +24,7 @@ function theme_facetapi_facet_missing($variables) {
  * @param $variables
  *   An associative array containing:
  *   - title: The title of the facet.
+ *   - facet: The facet definition as returned by facetapi_facet_load().
  *
  * @ingroup themeable
  */
