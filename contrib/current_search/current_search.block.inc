@@ -189,8 +189,19 @@ function current_search_check_visibility($delta) {
     $map[$delta] = current_search_get_default_searcher();
   }
 
-  // Show the block if facets are being processed by the searcher.
-  return facetapi_is_active_searcher($map[$delta]);
+  // Checks whether block should be displayed.
+  if (!facetapi_is_active_searcher($map[$delta])) {
+    return FALSE;
+  }
+  if (!$adapter = facetapi_adapter_load($map[$delta])) {
+    return FALSE;
+  }
+  if (!$adapter->searchExecuted($map[$delta])) {
+    return FALSE;
+  }
+
+  // A search was executed.
+  return TRUE;
 }
 
 /**
