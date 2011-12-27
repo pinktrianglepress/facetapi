@@ -85,7 +85,7 @@ class FacetapiUrlProcessorStandard extends FacetapiUrlProcessor {
     // Adds filters to the breadcrumb trail.
     $last = end($active_items);
     foreach ($active_items as $item) {
-      $query[$this->filterKey][] = $item['field alias'] . ':' . $item['value'];
+      $query[$this->filterKey][] = rawurlencode($item['field alias']) . ':' . $item['value'];
 
       // Replaces with the mapped value.
       $value = $this->adapter->getMappedValue($item['facets'][0], $item['value']);
