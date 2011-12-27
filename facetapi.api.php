@@ -25,6 +25,8 @@
  *   an associative array containing:
  *   - label: The human readable name of the searcher displayed in the admin UI.
  *   - adapter: The adapter plugin ID associated with the searcher.
+ *   - url processor: (optional) The URL processor plugin ID associated with the
+ *     searcher. Defaults to "standard".
  *   - types: (optional) An array containing the types of content indexed by the
  *     searcher. A type is usually an entity such as 'node', but it can contain
  *     non-entities as well. Defaults to array('node').
@@ -45,6 +47,7 @@ function hook_facetapi_searcher_info() {
     'search' => array(
       'label' => t('Search'),
       'adapter' => 'search',
+      'url processor' => 'standard',
       'types' => array('node'),
       'path' => 'admin/config/search/settings',
       'supports facet missing' => TRUE,

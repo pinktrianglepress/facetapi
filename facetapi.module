@@ -433,6 +433,7 @@ function facetapi_facet_load($facet_name, $searcher) {
  *   - name: The machine readable name of the searcher.
  *   - label: The human readable name of the searcher displayed in the admin UI.
  *   - adapter: The adapter plugin ID associated with the searcher.
+ *   - url processor: The URL processor plugin ID associated with the searcher.
  *   - types: An array containing the types of content indexed by the searcher.
  *     A type is usually an entity such as 'node', but it can be a non-entity
  *     value as well.
@@ -458,12 +459,19 @@ function facetapi_get_searcher_info() {
         $info['types'] = array($info['type']);
       }
 
+      // @see http://drupal.org/node/1304010
+      // Converts "url_processor" to "url processor" for consistency.
+      // @todo Remove in later versions.
+      if (isset($info['url_processor']) && !isset($info['url processor'])) {
+        $info['url processor'] = $info['url_processor'];
+      }
+
       $info += array(
         'module' => $module,
         'name' => $searcher,
         'path' => '',
         'types' => array('node'),
-        'url_processor' => 'standard',
+        'url processor' => 'standard',
         'supports facet missing' => FALSE,
         'supports facet mincount' => FALSE,
         'include default facets' => TRUE,

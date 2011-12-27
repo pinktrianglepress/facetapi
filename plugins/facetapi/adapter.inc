@@ -115,7 +115,7 @@ abstract class FacetapiAdapter {
     }
 
     // Instantiates URL processor plugin.
-    $id = $searcher_info['url_processor'];
+    $id = $searcher_info['url processor'];
     $class = ctools_plugin_load_class('facetapi', 'url_processors', $id, 'handler');
     if (!$class) {
       $class = ctools_plugin_load_class('facetapi', 'url_processors', 'standard', 'handler');
