@@ -6,6 +6,19 @@
  */
 
 /**
+ * Tests whether a configuration setting is overridden or not.
+ *
+ * @param stdClass $settings
+ *   The configuration settings being tested.
+ *
+ * @return boolean
+ *   TRUE if the settings are overridden, FALSE otherwise.
+ */
+function facetapi_is_overridden(stdClass $settings) {
+  return ($settings->export_type & EXPORT_IN_CODE && $settings->export_type & EXPORT_IN_DATABASE);
+}
+
+/**
  * Form constructor for the realm settings form.
  *
  * @param $searcher
@@ -50,7 +63,8 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
   // Builds "enabled_facets" options.
   $options = $default_value = array();
   foreach ($form['#facetapi']['facet_info'] as $facet_name => $facet) {
-    $settings = $adapter->getFacet($facet)->getSettings($realm);
+    $settings = $adapter->getFacetSettings($facet, $realm);
+    $global_settings = $adapter->getFacetSettingsGlobal($facet);
 
     // Builds array of operations to use in the dropbutton.
     $operations = array();
@@ -74,6 +88,12 @@ function facetapi_realm_settings_form($form, &$form_state, $searcher, $realm_nam
       'title' => t('Export configuration'),
       'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'export')
     );
+    if (facetapi_is_overridden($settings) || facetapi_is_overridden($global_settings)) {
+      $operations[] = array(
+        'title' => t('Revert configuration'),
+        'href' => facetapi_get_settings_path($searcher, $realm['name'], $facet_name, 'revert')
+      );
+    }
 
     $form['table']['operations'][$facet_name] = array(
       '#theme' => 'links__ctools_dropbutton',
@@ -1173,6 +1193,8 @@ function facetapi_facet_dependencies_form_submit($form, &$form_state) {
  * @ingroup forms
  */
 function facetapi_export_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+  $form['facet'] = array();
+  $form['global'] = array();
 
   // Adds link to get back to list page.
   $form['back'] = array(
@@ -1181,13 +1203,106 @@ function facetapi_export_form($form, &$form_state, FacetapiAdapter $adapter, arr
     '#href' => $adapter->getPath($realm['name']),
   );
 
-  // Gets export fieldset from ctools_export_form().
-  $title = t('Export configuration');
-  $settings = $adapter->getFacet($facet)->getSettings($realm);
+  // Gets export fieldset for display settings.
+  $title = t('Display settings');
+  $settings = $adapter->getFacetSettings($facet, $realm);
   $export = ctools_export_crud_export('facetapi', $settings);
-  $form = ctools_export_form($form, $form_state, $export, $title);
+  $form['facet'] = ctools_export_form($form['facet'], $form_state, $export, $title);
+
+  // Gets export fieldset for display settings.
+  $title = t('Global settings');
+  $settings = $adapter->getFacetSettingsGlobal($facet);
+  $export = ctools_export_crud_export('facetapi', $settings);
+  $form['global'] = ctools_export_form($form['global'], $form_state, $export, $title);
 
   // Adds settings and returns form.
   $form['#settings'] = $settings;
   return $form;
+}
+
+/**
+ * Form constructor for the revert form.
+ *
+ * @param FacetapiAdapter $adapter
+ *   The adapter object the settings apply to.
+ * @param array $realm
+ *   The realm definition.
+ * @param array $facet
+ *   The facet definition.
+ *
+ * @ingroup forms
+ */
+function facetapi_revert_form($form, &$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
+
+  $form['#facetapi'] = array(
+    'adapter' => $adapter,
+    'realm' => $realm,
+    'facet' => $facet,
+  );
+
+  $form['text'] = array(
+   '#markup' => '<p>' . t('Any changes you have made will be lost and cannot be recovered.') . '</p>',
+  );
+
+  $form['revert_facet'] = array(
+    '#type' => 'checkbox',
+    '#access' => facetapi_is_overridden($adapter->getFacetSettings($facet, $realm)),
+    '#title' => t('Revert per-facet display configuration settings.'),
+    '#default_value' => TRUE,
+  );
+
+  $form['revert_global'] = array(
+    '#type' => 'checkbox',
+    '#access' => facetapi_is_overridden($adapter->getFacetSettingsGlobal($facet)),
+    '#title' => t('Revert global configuration settings.'),
+    '#default_value' => TRUE,
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    '#weight' => 20,
+  );
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Revert configuration'),
+  );
+
+  $form['actions']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => $adapter->getPath($realm['name']),
+    '#attributes' => array('title' => t('Do not revert configurations')),
+  );
+
+  $form['#submit'][] = 'facetapi_revert_form_submit';
+
+  return $form;
+}
+
+/**
+ * Form submission handler for facetapi_revert_form_submit().
+ */
+function facetapi_revert_form_submit($form, &$form_state) {
+
+  // Pulls variables for code readability.
+  $adapter = $form['#facetapi']['adapter'];
+  $realm = $form['#facetapi']['realm'];
+  $facet = $form['#facetapi']['facet'];
+
+  // Reverts per-facet display settings.
+  if ($form_state['values']['revert_facet']) {
+    $facet_settings = $adapter->getFacetSettings($facet, $realm);
+    ctools_export_crud_delete('facetapi', $facet_settings);
+  }
+
+  // Reverts global settings if selected.
+  if ($form_state['values']['revert_global']) {
+    $global_settings = $adapter->getFacetSettingsGlobal($facet);
+    ctools_export_crud_delete('facetapi', $global_settings);
+  }
+
+  // Sets message if both sets of configurations were saved.
+  drupal_set_message(t('The configuration options have been reverted.'));
+  $form_state['redirect'] = $adapter->getPath($realm['name']);
 }

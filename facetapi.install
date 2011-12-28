@@ -15,14 +15,12 @@ function facetapi_schema() {
       'key' => 'name',
       'identifier' => 'facet',
       'default hook' => 'facetapi_default_facet_settings',
-      'status' => 'facetapi_facet_status',
       'api' => array(
         'owner' => 'facetapi',
-        'api' => 'facetapi',
+        'api' => 'facetapi_defaults',
         'minimum_version' => 1,
         'current_version' => 1,
       ),
-      'export callback' => 'facetapi_export_facet_settings',
     ),
     'fields' => array(
       'name' => array(
