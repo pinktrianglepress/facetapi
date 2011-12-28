@@ -161,18 +161,17 @@ function current_search_settings_form(&$form, &$form_state) {
   $item = &$form_state['item'];
   $form['info']['#weight'] = -30;
 
-  // Initializes the items.
   if (empty($item->settings)) {
-    $item->settings = array();
+    $item->settings = current_search_get_defaults();
   }
 
   // Handles removing items.
   // @todo This is the wrong place for this. Find a better solution.
   if (!empty($_GET['remove']) && is_string($_GET['remove'])) {
-    if (isset($item->settings[$_GET['remove']])) {
-      $label = $item->settings[$_GET['remove']]['label'];
+    if (isset($item->settings['items'][$_GET['remove']])) {
+      $label = $item->settings['items'][$_GET['remove']]['label'];
       drupal_set_message(t('@label has been removed.', array('@label' => $label)));
-      unset($item->settings[$_GET['remove']]);
+      unset($item->settings['items'][$_GET['remove']]);
       ctools_export_crud_save('current_search', $item);
     }
   }
@@ -344,7 +343,7 @@ function current_search_settings_form(&$form, &$form_state) {
 
   $form['plugin_sort'] = array(
     '#type' => 'item',
-    '#access' => !empty($item->settings),
+    '#access' => !empty($item->settings['items']),
     '#title' => t('Item display order'),
     '#theme' => 'current_search_sort_settings_table',
     '#current_search' => $item->settings,
@@ -352,7 +351,7 @@ function current_search_settings_form(&$form, &$form_state) {
   );
 
   // Builds checkbox options and weight dropboxes.
-  foreach ($item->settings as $name => $settings) {
+  foreach ($item->settings['items'] as $name => $settings) {
     $form['plugin_sort'][$name]['item'] = array(
       '#markup' => check_plain($settings['label']),
     );
@@ -374,7 +373,7 @@ function current_search_settings_form(&$form, &$form_state) {
 
   $form['plugin_settings_title'] = array(
     '#type' => 'item',
-    '#access' => !empty($item->settings),
+    '#access' => !empty($item->settings['items']),
     '#title' => t('Item settings'),
   );
 
@@ -385,7 +384,7 @@ function current_search_settings_form(&$form, &$form_state) {
 
   // Builds table, adds settings to vertical tabs.
   $has_settings = FALSE;
-  foreach ($item->settings as $name => $settings) {
+  foreach ($item->settings['items'] as $name => $settings) {
     if ($class = ctools_plugin_load_class('current_search', 'items', $settings['id'], 'handler')) {
       $plugin = new $class($name, $item);
 
@@ -431,6 +430,28 @@ function current_search_settings_form(&$form, &$form_state) {
   if (!$has_settings) {
     unset($form['plugin_settings']);
   }
+
+  ////
+  ////
+  //// Advanced settings
+  ////
+  ////
+
+  $form['advanced_settings_title'] = array(
+    '#type' => 'item',
+    '#title' => t('Advanced settings'),
+  );
+
+  $form['advanced_settings'] = array(
+    '#tree' => TRUE,
+  );
+
+  $form['advanced_settings']['empty_searches'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display current search block on empty search pages.'),
+    '#default_value' => !empty($item->settings['advanced']['empty_searches']),
+  );
+
 }
 
 /**
@@ -447,7 +468,7 @@ function theme_current_search_sort_settings_table($variables) {
 
   // Builds table rows.
   $rows = array();
-  foreach ($variables['element']['#current_search'] as $name => $settings) {
+  foreach ($variables['element']['#current_search']['items'] as $name => $settings) {
     $rows[$name] = array(
       'class' => array('draggable'),
       'data' => array(
@@ -490,9 +511,7 @@ function current_search_add_item_validate($form, &$form_state) {
  */
 function current_search_add_item_submit($form, &$form_state) {
   $item = &$form_state['item'];
-  if (empty($item->settings)) {
-    $item->settings = array();
-  }
+  $item->settings += current_search_get_defaults();
 
   // Gets variables for code readability.
   $id = $form_state['values']['plugins']['plugin'];
@@ -502,7 +521,7 @@ function current_search_add_item_submit($form, &$form_state) {
   // Adds settings to the array.
   if ($class = ctools_plugin_load_class('current_search', 'items', $id, 'handler')) {
     $plugin = new $class($name);
-    $item->settings[$name] = $plugin->getDefaultSettings() + array(
+    $item->settings['items'][$name] = $plugin->getDefaultSettings() + array(
       'id' => $id,
       'label' => $label,
     );
@@ -514,9 +533,7 @@ function current_search_add_item_submit($form, &$form_state) {
  */
 function current_search_settings_form_submit($form, &$form_state) {
   $item = &$form_state['item'];
-  if (empty($item->settings)) {
-    $item->settings = array();
-  }
+  $item->settings += current_search_get_defaults();
 
   // If there are plugin settings, we are updating an existing config.
   if (!empty($form_state['values']['plugin_settings'])) {
@@ -526,14 +543,17 @@ function current_search_settings_form_submit($form, &$form_state) {
       // Gathers settings, stores in $items->settings.
       foreach ($form_state['values']['plugin_settings'] as $name => $settings) {
         if (is_array($settings)) {
-          $item->settings[$name] = $settings + array(
+          $item->settings['items'][$name] = $settings + array(
             'weight' => $form_state['values']['plugin_sort'][$name]['weight'],
           );
         }
       }
 
       // Sorts settings by weight.
-      uasort($item->settings, 'drupal_sort_weight');
+      uasort($item->settings['items'], 'drupal_sort_weight');
+
+      // Stores advanced settings.
+      $item->settings['advanced'] = $form_state['values']['advanced_settings'];
     }
   }
   else {
@@ -565,5 +585,17 @@ function current_search_config_exists($name) {
  */
 function current_search_item_exists($name, &$element, &$form_state) {
   $item = &$form_state['item'];
-  return isset($item->settings[$name]);
+  return isset($item->settings['items'][$name]);
+}
+
+/**
+ * Returns default settings.
+ */
+function current_search_get_defaults() {
+  return array(
+    'items' => array(),
+    'advanced' => array(
+      'empty_searches' => 0,
+     ),
+  );
 }

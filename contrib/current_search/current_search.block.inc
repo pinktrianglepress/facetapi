@@ -109,7 +109,7 @@ function current_search_block_view($delta = '') {
     $build = array();
 
     // Iterates over configs and executes the plugins.
-    foreach ($config->settings as $name => $settings) {
+    foreach ($config->settings['items'] as $name => $settings) {
       if ($class = ctools_plugin_load_class('current_search', 'items', $settings['id'], 'handler')) {
         $plugin = new $class($name, $config);
         if ($return = $plugin->execute($adapter)) {
@@ -199,9 +199,13 @@ function current_search_check_visibility($delta) {
   if (!$adapter->searchExecuted($map[$delta])) {
     return FALSE;
   }
+  if (!$config = current_search_item_load($delta)) {
+    return FALSE;
+  }
 
-  // A search was executed.
-  return TRUE;
+  // Returns TRUE if search keys were entered by the user or this block is
+  // configured to be displayed on empty pages.
+  return ($adapter->getSearchKeys() || $config->settings['advanced']['empty_searches']);
 }
 
 /**

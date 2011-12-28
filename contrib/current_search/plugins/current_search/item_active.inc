@@ -19,8 +19,8 @@ class CurrentSearchItemActive extends CurrentSearchItem {
     // Makes sure facet builds are initialized.
     $adapter->processFacets();
 
-    // Adds search keys.
-    if ($this->settings['keys']) {
+    // Adds the keywords if any were passed.
+    if ($this->settings['keys'] && $adapter->getSearchKeys()) {
       $items[] = check_plain($adapter->getSearchKeys());
     }
 

@@ -41,9 +41,9 @@ abstract class CurrentSearchItem {
    */
   public function __construct($name, $config = NULL) {
     $this->name = $name;
-    if (isset($config->settings[$name])) {
+    if (isset($config->settings['items'][$name])) {
       $this->configName = $config->name;
-      $this->settings = $config->settings[$name] + $this->getDefaultSettings();
+      $this->settings = $config->settings['items'][$name] + $this->getDefaultSettings();
     }
     else {
       $this->settings = $this->getDefaultSettings();

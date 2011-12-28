@@ -32,24 +32,29 @@ function current_search_current_search_default_items() {
   $item->name = 'standard';
   $item->label = 'Standard';
   $item->settings = array(
-    'results' => array(
-      'id' => 'text',
-      'label' => 'Results',
-      'text' => 'Search found [facetapi_results:result-count] items',
-      'wrapper' => 1,
-      'element' => 'h3',
-      'css' => 0,
-      'classes' => '',
-      'weight' => '-50',
+    'items' => array(
+      'results' => array(
+        'id' => 'text',
+        'label' => 'Results',
+        'text' => 'Search found [facetapi_results:result-count] items',
+        'wrapper' => 1,
+        'element' => 'h3',
+        'css' => 0,
+        'classes' => '',
+        'weight' => '-50',
+      ),
+      'active_items' => array(
+        'id' => 'active',
+        'label' => 'Active items',
+        'pattern' => '[facetapi_active:active-value]',
+        'keys' => 1,
+        'css' => 0,
+        'classes' => '',
+        'weight' => '-49',
+      ),
     ),
-    'active_items' => array(
-      'id' => 'active',
-      'label' => 'Active items',
-      'pattern' => '[facetapi_active:active-value]',
-      'keys' => 1,
-      'css' => 0,
-      'classes' => '',
-      'weight' => '-49',
+    'advanced' => array(
+      'empty_searches' => 0,
     ),
   );
   $items[$item->name] = $item;
