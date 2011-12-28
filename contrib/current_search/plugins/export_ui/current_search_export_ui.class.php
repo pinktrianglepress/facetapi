@@ -165,17 +165,6 @@ function current_search_settings_form(&$form, &$form_state) {
     $item->settings = current_search_get_defaults();
   }
 
-  // Handles removing items.
-  // @todo This is the wrong place for this. Find a better solution.
-  if (!empty($_GET['remove']) && is_string($_GET['remove'])) {
-    if (isset($item->settings['items'][$_GET['remove']])) {
-      $label = $item->settings['items'][$_GET['remove']]['label'];
-      drupal_set_message(t('@label has been removed.', array('@label' => $label)));
-      unset($item->settings['items'][$_GET['remove']]);
-      ctools_export_crud_save('current_search', $item);
-    }
-  }
-
   // NOTE: We need to add the #id in order for the machine_name to work.
   $form['info']['label'] = array(
     '#id' => 'edit-label',
@@ -355,6 +344,11 @@ function current_search_settings_form(&$form, &$form_state) {
     $form['plugin_sort'][$name]['item'] = array(
       '#markup' => check_plain($settings['label']),
     );
+    $form['plugin_sort'][$name]['remove'] = array(
+      '#type' => 'link',
+      '#title' => t('Remove item'),
+      '#href' => 'admin/config/search/current_search/item/' . $item->name . '/delete/' . $name,
+    );
     $form['plugin_sort'][$name]['weight'] = array(
       '#type' => 'weight',
       '#title' => t('Weight for @title', array('@title' => $settings['label'])),
@@ -409,20 +403,6 @@ function current_search_settings_form(&$form, &$form_state) {
       // Gets settings from plugin.
       $plugin->settingsForm($form['plugin_settings'][$name], $form_state);
       $has_settings = TRUE;
-
-      $link_options = array('query' => array('remove' => $name));
-      if (!empty($_GET['destination'])) {
-        $link_options['query']['destination'] = $_GET['destination'];
-      }
-
-      // Adds "remove" link.
-      $form['plugin_settings'][$name]['remove'] = array(
-        '#type' => 'link',
-        '#title' => t('Remove item'),
-        '#href' => current_path(),
-        '#attributes' => array('class' => array('current-search-remove-link')),
-        '#options' => $link_options,
-      );
     }
   }
 
@@ -474,6 +454,10 @@ function theme_current_search_sort_settings_table($variables) {
       'data' => array(
         drupal_render($variables['element'][$name]['item']),
         drupal_render($variables['element'][$name]['weight']),
+        array(
+          'data' => drupal_render($variables['element'][$name]['remove']),
+          'class' => 'current-search-remove-link',
+        ),
       ),
     );
   }
@@ -564,6 +548,57 @@ function current_search_settings_form_submit($form, &$form_state) {
       current_search_set_block_searcher($name, $searcher);
     }
   }
+}
+
+/**
+ * Form constructor for the revert form.
+ *
+ * @ingroup forms
+ */
+function current_search_delete_item_form($form, &$form_state, stdClass $item, $name) {
+  $form['#current_search'] = array(
+    'item' => $item,
+    'name' => $name
+  );
+
+  $form['text'] = array(
+   '#markup' => '<p>' . t('Are you sure you want to remove the item %name from the current search block configuration?.', array('%name' => $name)) . '</p>',
+  );
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Remove item'),
+  );
+
+  $form['actions']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => 'admin/config/search/current_search/list/' . $item->name . '/edit',
+    '#attributes' => array('title' => t('Go back to current search block configuration')),
+  );
+
+  $form['#submit'][] = 'current_search_delete_item_form_submit';
+
+  return $form;
+}
+
+/**
+ * Form submission handler for facetapi_revert_form_submit().
+ */
+function current_search_delete_item_form_submit($form, &$form_state) {
+  $name = $form['#current_search']['name'];
+  $item = $form['#current_search']['item'];
+
+  // Removes item from the current search block configuration.
+  if (isset($item->settings['items'][$name])) {
+    $label = $item->settings['items'][$name]['label'];
+    drupal_set_message(t('@label has been removed.', array('@label' => $label)));
+    unset($item->settings['items'][$name]);
+    ctools_export_crud_save('current_search', $item);
+  }
+
+  // Resirects back to current search block configuration page.
+  $form_state['redirect'] = 'admin/config/search/current_search/list/' . $item->name . '/edit';
 }
 
 /**

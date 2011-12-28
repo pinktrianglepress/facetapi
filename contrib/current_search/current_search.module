@@ -12,6 +12,24 @@ require_once dirname(__FILE__) . '/current_search.block.inc';
 /**
  * Implements hook_menu_alter().
  */
+function current_search_menu() {
+  $items = array();
+
+  $items['admin/config/search/current_search/item/%current_search_item/delete/%'] = array(
+    'title' => 'Revert current search block configuration',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('current_search_delete_item_form', 5, 7),
+    'access arguments' => array('administer search'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'plugins/export_ui/current_search_export_ui.class.php',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
 function current_search_menu_alter(&$items) {
   // Ensures that the edit link shows up in contextual links.
   $item = &$items['admin/config/search/current_search/list/%ctools_export_ui/edit'];
