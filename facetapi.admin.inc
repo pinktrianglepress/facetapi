@@ -410,7 +410,7 @@ function facetapi_facet_display_form($form, &$form_state, FacetapiAdapter $adapt
 
   $form['widget'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Widget settings'),
+    '#title' => t('Display settings'),
   );
 
   // Builds select options for widgets, allows widgets to add settings.
