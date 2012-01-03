@@ -95,7 +95,7 @@ function current_search_block_list_alter(&$blocks) {
 function current_search_block_view($delta = '') {
   // Test block visibility if not already tested. This is necessary when using
   // modules such as Context that do not invoke hook_block_list_alter().
-  $map = &drupal_static('current_search_delta_map');
+  $map = &ctools_static('current_search_delta_map');
   if (NULL === $map && !current_search_check_visibility($delta)) {
     return;
   }
@@ -123,7 +123,7 @@ function current_search_block_view($delta = '') {
     // Returns the block content.
     if ($build) {
       $build['#contextual_links'] = array(
-        'current_search' => array('admin/config/search/current_search/list', array($delta)),
+        'current_search' => array('admin/settings/current_search/list', array($delta)),
       );
       return array(
         'subject' => t('Current search'),
@@ -175,7 +175,7 @@ function current_search_check_visibility($delta) {
 
   // Caches the delta map, defaults to NULL so we can test whether this function
   // was called in hook_block_list_alter() or not.
-  $map = &drupal_static('current_search_delta_map');
+  $map = &ctools_static('current_search_delta_map');
   if (NULL === $map) {
     $map = array();
     $result = db_query('SELECT delta, searcher FROM {block_current_search}');

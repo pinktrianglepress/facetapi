@@ -64,7 +64,7 @@ function theme_facetapi_link_inactive($variables) {
   // link text and are providing additional markup for accessibility.
   $variables['text'] .= $accessible_markup;
   $variables['options']['html'] = TRUE;
-  return theme_link($variables);
+  return theme_facetapi_link($variables);
 }
 
 /**
@@ -110,7 +110,7 @@ function theme_facetapi_link_active($variables) {
   );
   $variables['text'] = t('!facetapi_deactivate_widget !facetapi_accessible_markup', $replacements);
   $variables['options']['html'] = TRUE;
-  return theme_link($variables) . $link_text;
+  return theme_facetapi_link($variables) . $link_text;
 }
 
 /**
@@ -141,5 +141,28 @@ function theme_facetapi_deactivate_widget($variables) {
 function theme_facetapi_accessible_markup($variables) {
   $vars = array('@text' => $variables['text']);
   $text = ($variables['active']) ? t('Remove @text filter', $vars) : t('Apply @text filter', $vars);
-  return '<span class="element-invisible">' . $text . '</span>';
+  return '<span class="facetapi-element-invisible">' . $text . '</span>';
+}
+
+/**
+ * Returns HTML for a link.
+ *
+ * All Drupal code that outputs a link should call the l() function. That
+ * function performs some initial preprocessing, and then, if necessary, calls
+ * theme('link') for rendering the anchor tag.
+ *
+ * To optimize performance for sites that don't need custom theming of links,
+ * the l() function includes an inline copy of this function, and uses that copy
+ * if none of the enabled modules or the active theme implement any preprocess
+ * or process functions or override this theme implementation.
+ *
+ * @param $variables
+ *   An associative array containing the keys 'text', 'path', and 'options'. See
+ *   the l() function for information about these variables.
+ *
+ * @see l()
+ * @see http://api.drupal.org/api/drupal/includes--theme.inc/function/theme_link/7
+ */
+function theme_facetapi_link($variables) {
+  return '<a href="' . check_plain(url($variables['path'], $variables['options'])) . '"' . drupal_attributes($variables['options']['attributes']) . '>' . ($variables['options']['html'] ? $variables['text'] : check_plain($variables['text'])) . '</a>';
 }

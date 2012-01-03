@@ -40,7 +40,7 @@ class FacetapiEmptyBehaviorText extends FacetapiEmptyBehavior {
    */
   public function settingsForm(&$form, &$form_state) {
     global $user;
-    $format_id = ($this->formatSet) ? $this->settings['empty_text']['format'] : filter_default_format($user);
+    $format_id = ($this->formatSet) ? $this->settings['empty_text']['format'] : FILTER_FORMAT_DEFAULT;
     $format = filter_format_load($format_id);
 
     // NOTE: There is a core bug with form #states and the text_format #type.
@@ -66,7 +66,7 @@ class FacetapiEmptyBehaviorText extends FacetapiEmptyBehavior {
     return array(
       'empty_text' => array(
         'value' => '',
-        'format' => filter_fallback_format(),
+        'format' => FILTER_FORMAT_DEFAULT,
       ),
     );
   }

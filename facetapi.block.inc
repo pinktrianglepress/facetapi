@@ -4,6 +4,16 @@
  * @file
  * Block realm code and hook implementations.
  */
+function facetapi_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list' :
+      return facetapi_block_info();
+      break;
+    case 'view' :
+      return facetapi_block_view($delta);
+      break;
+  }
+}
 
 /**
  * Implements hook_block_info().
@@ -57,8 +67,8 @@ function facetapi_block_list_alter(&$blocks) {
  * Implements hook_block_view().
  */
 function facetapi_block_view($delta = '') {
-  $builds = &drupal_static(__FUNCTION__, array());
-  $parsed = &drupal_static('facetapi_parsed_deltas', array());
+  $builds = &ctools_static(__FUNCTION__, array());
+  $parsed = &ctools_static('facetapi_parsed_deltas', array());
 
   // Test block visibility if not already tested. This is necessary when using
   // modules such as Context that do not invoke hook_block_list_alter().
@@ -79,14 +89,24 @@ function facetapi_block_view($delta = '') {
 
     // Adds contextual links.
     $builds[$group][$facet_name]['#contextual_links'] = array(
-      'facetapi' => array('admin/config/search/facetapi', array($searcher, $realm_name, $facet_name)),
+      'facetapi' => array('admin/settings/facetapi', array($searcher, $realm_name, $facet_name)),
     );
 
     // Returns the subject and content of the block.
     $variables = array('title' => $builds[$group][$facet_name]['#title'], 'facet' => $builds[$group][$facet_name]);
+    // Drupal 6 needs direct output from a theme function so we will have to
+    // iterate over the build array and output only what is needed.
+    // Could use optimization
+    $output = NULL;
+    foreach (array_keys($builds[$group][$facet_name]) as $key) {
+      if($key{0} != '#') {
+        $output = $builds[$group][$facet_name][$key];
+        continue;
+      }
+    }
     return array(
       'subject' => theme('facetapi_title', $variables),
-      'content' => $builds[$group][$facet_name]
+      'content' => $output,
     );
   }
 }
@@ -109,7 +129,7 @@ function facetapi_check_block_visibility($delta) {
 
   // Store parsed deltas so we only calculate once. This also lets us know
   // whether hook_block_list_alter() was called or not.
-  $parsed = &drupal_static('facetapi_parsed_deltas', array());
+  $parsed = &ctools_static('facetapi_parsed_deltas', array());
 
   // Ensures the delta is mapped.
   if (!isset($map[$delta])) {
@@ -151,7 +171,7 @@ function facetapi_check_block_visibility($delta) {
  *   An array containing the delta map.
  */
 function facetapi_get_delta_map() {
-  $map = &drupal_static(__FUNCTION__);
+  $map = &ctools_static(__FUNCTION__);
   if (NULL === $map) {
     if ($data = cache_get('facetapi:delta_map')) {
       $map = $data->data;
@@ -227,7 +247,7 @@ function facetapi_parse_delta($raw_delta) {
 function facetapi_hash_delta($delta) {
   // Ensure hashes are URL safe and alpha-numeric.
   // @see http://drupal.org/node/1355270
-  $hash = substr(drupal_hash_base64($delta), 0, 32);
+  $hash = substr(facetapi_hash_base64($delta), 0, 32);
   return strtr($hash, array('-' => '0', '_' => '1'));
 }
 
@@ -255,4 +275,10 @@ function facetapi_get_delta_map_queue($searcher, $realm_name) {
 
   // Merges enabled facets and facets whose mapping is forced.
   return array_unique(array_merge($enabled, $forced[$searcher][$realm_name]));
+}
+
+function facetapi_hash_base64($data) {
+  $hash = base64_encode(hash('sha256', $data, TRUE));
+  // Modify the hash so it's safe to use in URLs.
+  return strtr($hash, array('+' => '-', '/' => '_', '=' => ''));
 }

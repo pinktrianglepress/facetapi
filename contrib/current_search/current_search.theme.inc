@@ -64,7 +64,7 @@ function theme_current_search_item_wrapper(array $variables) {
   $attributes = array(
     'class' => array(
       'current-search-item',
-      drupal_html_class('current-search-item-' . $element['#current_search_id']),
+      'current-search-item-' . $element['#current_search_id'],
     ),
   );
   return '<div' . drupal_attributes($attributes) . '>' . $element['#children'] . '</div>';
@@ -114,7 +114,7 @@ function theme_current_search_link_active($variables) {
   // link text and are providing additional markup for accessibility.
   $variables['text'] .= ' ' . $accessible_markup;
   $variables['options']['html'] = TRUE;
-  return theme_link($variables);
+  return theme_facetapi_link($variables);
 }
 
 /**

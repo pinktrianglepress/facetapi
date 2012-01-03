@@ -241,7 +241,7 @@ function current_search_get_classes($setting, array $data = array()) {
     if ($data) {
       $class = token_replace($class, $data);
     }
-    $classes[] = drupal_html_class($class);
+    $classes[] = $class;
   }
   return $classes;
 }
