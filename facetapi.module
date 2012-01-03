@@ -197,8 +197,8 @@ function facetapi_menu() {
   $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
     'load arguments' => array(3),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_export_form', 3, 4, 5),
+    'page callback' => 'facetapi_export_page',
+    'page arguments' => array(3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_NORMAL_ITEM,
     'file' => 'facetapi.admin.inc',
