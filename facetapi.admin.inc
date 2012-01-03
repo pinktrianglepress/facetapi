@@ -984,7 +984,7 @@ function theme_facetapi_filter_settings_table($variables) {
   // Filter order (tabledrag).
   $rows = array();
   foreach (element_children($element, TRUE) as $name) {
-    $element[$name]['weight']['#attributes']['class'][] = 'facetapi-filter-weight';
+    $element[$name]['weight']['#attributes']['class'] = 'facetapi-filter-weight';
     $rows[] = array(
       'data' => array(
         drupal_render($element[$name]['status']),
