@@ -828,7 +828,6 @@ abstract class FacetapiAdapter {
         }
       }
     }
-
     return $build;
   }
 }

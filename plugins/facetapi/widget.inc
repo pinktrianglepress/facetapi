@@ -92,6 +92,8 @@ abstract class FacetapiWidget {
     // Captures searcher for code readability.
     $searcher = $this->facet->getAdapter()->getSearcher();
 
+    $classes = implode(' ', array("facetapi-" . $this->id, "facetapi-facet-{$this->facet['name']}"));
+
     // Initializes render array.
     $this->build = array(
       '#title' => $this->facet['label'],
@@ -103,11 +105,8 @@ abstract class FacetapiWidget {
       '#settings' => $this->settings,
       $this->facet['field alias'] => $this->facet->getBuild(),
       '#attributes' => array(
-        'class' => array(
-          drupal_html_class("facetapi-" . $this->id),
-          drupal_html_class("facetapi-facet-{$this->facet['name']}"),
-        ),
-        'id' => drupal_html_id("facetapi-facet-$searcher-{$this->realm['name']}-{$this->facet['name']}"),
+        'class' => $classes,
+        'id' => "facetapi-facet-$searcher-{$this->realm['name']}-{$this->facet['name']}",
       ),
     );
 
@@ -123,6 +122,9 @@ abstract class FacetapiWidget {
       'queryType' => $this->facet['query type'],
       'widget' => $this->settings->settings['widget'],
     );
+
+    // Add our accessibility CSS
+    drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
 
     return $this;
   }

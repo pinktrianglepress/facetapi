@@ -263,6 +263,10 @@ function facetapi_theme() {
       'arguments' => array('count' => NULL),
       'file' => 'facetapi.theme.inc',
     ),
+    'facetapi_link' => array(
+      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
+      'file' => 'facetapi.theme.inc',
+    ),
     'facetapi_link_inactive' => array(
       'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array(), 'count' => 0),
       'file' => 'facetapi.theme.inc',
