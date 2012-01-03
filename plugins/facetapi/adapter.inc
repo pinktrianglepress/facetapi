@@ -473,6 +473,7 @@ abstract class FacetapiAdapter {
       }
       else {
         foreach ($this->activeItems['facet'][$facet['name']] as $item) {
+          $this->urlProcessor->removeParam($item['pos']);
           $filter = $item['field alias'] . ':' . $item['value'];
           unset($this->activeItems['filter'][$filter]);
         }
