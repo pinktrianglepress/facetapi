@@ -57,8 +57,8 @@ function facetapi_block_list_alter(&$blocks) {
  * Implements hook_block_view().
  */
 function facetapi_block_view($delta = '') {
-  $builds = &drupal_static(__FUNCTION__, array());
-  $parsed = &drupal_static('facetapi_parsed_deltas', array());
+  $builds = &ctools_static(__FUNCTION__, array());
+  $parsed = &ctools_static('facetapi_parsed_deltas', array());
 
   // Test block visibility if not already tested. This is necessary when using
   // modules such as Context that do not invoke hook_block_list_alter().
@@ -109,7 +109,7 @@ function facetapi_check_block_visibility($delta) {
 
   // Store parsed deltas so we only calculate once. This also lets us know
   // whether hook_block_list_alter() was called or not.
-  $parsed = &drupal_static('facetapi_parsed_deltas', array());
+  $parsed = &ctools_static('facetapi_parsed_deltas', array());
 
   // Ensures the delta is mapped.
   if (!isset($map[$delta])) {
@@ -151,7 +151,7 @@ function facetapi_check_block_visibility($delta) {
  *   An array containing the delta map.
  */
 function facetapi_get_delta_map() {
-  $map = &drupal_static(__FUNCTION__);
+  $map = &ctools_static(__FUNCTION__);
   if (NULL === $map) {
     if ($data = cache_get('facetapi:delta_map')) {
       $map = $data->data;

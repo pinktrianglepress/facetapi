@@ -109,7 +109,7 @@ function current_search_ctools_plugin_type() {
  *   An associative array keyed by plugin ID to human readable label.
  */
 function current_search_get_plugins() {
-  $plugins = &drupal_static(__FUNCTION__, array());
+  $plugins = &ctools_static(__FUNCTION__, array());
   if (!$plugins) {
     foreach (ctools_get_plugins('current_search', 'items') as $id => $plugin) {
       $plugins[$id] = $plugin['handler']['label'];

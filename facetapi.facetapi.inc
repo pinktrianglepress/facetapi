@@ -19,7 +19,7 @@ function facetapi_facetapi_realm_info() {
     'element type' => 'links',
     'description' => t(
       'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
-      array('@block-page' => url('admin/structure/block', array('query' => array('destination' => current_path()))))
+      array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
     ),
   );
 

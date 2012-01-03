@@ -53,7 +53,7 @@ class current_search_export_ui extends ctools_export_ui {
         // Sets redirect path and options.
         $op = $form_state['op'];
         $name = $form_state['values']['name'];
-        $path = ('add' != $op) ? current_path() : 'admin/config/search/current_search/list/' . $name . '/edit';
+        $path = ('add' != $op) ? $_GET['q'] : 'admin/config/search/current_search/list/' . $name . '/edit';
         $this->plugin['redirect'][$op] = array($path, $options);
       }
     }
@@ -446,6 +446,11 @@ function current_search_settings_form(&$form, &$form_state) {
 function theme_current_search_sort_settings_table($variables) {
   $output = '';
 
+  // Initializes table header.
+  $header = array(
+    'item' => t('Item'),
+    'weight' => t('weight'),
+  );
   // Builds table rows.
   $rows = array();
   foreach ($variables['element']['#current_search']['items'] as $name => $settings) {
@@ -466,7 +471,7 @@ function theme_current_search_sort_settings_table($variables) {
   $table_id = 'current-search-sort-settings';
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'current-search-sort-weight');
   $output .= drupal_render_children($variables['element']);
-  $output .= theme('table', array('rows' => $rows, 'attributes' => array('id' => $table_id)));
+  $output .= theme('table', $header, $rows, array('attributes' => array('id' => $table_id)));
   return $output;
 }
 
@@ -534,7 +539,7 @@ function current_search_settings_form_submit($form, &$form_state) {
       }
 
       // Sorts settings by weight.
-      uasort($item->settings['items'], 'drupal_sort_weight');
+      uasort($item->settings['items'], 'facetapi_sort_weight');
 
       // Stores advanced settings.
       $item->settings['advanced'] = $form_state['values']['advanced_settings'];
@@ -555,7 +560,7 @@ function current_search_settings_form_submit($form, &$form_state) {
  *
  * @ingroup forms
  */
-function current_search_delete_item_form($form, &$form_state, stdClass $item, $name) {
+function current_search_delete_item_form(&$form_state, stdClass $item, $name) {
   $form['#current_search'] = array(
     'item' => $item,
     'name' => $name
