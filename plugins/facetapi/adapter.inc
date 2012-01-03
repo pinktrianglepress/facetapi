@@ -1175,7 +1175,7 @@ class FacetapiFacetProcessor {
 
     // Invoke the alter callbacks for the facet.
     foreach ($this->facet['alter callbacks'] as $callback) {
-      $callback($build, $adapter);
+      $callback($build, $adapter, $this->facet->getFacet());
     }
 
     // Iterates over the render array and merges in defaults.
