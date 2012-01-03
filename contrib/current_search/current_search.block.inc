@@ -123,7 +123,7 @@ function current_search_block_view($delta = '') {
     // Returns the block content.
     if ($build) {
       $build['#contextual_links'] = array(
-        'current_search' => array('admin/config/search/current_search/list', array($delta)),
+        'current_search' => array('admin/settings/current_search/list', array($delta)),
       );
       return array(
         'subject' => t('Current search'),

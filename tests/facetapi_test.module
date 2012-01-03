@@ -16,7 +16,7 @@ define('FACETAPI_TEST_FORM_TEXT', t('Facet API test form'));
 function facetapi_test_menu() {
   $items = array();
 
-  $items['admin/config/search/facetapi_test'] = array(
+  $items['admin/settings/facetapi_test'] = array(
     'title' => 'Facet API test',
     'description' => 'Settings for the Facet API module.',
     'page callback' => 'drupal_get_form',
@@ -24,7 +24,7 @@ function facetapi_test_menu() {
     'access arguments' => array('administer search'),
   );
 
-  $items['admin/config/search/facetapi_test/settings'] = array(
+  $items['admin/settings/facetapi_test/settings'] = array(
     'title' => 'Settings',
     'weight' => -10,
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -78,7 +78,7 @@ function facetapi_test_facetapi_searcher_info() {
     'label' => t('Facet API Test'),
     'adapter' => 'facetapi_test',
     'type' => 'test',
-    'path' => 'admin/config/search/facetapi_test',
+    'path' => 'admin/settings/facetapi_test',
     'supports facet missing' => FALSE,
   );
 

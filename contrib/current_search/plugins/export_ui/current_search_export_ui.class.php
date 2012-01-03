@@ -53,7 +53,7 @@ class current_search_export_ui extends ctools_export_ui {
         // Sets redirect path and options.
         $op = $form_state['op'];
         $name = $form_state['values']['name'];
-        $path = ('add' != $op) ? $_GET['q'] : 'admin/config/search/current_search/list/' . $name . '/edit';
+        $path = ('add' != $op) ? $_GET['q'] : 'admin/settings/current_search/list/' . $name . '/edit';
         $this->plugin['redirect'][$op] = array($path, $options);
       }
     }
@@ -235,7 +235,7 @@ function current_search_settings_form(&$form, &$form_state) {
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => (!$url) ? 'admin/config/search/current_search' : $url['path'],
+    '#href' => (!$url) ? 'admin/settings/current_search' : $url['path'],
     '#options' => (!$url) ? array() : array('query' => $url['query']),
     '#attributes' => array('title' => $cancel_title),
   );
@@ -347,7 +347,7 @@ function current_search_settings_form(&$form, &$form_state) {
     $form['plugin_sort'][$name]['remove'] = array(
       '#type' => 'link',
       '#title' => t('Remove item'),
-      '#href' => 'admin/config/search/current_search/item/' . $item->name . '/delete/' . $name,
+      '#href' => 'admin/settings/current_search/item/' . $item->name . '/delete/' . $name,
     );
     $form['plugin_sort'][$name]['weight'] = array(
       '#type' => 'weight',
@@ -453,14 +453,14 @@ function theme_current_search_sort_settings_table($variables) {
   );
   // Builds table rows.
   $rows = array();
-  foreach ($variables['element']['#current_search']['items'] as $name => $settings) {
+  foreach ($variables['#current_search']['items'] as $name => $settings) {
     $rows[$name] = array(
       'class' => array('draggable'),
       'data' => array(
-        drupal_render($variables['element'][$name]['item']),
-        drupal_render($variables['element'][$name]['weight']),
+        drupal_render($variables[$name]['item']),
+        drupal_render($variables[$name]['weight']),
         array(
-          'data' => drupal_render($variables['element'][$name]['remove']),
+          'data' => drupal_render($variables[$name]['remove']),
           'class' => 'current-search-remove-link',
         ),
       ),
@@ -470,7 +470,7 @@ function theme_current_search_sort_settings_table($variables) {
   // Builds table with drabble rows, returns output.
   $table_id = 'current-search-sort-settings';
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'current-search-sort-weight');
-  $output .= drupal_render_children($variables['element']);
+  //$output .= drupal_render_children($variables['element']);
   $output .= theme('table', $header, $rows, array('attributes' => array('id' => $table_id)));
   return $output;
 }
@@ -578,7 +578,7 @@ function current_search_delete_item_form(&$form_state, stdClass $item, $name) {
   $form['actions']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
-    '#href' => 'admin/config/search/current_search/list/' . $item->name . '/edit',
+    '#href' => 'admin/settings/current_search/list/' . $item->name . '/edit',
     '#attributes' => array('title' => t('Go back to current search block configuration')),
   );
 
@@ -603,7 +603,7 @@ function current_search_delete_item_form_submit($form, &$form_state) {
   }
 
   // Resirects back to current search block configuration page.
-  $form_state['redirect'] = 'admin/config/search/current_search/list/' . $item->name . '/edit';
+  $form_state['redirect'] = 'admin/settings/current_search/list/' . $item->name . '/edit';
 }
 
 /**

@@ -49,7 +49,7 @@ function hook_facetapi_searcher_info() {
       'adapter' => 'search',
       'url processor' => 'standard',
       'types' => array('node'),
-      'path' => 'admin/config/search/settings',
+      'path' => 'admin/settings/search',
       'supports facet missing' => TRUE,
       'supports facet mincount' => TRUE,
       'include default facets' => TRUE,

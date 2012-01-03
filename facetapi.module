@@ -158,11 +158,11 @@ function facetapi_menu() {
     }
   }
 
-  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
+  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
     'title' => 'Configure facet display',
-    'load arguments' => array(4),
+    'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_display_form', 4, 5, 6),
+    'page arguments' => array('facetapi_facet_display_form', 3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -170,11 +170,11 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_dependencies/dependencies'] = array(
+  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_dependencies/dependencies'] = array(
     'title' => 'Configure facet dependencies',
-    'load arguments' => array(4),
+    'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_dependencies_form', 4, 5, 6),
+    'page arguments' => array('facetapi_facet_dependencies_form', 3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -182,11 +182,11 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_filters/filters'] = array(
+  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_filters/filters'] = array(
     'title' => 'Configure facet filters',
-    'load arguments' => array(4),
+    'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_filters_form', 4, 5, 6),
+    'page arguments' => array('facetapi_facet_filters_form', 3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -194,21 +194,21 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
+  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
-    'load arguments' => array(4),
+    'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_export_form', 4, 5, 6),
+    'page arguments' => array('facetapi_export_form', 3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_NORMAL_ITEM,
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/revert'] = array(
+  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/revert'] = array(
     'title' => 'Revert facet configuration',
-    'load arguments' => array(4),
+    'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_revert_form', 4, 5, 6),
+    'page arguments' => array('facetapi_revert_form', 3, 4, 5),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_NORMAL_ITEM,
     'file' => 'facetapi.admin.inc',
@@ -339,6 +339,7 @@ function facetapi_adapter_load($searcher) {
       ctools_include('plugins');
       $id = $searcher_info[$searcher]['adapter'];
       $class = ctools_plugin_load_class('facetapi', 'adapters', $id, 'handler');
+
       $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher]) : FALSE;
     }
     else {

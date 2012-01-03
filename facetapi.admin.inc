@@ -135,7 +135,7 @@ function facetapi_realm_settings_form(&$form_state, $searcher, $realm_name) {
   else {
     $description = t(
       'To enable block caching, visit the <a href="@performance-page">performance page</a>.',
-      array('@performance-page' => url('admin/config/development/performance', array('query' => array('destination' => $_GET['q']))))
+      array('@performance-page' => url('admin/settings/development/performance', array('query' => array('destination' => $_GET['q']))))
     );
   }
   $form['block_cache'] = array(
@@ -292,7 +292,7 @@ function theme_facetapi_realm_settings_table($variables) {
  *   The path to the settings page.
  */
 function facetapi_get_settings_path($searcher, $realm_name, $facet_name, $op) {
-  $path_parts = array('admin', 'config', 'search', 'facetapi');
+  $path_parts = array('admin', 'settings', 'facetapi');
   $path_parts[] = $searcher;
   $path_parts[] = $realm_name;
   $path_parts[] = $facet_name;
@@ -371,7 +371,6 @@ function facetapi_get_available_sorts(array $realm, array $facet) {
  */
 function facetapi_facet_display_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
-  return 'bla';
   $path = drupal_get_path('module', 'facetapi');
   drupal_add_css($path . '/facetapi.admin.css', array('weight' => CSS_THEME - 1));
   drupal_add_js($path . '/facetapi.admin.js');
@@ -687,8 +686,8 @@ function facetapi_element_validate_integer($element, &$form_state) {
 function theme_facetapi_sort_settings_table($variables) {
   $output = '';
 
-  // Gets variales for code readability.
-  $searcher = $variables['element']['#facetapi']['adapter']->getSearcher();
+  // Gets variables for code readability.
+  $searcher = $variables['#facetapi']['adapter']->getSearcher();
 
   $header = array(
     'active' => array(),
@@ -699,21 +698,21 @@ function theme_facetapi_sort_settings_table($variables) {
 
   // Builds field options.
   $rows = array();
-  $sort_info = $variables['element']['#facetapi']['sort_info'];
+  $sort_info = $variables['#facetapi']['sort_info'];
   foreach ($sort_info as $sort_name => $sort) {
     $rows[$sort_name] = array(
       'class' => array('draggable'),
       'data' => array(
-        drupal_render($variables['element']['active_sorts'][$sort_name]),
+        drupal_render($variables['active_sorts'][$sort_name]),
         check_plain($sort['label']) . "<div class='description'>" . filter_xss($sort['description']) . '</div>',
-        drupal_render($variables['element']['sort_order'][$sort_name]),
-        drupal_render($variables['element']['sort_weight'][$sort_name]),
+        drupal_render($variables['sort_order'][$sort_name]),
+        drupal_render($variables['sort_weight'][$sort_name]),
       ),
     );
   }
 
   drupal_add_tabledrag('facetapi-sort-settings', 'order', 'sibling', 'facetapi-sort-weight');
-  $output .= drupal_render_children($variables['element']);
+  //$output .= drupal_render_children($variables);
   $output .= theme('table', $header, $rows, array('attributes' => array('id' => 'facetapi-sort-settings')));
 
   return $output;
@@ -974,7 +973,7 @@ function facetapi_facet_filters_form(&$form_state, FacetapiAdapter $adapter, arr
  * @ingroup themeable
  */
 function theme_facetapi_filter_settings_table($variables) {
-  $element = $variables['element'];
+  $element = $variables;
 
 // Initializes table header.
   $header = array(
@@ -995,7 +994,7 @@ function theme_facetapi_filter_settings_table($variables) {
       'class' => array('draggable'),
     );
   }
-  $output = drupal_render_children($element);
+  //$output = drupal_render_children($element);
   $output .= theme('table', $header, $rows, array('attributes' => array('id' => 'facetapi-filter-settings')));
   drupal_add_tabledrag('facetapi-filter-settings', 'order', 'sibling', 'facetapi-filter-weight', NULL, NULL, TRUE);
 
