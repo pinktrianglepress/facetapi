@@ -99,7 +99,7 @@ function facetapi_block_view($delta = '') {
     // Could use optimization
     $output = NULL;
     foreach (array_keys($builds[$group][$facet_name]) as $key) {
-      if($key{0} != '#') {
+      if ($key{0} != '#') {
         $output = $builds[$group][$facet_name][$key];
         continue;
       }
