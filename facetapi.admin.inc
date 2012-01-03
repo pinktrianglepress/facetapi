@@ -36,6 +36,7 @@ function facetapi_realm_settings_form(&$form_state, $searcher, $realm_name) {
   $realm = facetapi_realm_load($realm_name);
 
   $form['#facetapi'] = array(
+    '#type' => 'value',
     'adapter' => $adapter,
     'realm' => $realm,
     'facet_info' => facetapi_get_facet_info($searcher),
@@ -53,6 +54,7 @@ function facetapi_realm_settings_form(&$form_state, $searcher, $realm_name) {
     '#value' => t('For performance reasons, you should only enable facets that you intend to have available to users on the search page.'),
     '#suffix' => "</div>\n",
   );
+
   $form['table'] = array(
     '#theme' => 'facetapi_realm_settings_table',
     '#facetapi' => &$form['#facetapi'],
@@ -226,7 +228,7 @@ function theme_facetapi_realm_settings_table($variables) {
 
   // Adds CSS to ensure that the dropbutton looks nice.
   $path = drupal_get_path('module', 'facetapi');
-  drupal_add_css($path . '/facetapi.admin.css', array('weight' => CSS_THEME - 1));
+  drupal_add_css($path . '/facetapi.admin.css');
 
   // Gets variables for code readability.
   $searcher = $variables['#facetapi']['adapter']->getSearcher();
@@ -248,7 +250,7 @@ function theme_facetapi_realm_settings_table($variables) {
 
     // Builds rows.
     $rows[$facet_name] = array(
-      'class' => $realm['sortable'] ? array('draggable') : array(),
+      'class' => $realm['sortable'] ? 'draggable' : '',
       'data' => array(
         drupal_render($variables['enabled_facets'][$facet_name]),
         check_plain($facet['label']) . "<div class='description'>" . filter_xss($facet['description']) . '</div>',
@@ -267,7 +269,7 @@ function theme_facetapi_realm_settings_table($variables) {
     drupal_add_tabledrag('facetapi-realm-settings', 'order', 'sibling', 'facetapi-facet-weight');
   }
   //$output .= drupal_render_children($variables['element']);
-  $output .= theme('table', $header, $rows, array('attributes' => array('id' => 'facetapi-realm-settings')));
+  $output .= theme('table', $header, $rows, array('id' => 'facetapi-realm-settings'));
 
   return $output;
 }
@@ -372,13 +374,13 @@ function facetapi_get_available_sorts(array $realm, array $facet) {
 function facetapi_facet_display_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
   $form = array();
   $path = drupal_get_path('module', 'facetapi');
-  drupal_add_css($path . '/facetapi.admin.css', array('weight' => CSS_THEME - 1));
+  drupal_add_css($path . '/facetapi.admin.css');
   drupal_add_js($path . '/facetapi.admin.js');
   ctools_include('plugins');
 
   // We have to set the title due to contextual link magic.
   // @see http://drupal.org/node/1147588#comment-4428940
-  drupal_set_title(t('Configure facet display'));
+  //drupal_set_title(t('Configure facet display'));
 
   // Captures variables and settings for code readability.
   $searcher = $adapter->getSearcher();
@@ -611,7 +613,6 @@ function facetapi_facet_display_form(&$form_state, FacetapiAdapter $adapter, arr
   ////
 
   $form['actions'] = array(
-    '#type' => 'actions',
     '#weight' => 20,
   );
 
@@ -713,7 +714,7 @@ function theme_facetapi_sort_settings_table($variables) {
 
   drupal_add_tabledrag('facetapi-sort-settings', 'order', 'sibling', 'facetapi-sort-weight');
   //$output .= drupal_render_children($variables);
-  $output .= theme('table', $header, $rows, array('attributes' => array('id' => 'facetapi-sort-settings')));
+  $output .= theme('table', $header, $rows, array('id' => 'facetapi-sort-settings'));
 
   return $output;
 }
@@ -920,7 +921,6 @@ function facetapi_facet_filters_form(&$form_state, FacetapiAdapter $adapter, arr
   }
 
   $form['actions'] = array(
-    '#type' => 'actions',
     '#weight' => 20,
   );
 
@@ -984,7 +984,7 @@ function theme_facetapi_filter_settings_table($variables) {
   // Filter order (tabledrag).
   $rows = array();
   foreach (element_children($element, TRUE) as $name) {
-    $element[$name]['weight']['#attributes']['class'][] = 'facetapi-filter-weight';
+    $element[$name]['weight']['#attributes']['class'] = 'facetapi-filter-weight';
     $rows[] = array(
       'data' => array(
         drupal_render($element[$name]['status']),
@@ -995,7 +995,7 @@ function theme_facetapi_filter_settings_table($variables) {
     );
   }
   //$output = drupal_render_children($element);
-  $output .= theme('table', $header, $rows, array('attributes' => array('id' => 'facetapi-filter-settings')));
+  $output .= theme('table', $header, $rows, array('id' => 'facetapi-filter-settings'));
   drupal_add_tabledrag('facetapi-filter-settings', 'order', 'sibling', 'facetapi-filter-weight', NULL, NULL, TRUE);
 
   return $output;
@@ -1102,7 +1102,6 @@ function facetapi_facet_dependencies_form(&$form_state, FacetapiAdapter $adapter
   }
 
   $form['actions'] = array(
-    '#type' => 'actions',
     '#weight' => 20,
   );
 
@@ -1192,33 +1191,20 @@ function facetapi_facet_dependencies_form_submit($form, &$form_state) {
  * @see ctools_export_form()
  * @ingroup forms
  */
-function facetapi_export_form(&$form_state, FacetapiAdapter $adapter, array $realm, array $facet) {
-  $form = array();
-  $form['facet'] = array();
-  $form['global'] = array();
+function facetapi_export_page(FacetapiAdapter $adapter, array $realm, array $facet) {
 
-  // Adds link to get back to list page.
-  $form['back'] = array(
-    '#type' => 'link',
-    '#title' => t('Go back to realm settings page'),
-    '#href' => $adapter->getPath($realm['name']),
-  );
-
-  // Gets export fieldset for display settings.
+  // Gets export fieldset for a realm display settings.
   $title = t('Display settings');
   $settings = $adapter->getFacetSettings($facet, $realm);
   $export = ctools_export_crud_export('facetapi', $settings);
-  $form['facet'] = ctools_export_form($form['facet'], $form_state, $export, $title);
+  $output = drupal_get_form('ctools_export_form', $export, $title);
 
-  // Gets export fieldset for display settings.
+  // Gets export fieldset for global display settings.
   $title = t('Global settings');
   $settings = $adapter->getFacetSettingsGlobal($facet);
   $export = ctools_export_crud_export('facetapi', $settings);
-  $form['global'] = ctools_export_form($form['global'], $form_state, $export, $title);
-
-  // Adds settings and returns form.
-  $form['#settings'] = $settings;
-  return $form;
+  $output .= drupal_get_form('ctools_export_form', $export, $title);
+  return $output;
 }
 
 /**

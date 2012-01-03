@@ -471,7 +471,7 @@ function theme_current_search_sort_settings_table($variables) {
   $table_id = 'current-search-sort-settings';
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'current-search-sort-weight');
   //$output .= drupal_render_children($variables['element']);
-  $output .= theme('table', $header, $rows, array('attributes' => array('id' => $table_id)));
+  $output .= theme('table', $header, $rows, array('id' => $table_id));
   return $output;
 }
 

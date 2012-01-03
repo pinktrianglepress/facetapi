@@ -122,7 +122,7 @@ function theme_facetapi_link_active($variables) {
  *
  * @ingroup themable
  */
-function theme_facetapi_deactivate_widget($variables) {
+function theme_facetapi_deactivate_widget($variables = array()) {
   return '(-)';
 }
 
