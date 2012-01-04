@@ -137,7 +137,7 @@ function facetapi_realm_settings_form(&$form_state, $searcher, $realm_name) {
   else {
     $description = t(
       'To enable block caching, visit the <a href="@performance-page">performance page</a>.',
-      array('@performance-page' => url('admin/settings/development/performance', array('query' => array('destination' => $_GET['q']))))
+      array('@performance-page' => url('admin/settings/performance', array('query' => array('destination' => $_GET['q']))))
     );
   }
   $form['block_cache'] = array(
