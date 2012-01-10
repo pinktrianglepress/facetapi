@@ -781,7 +781,7 @@ function facetapi_get_filters(array $facet) {
  * @see FacetapiAdapter::getFacetSettingsGlobal()
  */
 function facetapi_get_searcher_settings($searcher) {
-  $settings = &drupal_static(__FUNCTION__, array());
+  $settings = &ctools_static(__FUNCTION__, array());
   if (!isset($settings[$searcher])) {
     ctools_include('export');
     $args = array('searcher' => $searcher);
