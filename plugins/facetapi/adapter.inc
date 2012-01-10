@@ -518,6 +518,20 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Attempts to get the settings from the static cache.
+   *
+   * @param $name
+   *   The machine readable name of the settings.
+   *
+   * @return stdClass|FALSE
+   *   An object containing the settings, FALSE if settings are not cached.
+   */
+  public function getSettingsByName($name) {
+    $cached_settings = facetapi_get_searcher_settings($this->info['name']);
+    return isset($cached_settings[$name]) ? $cached_settings[$name] : FALSE;
+  }
+
+  /**
    * Returns realm specific settings for a facet.
    *
    * @param array $facet
@@ -533,7 +547,7 @@ abstract class FacetapiAdapter {
   public function getFacetSettings(array $facet, array $realm) {
     // Builds the unique name of the configuration settings and loads.
     $name = $this->info['name'] . ':' . $realm['name'] . ':' . $facet['name'];
-    if (!$settings = ctools_export_crud_load('facetapi', $name)) {
+    if (!$settings = $this->getSettingsByName($name)) {
       $settings = $this->initSettingsObject($name, $facet['name'], $realm['name']);
 
       // Use realm's default widget if facet doesn't define one.
@@ -601,7 +615,7 @@ abstract class FacetapiAdapter {
    */
   public function getFacetSettingsGlobal(array $facet) {
     $name = $this->info['name'] . '::' . $facet['name'];
-    if (!$settings = ctools_export_crud_load('facetapi', $name)) {
+    if (!$settings = $this->getSettingsByName($name)) {
       $settings = $this->initSettingsObject($name, $facet['name']);
 
       // Apply default settings.

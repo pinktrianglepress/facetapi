@@ -766,6 +766,31 @@ function facetapi_get_filters(array $facet) {
 }
 
 /**
+ * Gets raw settings from the datbase, caches as a satic variable.
+ *
+ * Avoid using this function directly as it will not load default settings. Use
+ * the FacetapiAdapter::getFacetSettings*() method instead.
+ *
+ * @param $searcher
+ *   A string containing the searcher.
+ *
+ * @return array
+ *   An array of settings keyed by name.
+ *
+ * @see FacetapiAdapter::getFacetSettings()
+ * @see FacetapiAdapter::getFacetSettingsGlobal()
+ */
+function facetapi_get_searcher_settings($searcher) {
+  $settings = &drupal_static(__FUNCTION__, array());
+  if (!isset($settings[$searcher])) {
+    ctools_include('export');
+    $args = array('searcher' => $searcher);
+    $settings[$searcher] = ctools_export_load_object('facetapi', 'conditions', $args);
+  }
+  return $settings[$searcher];
+}
+
+/**
  * Returns all enabled facet definitions available to the searcher.
  *
  * If a realm is passed, this function returns all facets enabled in the realm.
@@ -787,20 +812,15 @@ function facetapi_get_enabled_facets($searcher, $realm_name = NULL) {
   $enabled_facets = &ctools_static(__FUNCTION__, array());
   $cid = $searcher . ':' . (string) $realm_name;
   if (!isset($enabled_facets[$cid])) {
-    // Builds array of aruments to pass to ctools_export_load_object().
-    $args = array('searcher' => $searcher,  'enabled' => 1);
-    if (NULL !== $realm_name) {
-      $args['realm'] = $realm_name;
-    }
-
-    // Loads settings for enabled facets.
-    ctools_include('export');
-    $results = ctools_export_load_object('facetapi', 'conditions', $args);
-
-    // Builds an array keyed by the names of enabled facets.
     $facets = array();
-    foreach ($results as $result) {
-      $facets[$result->facet] = $result->facet;
+
+    // Gets cached settings, finds enabled facets.
+    $cached = facetapi_get_searcher_settings($searcher);
+    foreach ($cached as $name => $settings) {
+      $test_enabled = (NULL === $realm_name || $realm_name == $settings->realm);
+      if ($test_enabled && $settings->enabled) {
+        $facets[$settings->facet] = $settings->facet;
+      }
     }
 
     // Gets facet definitions for all enabled facets.

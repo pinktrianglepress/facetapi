@@ -68,13 +68,16 @@ function facetapi_map_language(array $values) {
  * @return
  *   An array mapping the ranges to nice display dates.
  */
-function facetapi_map_date(array $values) {
+function facetapi_map_date(array $values, array $options) {
+  if (empty($options['format callback'])) {
+    $options['format callback'] = 'facetapi_format_timestamp';
+  }
   $map = array();
   foreach ($values as $value) {
     $range = explode(' TO ', trim($value, '{[]}'));
-    if (2 == count($range)) {
+    if (isset($range[1])) {
       $gap = facetapi_get_date_gap($range[0], $range[1]);
-      $map[$value] = facetapi_format_date($range[0], $gap);
+      $map[$value] = facetapi_format_date($range[0], $gap, $options['format callback']);
     }
   }
   return $map;
