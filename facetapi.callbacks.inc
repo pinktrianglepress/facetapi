@@ -7,10 +7,19 @@
 
 /**
  * Maps bundle machine names to their human friendly label.
+ *
+ * @param array $values
+ *   An array of indexed values being mapped.
+ * @param array $options
+ *   An associative array of map options containing:
+ *   - entities: An array of entities that $values are bundles for.
+ *
+ * @return array
+ *   An array mapping the indexed values to human readable values.
  */
 function facetapi_map_bundle(array $values, array $options) {
   if (empty($options['entities'])) {
-     $options['entities'] = array('node');
+    $options['entities'] = array('node');
   }
   foreach ($options['entities'] as $entity_type) {
     // Ignore entity types for Drupal 6
@@ -62,11 +71,15 @@ function facetapi_map_language(array $values) {
 /**
  * Maps date ranges to human readable dates.
  *
- * @param $ranges
- *   An array containing the date ranges.
+ * @param array $values
+ *   An array of indexed values being mapped.
+ * @param array $options
+ *   An associative array of map options containing:
+ *   - format callback: The callback used to format the date, defaults to
+ *     "facetapi_format_timestamp".
  *
- * @return
- *   An array mapping the ranges to nice display dates.
+ * @return array
+ *   An array mapping the indexed values to human readable values.
  */
 function facetapi_map_date(array $values, array $options) {
   if (empty($options['format callback'])) {
@@ -154,4 +167,3 @@ function facetapi_get_taxonomy_hierarchy(array $values) {
   }
   return $parents;
 }
-
