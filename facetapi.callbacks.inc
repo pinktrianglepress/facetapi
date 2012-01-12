@@ -36,14 +36,10 @@ function facetapi_map_bundle(array $values, array $options) {
  * Map callback for node authors.
  */
 function facetapi_map_author(array $values) {
-  $result = db_select('users', 'u')
-    ->fields('u', array('uid', 'name'))
-    ->condition('uid', $values, 'IN')
-    ->execute();
-
   $map = array();
-  while ($record = $result->fetchAssoc()) {
-    $map[$record['uid']] = $record['name'];
+  $users = user_load_multiple($values);
+  foreach ($users as $user) {
+    $map[$user->uid] = $user->name;
   }
   if (isset($map[0])) {
     $map[0] = variable_get('anonymous', t('Anonymous'));
