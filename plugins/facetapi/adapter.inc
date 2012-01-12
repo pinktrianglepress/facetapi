@@ -1218,20 +1218,22 @@ class FacetapiFacetProcessor {
    */
   protected function mapValues(array $build) {
     if ($this->facet['map callback']) {
-      // Gets available items and active items, runs through map callback.
+      // Gets available items and active items, runs through map callback only
+      // when there are values to map.
       // NOTE: array_merge() doesn't work here when the values are numeric.
-      $values = array_unique(array_keys($build + $this->getActiveItems()));
-      $this->map = call_user_func($this->facet['map callback'], $values, $this->facet['map options']);
-      // Normalize all mapped values to a two element array.
-      foreach ($this->map as $key => $value) {
-        if (!is_array($value)) {
-          $this->map[$key] = array();
-          $this->map[$key]['#markup'] = $value;
-          $this->map[$key]['#html'] = FALSE;
-        }
-        if (isset($build[$key])) {
-          $build[$key]['#markup'] = $this->map[$key]['#markup'];
-          $build[$key]['#html'] = !empty($this->map[$key]['#html']);
+      if ($values = array_unique(array_keys($build + $this->getActiveItems()))) {
+        $this->map = call_user_func($this->facet['map callback'], $values, $this->facet['map options']);
+        // Normalize all mapped values to a two element array.
+        foreach ($this->map as $key => $value) {
+          if (!is_array($value)) {
+            $this->map[$key] = array();
+            $this->map[$key]['#markup'] = $value;
+            $this->map[$key]['#html'] = FALSE;
+          }
+          if (isset($build[$key])) {
+            $build[$key]['#markup'] = $this->map[$key]['#markup'];
+            $build[$key]['#html'] = !empty($this->map[$key]['#html']);
+          }
         }
       }
     }
