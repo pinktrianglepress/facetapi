@@ -68,10 +68,6 @@ define('FACETAPI_REGEX_DATE_RANGE', '/^\[(' . trim(FACETAPI_REGEX_DATE, '/^$') .
 // Calls block specific hooks and overrides.
 require_once dirname(__FILE__) . '/facetapi.block.inc';
 
-function facetapi_init() {
-  module_load_include('inc', 'facetapi', 'facetapi.facetapi');
-}
-
 /**
  * Implements hook_facetapi_hook_info().
  */
@@ -158,11 +154,11 @@ function facetapi_menu() {
     }
   }
 
-  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/edit'] = array(
     'title' => 'Configure facet display',
-    'load arguments' => array(3),
+    'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_display_form', 3, 4, 5),
+    'page arguments' => array('facetapi_facet_display_form', 4, 5, 6),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -170,11 +166,11 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_dependencies/dependencies'] = array(
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_dependencies/dependencies'] = array(
     'title' => 'Configure facet dependencies',
-    'load arguments' => array(3),
+    'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_dependencies_form', 3, 4, 5),
+    'page arguments' => array('facetapi_facet_dependencies_form', 4, 5, 6),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -182,11 +178,11 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_filters/filters'] = array(
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_filters/filters'] = array(
     'title' => 'Configure facet filters',
-    'load arguments' => array(3),
+    'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_facet_filters_form', 3, 4, 5),
+    'page arguments' => array('facetapi_facet_filters_form', 4, 5, 6),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_LOCAL_ACTION,
     'context' => MENU_CONTEXT_INLINE,
@@ -194,21 +190,21 @@ function facetapi_menu() {
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/export'] = array(
     'title' => 'Export facet configuration',
-    'load arguments' => array(3),
-    'page callback' => 'facetapi_export_page',
-    'page arguments' => array(3, 4, 5),
+    'load arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('facetapi_export_form', 4, 5, 6),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_NORMAL_ITEM,
     'file' => 'facetapi.admin.inc',
   );
 
-  $items['admin/settings/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/revert'] = array(
+  $items['admin/config/search/facetapi/%facetapi_adapter/%facetapi_realm/%facetapi_facet/revert'] = array(
     'title' => 'Revert facet configuration',
-    'load arguments' => array(3),
+    'load arguments' => array(4),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('facetapi_revert_form', 3, 4, 5),
+    'page arguments' => array('facetapi_revert_form', 4, 5, 6),
     'access callback' => 'facetapi_access_callback',
     'type' => MENU_NORMAL_ITEM,
     'file' => 'facetapi.admin.inc',
@@ -261,10 +257,6 @@ function facetapi_theme() {
     ),
     'facetapi_count' => array(
       'arguments' => array('count' => NULL),
-      'file' => 'facetapi.theme.inc',
-    ),
-    'facetapi_link' => array(
-      'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
       'file' => 'facetapi.theme.inc',
     ),
     'facetapi_link_inactive' => array(
@@ -336,14 +328,13 @@ function facetapi_permission() {
  *   The adapter object, FALSE if the object can't be loaded.
  */
 function facetapi_adapter_load($searcher) {
-  $adapters = &ctools_static(__FUNCTION__, array());
+  $adapters = &drupal_static(__FUNCTION__, array());
   if (!isset($adapters[$searcher])) {
     $searcher_info = facetapi_get_searcher_info();
     if (isset($searcher_info[$searcher]['adapter'])) {
       ctools_include('plugins');
       $id = $searcher_info[$searcher]['adapter'];
       $class = ctools_plugin_load_class('facetapi', 'adapters', $id, 'handler');
-
       $adapters[$searcher] = ($class) ? new $class($searcher_info[$searcher]) : FALSE;
     }
     else {
@@ -562,7 +553,7 @@ function facetapi_get_searcher_info() {
  *   An associative array of active adapters
  */
 function facetapi_get_active_searchers() {
-  $searchers = &ctools_static('facetapi_active_searchers', array());
+  $searchers = &drupal_static('facetapi_active_searchers', array());
   return $searchers;
 }
 
@@ -575,7 +566,7 @@ function facetapi_get_active_searchers() {
  *   facetapi_realm_load() function for the structure of the definitions.
  */
 function facetapi_get_realm_info() {
-  $realm_info = &ctools_static(__FUNCTION__);
+  $realm_info = &drupal_static(__FUNCTION__);
   if (NULL === $realm_info) {
     $realm_info = module_invoke_all('facetapi_realm_info');
     foreach ($realm_info as $realm_name => $realm) {
@@ -591,7 +582,7 @@ function facetapi_get_realm_info() {
       );
     }
     drupal_alter('facetapi_realm_info', $realm_info);
-    uasort($realm_info, 'facetapi_sort_weight');
+    uasort($realm_info, 'drupal_sort_weight');
   }
   return $realm_info;
 }
@@ -608,7 +599,7 @@ function facetapi_get_realm_info() {
  *   facetapi_facet_load() function for the structure of the definitions.
  */
 function facetapi_get_facet_info($searcher) {
-  $facet_info = &ctools_static(__FUNCTION__, array());
+  $facet_info = &drupal_static(__FUNCTION__, array());
 
   // Gets facet info if we haven't gotten it already.
   if (!isset($facet_info[$searcher])) {
@@ -675,7 +666,7 @@ function facetapi_get_facet_info($searcher) {
     // Invokes alter hook, sorts and returns.
     drupal_alter('facetapi_facet_info', $facet_info[$searcher], $searcher_info[$searcher]);
     array_walk($facet_info[$searcher], 'facetapi_map_assoc', 'field api bundles');
-    uasort($facet_info[$searcher], 'facetapi_sort_weight');
+    uasort($facet_info[$searcher], 'drupal_sort_weight');
   }
 
   return $facet_info[$searcher];
@@ -710,7 +701,7 @@ function facetapi_map_assoc(&$array, $name, $key) {
  *   - weight: The default weight of the sort specifying its processing order.
  */
 function facetapi_get_sort_info() {
-  $sort_info = &ctools_static(__FUNCTION__);
+  $sort_info = &drupal_static(__FUNCTION__);
   if (NULL === $sort_info) {
     $sort_info = module_invoke_all('facetapi_sort_info');
     foreach ($sort_info as $sort_name => $info) {
@@ -781,7 +772,7 @@ function facetapi_get_filters(array $facet) {
  * @see FacetapiAdapter::getFacetSettingsGlobal()
  */
 function facetapi_get_searcher_settings($searcher) {
-  $settings = &ctools_static(__FUNCTION__, array());
+  $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$searcher])) {
     ctools_include('export');
     $args = array('searcher' => $searcher);
@@ -809,7 +800,7 @@ function facetapi_get_searcher_settings($searcher) {
  *   facetapi_facet_load() function for the structure of the definitions.
  */
 function facetapi_get_enabled_facets($searcher, $realm_name = NULL) {
-  $enabled_facets = &ctools_static(__FUNCTION__, array());
+  $enabled_facets = &drupal_static(__FUNCTION__, array());
   $cid = $searcher . ':' . (string) $realm_name;
   if (!isset($enabled_facets[$cid])) {
     $facets = array();
@@ -961,7 +952,7 @@ function facetapi_is_active_searcher($searcher) {
  * @see facetapi_get_active_searchers();
  */
 function facetapi_add_active_searcher($searcher) {
-  $searchers = &ctools_static('facetapi_active_searchers', array());
+  $searchers = &drupal_static('facetapi_active_searchers', array());
   $searchers[$searcher] = $searcher;
 }
 
@@ -1047,19 +1038,16 @@ function facetapi_check_requirements(array $requirements, array $realm, array $f
  *   TRUE, the list of enabled facets won't be rebuild and the active items
  *   won't be re-processed.  Note that these tasks will have to be performed
  *   manually in order for the status to be properly set.
- * @todo Make sure we convert this static logic
  */
 function facetapi_set_facet_status($searcher, $realm_name, $facet_name, $status, $batch_process) {
   // Rebuild static if not batch processing.
   if (!$batch_process) {
-    static $enabled_facets;
-    $enabled_facets = NULL;
-    ctools_static('facetapi_get_enabled_facets', array(), TRUE);
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
   }
 
   // Pulls the list of enabled facets so we can modify it here.
   facetapi_get_enabled_facets($searcher, $realm_name);
-  $enabled_facets = &ctools_static('facetapi_get_enabled_facets', array());
+  $enabled_facets = &drupal_static('facetapi_get_enabled_facets', array());
 
   // Performs the operation by setting or unsetting the facet.
   $cid = $searcher . ':' . (string) $realm_name;
@@ -1157,7 +1145,7 @@ function facetapi_set_facet_disabled($searcher, $realm_name, $facet_name, $batch
  *   A boolean flagging whether batch processing is being performed.  If set to
  *   TRUE, the caches and statics won't be reset.
  *
- * @return
+ * @reutrn
  *   TRUE if the operation succeeded, FALSE otherwise.
  */
 function facetapi_save_facet_status(FacetapiAdapter $adapter, array $realm, array $facet, $status, $weight, $batch_process) {
@@ -1174,9 +1162,7 @@ function facetapi_save_facet_status(FacetapiAdapter $adapter, array $realm, arra
 
   // Clears caches and statics if we are not batch processing.
   if ($success && !$batch_process) {
-    ctools_static('facetapi_get_enabled_facets', array(), TRUE);
-    static $enabled_facets;
-    $enabled_facets = NULL;
+    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
     if ('block' == $realm['name']) {
       cache_clear_all(NULL, 'cache_block');
       cache_clear_all('facetapi:delta_map', 'cache');
@@ -1228,20 +1214,4 @@ function facetapi_save_facet_enabled(FacetapiAdapter $adapter, array $realm, arr
  */
 function facetapi_save_facet_disabled(FacetapiAdapter $adapter, array $realm, array $facet, $weight = FALSE, $batch_process = FALSE) {
   return facetapi_save_facet_status($adapter, $realm, $facet, FALSE, $weight, $batch_process);
-}
-
-/**
- * Sorts array items on their weight
- *
- * @param array item $a
- * @param array item $b
- * @return boolean true if lighter
- */
-function facetapi_sort_weight($a, $b) {
-  $a_weight = (is_array($a) && isset($a['weight'])) ? $a['weight'] : 0;
-  $b_weight = (is_array($b) && isset($b['weight'])) ? $b['weight'] : 0;
-  if ($a_weight == $b_weight) {
-    return 0;
-  }
-  return ($a_weight < $b_weight) ? -1 : 1;
 }

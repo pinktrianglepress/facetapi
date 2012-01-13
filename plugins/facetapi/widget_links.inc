@@ -27,7 +27,11 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
     // Sets each item's theme hook, builds item list.
     $this->setThemeHooks($element);
-    $element = theme('item_list', $this->buildListItems($element), NULL, 'ul', $this->build['#attributes']);
+    $element = array(
+      '#theme' => 'item_list',
+      '#items' => $this->buildListItems($element),
+      '#attributes' => $this->build['#attributes'],
+    );
   }
 
   /**
@@ -113,13 +117,10 @@ class FacetapiWidgetLinks extends FacetapiWidget {
 
       // Gets theme hook, adds last minute classes.
       $class = ($item['#active']) ? 'facetapi-active' : 'facetapi-inactive';
-      $variables['options']['attributes']['class'] = $class;
+      $variables['options']['attributes']['class'][] = $class;
 
       // Themes the link, adds row to items.
       $row['data'] = theme($item['#theme'], $variables);
-
-      // Drupal 6 does not allow classes to be in an array
-      $row['class'] = implode(' ', $row['class']);
       $items[] = $row;
     }
 
@@ -209,6 +210,7 @@ class FacetapiWidgetCheckboxLinks extends FacetapiWidgetLinks {
   public function init() {
     parent::init();
     $this->jsSettings['makeCheckboxes'] = 1;
+    drupal_add_css(drupal_get_path('module', 'facetapi') . '/facetapi.css');
   }
 
   /**

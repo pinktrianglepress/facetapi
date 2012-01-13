@@ -49,7 +49,7 @@ function hook_facetapi_searcher_info() {
       'adapter' => 'search',
       'url processor' => 'standard',
       'types' => array('node'),
-      'path' => 'admin/settings/search',
+      'path' => 'admin/config/search/settings',
       'supports facet missing' => TRUE,
       'supports facet mincount' => TRUE,
       'include default facets' => TRUE,
@@ -103,7 +103,7 @@ function hook_facetapi_realm_info() {
       'settings callback' => 'facetapi_block_realm_settings',
       'description' => t(
         'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
-        array('@block-page' => url('admin/structure/block', array('query' => array('destination' => $_GET['q']))))
+        array('@block-page' => url('admin/structure/block', array('query' => array('destination' => current_path()))))
       ),
     ),
   );

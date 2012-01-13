@@ -8,7 +8,7 @@ $plugin = array(
   'access' => 'administer search',
 
   'menu' => array(
-    'menu prefix' => 'admin/settings',
+    'menu prefix' => 'admin/config/search',
     'menu item' => 'current_search',
     'menu title' => 'Current search blocks',
     'menu description' => 'Configure current search blocks.',

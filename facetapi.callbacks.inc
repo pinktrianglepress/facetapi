@@ -22,10 +22,9 @@ function facetapi_map_bundle(array $values, array $options) {
     $options['entities'] = array('node');
   }
   foreach ($options['entities'] as $entity_type) {
-    // Ignore entity types for Drupal 6
-    if ($info = content_types()) {
-      foreach ($info as $bundle_name => $bundle_info) {
-        $names[$bundle_name] = $bundle_info['name'];
+    if ($info = entity_get_info($entity_type)) {
+      foreach ($info['bundles'] as $bundle_name => $bundle_info) {
+        $names[$bundle_name] = $bundle_info['label'];
       }
     }
   }
