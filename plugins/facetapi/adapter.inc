@@ -75,6 +75,13 @@ abstract class FacetapiAdapter {
   protected $searchPath;
 
   /**
+   * Stores whether each facet passed dependencies.
+   *
+   * @var array
+   */
+  protected $dependenciesPassed = array();
+
+  /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param array $searcher_info
@@ -465,6 +472,9 @@ abstract class FacetapiAdapter {
         }
       }
 
+      // Stores whether this facet passed its dependencies.
+      $this->dependenciesPassed[$facet['name']] = $display;
+
       // Add query type plugin if dependencies were met, otherwise remove the
       // facet's active items so they don't display in the current search block
       // or appear as active in the breadcrumb trail.
@@ -806,6 +816,10 @@ abstract class FacetapiAdapter {
 
     // Builds each facet in the realm, merges into realm's render array.
     foreach ($this->getEnabledFacets($realm['name']) as $facet) {
+      // Continue to the next facet if this one failed its dependencies.
+      if (!$this->dependenciesPassed[$facet['name']]) {
+        continue;
+      }
 
       // Gets the initialized build.
       $field_alias = $facet['field alias'];
