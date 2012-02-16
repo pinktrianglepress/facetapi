@@ -6,14 +6,16 @@ Drupal.behaviors.facetapi = {
     // links for block realm facets.
     // @todo We need some sort of JS API so we don't have to make decisions
     // based on the realm.
-    for (var index in settings.facetapi.facets) {
-      if (null != settings.facetapi.facets[index].makeCheckboxes) {
-        // Find all checkbox facet links and give them a checkbox.
-        $('#' + settings.facetapi.facets[index].id + ' a.facetapi-checkbox', context).each(Drupal.facetapi.makeCheckbox);
-      }
-      if (null != settings.facetapi.facets[index].limit) {
-        // Applies soft limit to the list.
-        Drupal.facetapi.applyLimit(settings.facetapi.facets[index]);
+    if (settings.facetapi) {
+      for (var index in settings.facetapi.facets) {
+        if (null != settings.facetapi.facets[index].makeCheckboxes) {
+          // Find all checkbox facet links and give them a checkbox.
+          $('#' + settings.facetapi.facets[index].id + ' a.facetapi-checkbox', context).each(Drupal.facetapi.makeCheckbox);
+        }
+        if (null != settings.facetapi.facets[index].limit) {
+          // Applies soft limit to the list.
+          Drupal.facetapi.applyLimit(settings.facetapi.facets[index]);
+        }
       }
     }
   }
