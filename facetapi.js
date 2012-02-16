@@ -35,7 +35,7 @@ Drupal.facetapi.applyLimit = function(settings) {
     // Ensures our limit is zero-based, hides facets over the limit.
     var limit = settings.limit - 1;
     $('ul#' + settings.id).find('li:gt(' + limit + ')').hide();
-    
+
     // Adds "Show more" / "Show fewer" links as appropriate.
     $('ul#' + settings.id).filter(function() {
       return $(this).find('li').length > settings.limit;
