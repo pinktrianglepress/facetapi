@@ -768,6 +768,24 @@ abstract class FacetapiAdapter {
   }
 
   /**
+   * Helper function that returns the facet path for a facet item.
+   *
+   * @param array $facet
+   *   The facet definition.
+   * @param array $values
+   *   An array containing the item's values being added to or removed from the
+   *   query string dependent on whether or not the item is active.
+   * @param int $active
+   *   An integer flagging whether the item is active or not.
+   *
+   * @return string
+   *   The facet path.
+   */
+  public function getFacetPath(array $facet, array $values, $active) {
+    return $this->urlProcessor->getFacetPath($facet, $values, $active);
+  }
+
+  /**
    * Initializes facet builds, adds breadcrumb trail.
    */
   public function processFacets() {
@@ -1324,9 +1342,28 @@ class FacetapiFacetProcessor {
       // current search block as well.
       $this->activeChildren[$value] = $values;
 
-      // Formats query string for facet item, sets theme function.
+      // Formats path and query string for facet item, sets theme function.
+      $item['#path'] = $this->getFacetPath($values, $item['#active']);
       $item['#query'] = $this->getQueryString($values, $item['#active']);
     }
+  }
+
+  /**
+   * Helper function that returns the path for a facet item.
+   *
+   * @param array $values
+   *   An array containing the item's values being added to or removed from the
+   *   query string dependent on whether or not the item is active.
+   * @param int $active
+   *   An integer flagging whether the item is active or not.
+   *
+   * @return
+   *   The facet path.
+   */
+  public function getFacetPath(array $values, $active) {
+    return $this->facet
+      ->getAdapter()
+      ->getFacetPath($this->facet->getFacet(), $values, $active);
   }
 
   /**
@@ -1338,7 +1375,7 @@ class FacetapiFacetProcessor {
    * @param int $active
    *   An integer flagging whether the item is active or not.
    *
-   * @reutrn
+   * @return
    *   An array containing the query string variables.
    */
   public function getQueryString(array $values, $active) {
