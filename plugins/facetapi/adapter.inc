@@ -82,6 +82,13 @@ abstract class FacetapiAdapter {
   protected $dependenciesPassed = array();
 
   /**
+   * Stores settings with defaults.
+   *
+   * @var array
+   */
+  protected $settings = array();
+
+  /**
    * Constructor, sets searcher and type of content being indexed.
    *
    * @param array $searcher_info
@@ -518,27 +525,20 @@ abstract class FacetapiAdapter {
    *   An object containing the initialized settings.
    */
   public function initSettingsObject($name, $facet_name, $realm_name = NULL) {
-    $settings = ctools_export_crud_new('facetapi');
-    $settings->name = $name;
-    $settings->searcher = $this->info['name'];
-    $settings->realm = (string) $realm_name;
-    $settings->facet = $facet_name;
-    $settings->enabled = 0;
-    return $settings;
-  }
-
-  /**
-   * Attempts to get the settings from the static cache.
-   *
-   * @param $name
-   *   The machine readable name of the settings.
-   *
-   * @return stdClass|FALSE
-   *   An object containing the settings, FALSE if settings are not cached.
-   */
-  public function getSettingsByName($name) {
     $cached_settings = facetapi_get_searcher_settings($this->info['name']);
-    return isset($cached_settings[$name]) ? $cached_settings[$name] : FALSE;
+    if (!isset($cached_settings[$name])) {
+      $settings = ctools_export_crud_new('facetapi');
+      $settings->name = $name;
+      $settings->searcher = $this->info['name'];
+      $settings->realm = (string) $realm_name;
+      $settings->facet = $facet_name;
+      $settings->enabled = 0;
+      $settings->settings = array();
+    }
+    else {
+      $settings = $cached_settings[$name];
+    }
+    return $settings;
   }
 
   /**
@@ -557,8 +557,8 @@ abstract class FacetapiAdapter {
   public function getFacetSettings(array $facet, array $realm) {
     // Builds the unique name of the configuration settings and loads.
     $name = $this->info['name'] . ':' . $realm['name'] . ':' . $facet['name'];
-    if (!$settings = $this->getSettingsByName($name)) {
-      $settings = $this->initSettingsObject($name, $facet['name'], $realm['name']);
+    if (!isset($this->settings[$name])) {
+      $this->settings[$name] = $this->initSettingsObject($name, $facet['name'], $realm['name']);
 
       // Use realm's default widget if facet doesn't define one.
       if (!empty($facet['default widget'])) {
@@ -569,7 +569,7 @@ abstract class FacetapiAdapter {
       }
 
       // Apply default settings.
-      $settings->settings = array(
+      $this->settings[$name]->settings += array(
         'weight' => 0,
         'widget' => $widget,
         'filters' => array(),
@@ -582,34 +582,26 @@ abstract class FacetapiAdapter {
       // Apply default sort settings.
       $weight = -50;
       foreach ($facet['default sorts'] as $sort => $default) {
-        $settings->settings['active_sorts'][$default[0]] = $default[0];
-        $settings->settings['sort_weight'][$default[0]] = $weight++;
-        $settings->settings['sort_order'][$default[0]] = $default[1];
+        $this->settings[$name]->settings['active_sorts'][$default[0]] = $default[0];
+        $this->settings[$name]->settings['sort_weight'][$default[0]] = $weight++;
+        $this->settings[$name]->settings['sort_order'][$default[0]] = $default[1];
       }
 
       // Apply the widget plugin's default settings.
-      $id = $settings->settings['widget'];
+      $id = $this->settings[$name]->settings['widget'];
       $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
       // If we have an invalid widget, fall back to the realm's default.
       if (!$class) {
-        $id = $settings->settings['widget'] = $realm['default widget'];
+        $id = $this->settings[$name]->settings['widget'] = $realm['default widget'];
         $class = ctools_plugin_load_class('facetapi', 'widgets', $id, 'handler');
       }
-      $plugin = new $class($id, $realm, $this->getFacet($facet), $settings);
-      $settings->settings += $plugin->getDefaultSettings();
+      $plugin = new $class($id, $realm, $this->getFacet($facet), $this->settings[$name]);
+      $this->settings[$name]->settings += $plugin->getDefaultSettings();
 
       // @todo Save for performance?
     }
 
-    // Ensures settings added in later versions of the module are initialized to
-    // prevent undefuned index errors after upgrading.
-    // @todo Remove in 7.x-2.x
-    $settings->settings += array(
-      'empty_behavior' => 'none',
-      'filters' => array(),
-    );
-
-    return $settings;
+    return $this->settings[$name];
   }
 
   /**
@@ -625,11 +617,11 @@ abstract class FacetapiAdapter {
    */
   public function getFacetSettingsGlobal(array $facet) {
     $name = $this->info['name'] . '::' . $facet['name'];
-    if (!$settings = $this->getSettingsByName($name)) {
-      $settings = $this->initSettingsObject($name, $facet['name']);
+    if (!isset($this->settings[$name])) {
+      $this->settings[$name] = $this->initSettingsObject($name, $facet['name']);
 
       // Apply default settings.
-      $settings->settings = array(
+      $this->settings[$name]->settings += array(
         'operator' => FACETAPI_OPERATOR_AND,
         'hard_limit' => 50,
         'dependencies' => array(),
@@ -640,30 +632,20 @@ abstract class FacetapiAdapter {
       );
 
       // Apply the adapter's default settings.
-      $settings->settings += $this->getDefaultSettings();
+      $this->settings[$name]->settings += $this->getDefaultSettings();
 
       // Applies each dependency plugin's default settings.
       foreach ($facet['dependency plugins'] as $id) {
         $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
-        $plugin = new $class($id, $this, $facet, $settings, array());
-        $settings->settings['dependencies'] = array();
-        $settings->settings['dependencies'] += $plugin->getDefaultSettings();
+        $plugin = new $class($id, $this, $facet, $this->settings[$name], array());
+        $this->settings[$name]->settings['dependencies'] = array();
+        $this->settings[$name]->settings['dependencies'] += $plugin->getDefaultSettings();
       }
 
       // @todo Save for performance?
     }
 
-    // Ensures settings added in later versions of the module are initialized to
-    // prevent undefuned index errors after upgrading.
-    // @todo Remove in 7.x-2.x
-    $settings->settings += array(
-      'facet_mincount' => 1,
-      'facet_missing' => 0,
-      'flatten' => 0,
-      'query_type' => 'term',
-    );
-
-    return $settings;
+    return $this->settings[$name];
   }
 
   /**
