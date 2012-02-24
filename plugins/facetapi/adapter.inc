@@ -559,6 +559,7 @@ abstract class FacetapiAdapter {
     $name = $this->info['name'] . ':' . $realm['name'] . ':' . $facet['name'];
     if (!isset($this->settings[$name])) {
       $this->settings[$name] = $this->initSettingsObject($name, $facet['name'], $realm['name']);
+      $is_new = empty($this->settings[$name]->settings);
 
       // Use realm's default widget if facet doesn't define one.
       if (!empty($facet['default widget'])) {
@@ -579,12 +580,14 @@ abstract class FacetapiAdapter {
         'empty_behavior' => 'none',
       );
 
-      // Apply default sort settings.
-      $weight = -50;
-      foreach ($facet['default sorts'] as $sort => $default) {
-        $this->settings[$name]->settings['active_sorts'][$default[0]] = $default[0];
-        $this->settings[$name]->settings['sort_weight'][$default[0]] = $weight++;
-        $this->settings[$name]->settings['sort_order'][$default[0]] = $default[1];
+      // Apply default sort info if necessary.
+      if ($is_new) {
+        $weight = -50;
+        foreach ($facet['default sorts'] as $sort => $default) {
+          $this->settings[$name]->settings['active_sorts'][$default[0]] = $default[0];
+          $this->settings[$name]->settings['sort_weight'][$default[0]] = $weight++;
+          $this->settings[$name]->settings['sort_order'][$default[0]] = $default[1];
+        }
       }
 
       // Apply the widget plugin's default settings.
@@ -619,6 +622,7 @@ abstract class FacetapiAdapter {
     $name = $this->info['name'] . '::' . $facet['name'];
     if (!isset($this->settings[$name])) {
       $this->settings[$name] = $this->initSettingsObject($name, $facet['name']);
+      $is_new = empty($this->settings[$name]->settings);
 
       // Apply default settings.
       $this->settings[$name]->settings += array(
@@ -636,9 +640,11 @@ abstract class FacetapiAdapter {
 
       // Applies each dependency plugin's default settings.
       foreach ($facet['dependency plugins'] as $id) {
+        if ($is_new) {
+          $this->settings[$name]->settings['dependencies'] = array();
+        }
         $class = ctools_plugin_load_class('facetapi', 'dependencies', $id, 'handler');
         $plugin = new $class($id, $this, $facet, $this->settings[$name], array());
-        $this->settings[$name]->settings['dependencies'] = array();
         $this->settings[$name]->settings['dependencies'] += $plugin->getDefaultSettings();
       }
 
