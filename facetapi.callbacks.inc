@@ -132,7 +132,7 @@ function facetapi_map_taxonomy_terms(array $values) {
   $map = array();
   $terms = taxonomy_term_load_multiple($values);
   foreach ($terms as $term) {
-    $map[$term->tid] = $term->name;
+    $map[$term->tid] = entity_label('taxonomy_term', $term);
   }
   return $map;
 }
