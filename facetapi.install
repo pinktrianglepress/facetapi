@@ -60,7 +60,7 @@ function facetapi_schema() {
       ),
       'settings' => array(
         'description' => 'Serialized storage of general settings.',
-        'type' => 'text',
+        'type' => 'blob',
         'serialize' => TRUE,
       ),
     ),
@@ -202,5 +202,16 @@ function facetapi_update_7101() {
     'length' => 255,
     'not null' => TRUE,
     'default' => '',
+  ));
+}
+
+/**
+ * Fix Postgres compatibility issue.
+ */
+function facetapi_update_7102() {
+  db_change_field('facetapi', 'settings', 'settings', array(
+    'type' => 'blob',
+    'description' => 'Serialized storage of general settings.',
+    'serialize' => TRUE,
   ));
 }
