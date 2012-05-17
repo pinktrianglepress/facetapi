@@ -185,7 +185,7 @@ function current_search_settings_form(&$form, &$form_state) {
       'exists' => 'current_search_config_exists',
       'source' => array('info', 'label'),
     ),
-    '#disabled' => !empty($item->name),
+    '#disabled' => ('clone' != $form_state['form type'] && !empty($item->name)),
     '#description' => t('The machine readable name of the current search block configuration. This value can only contain letters, numbers, and underscores.'),
   );
 
