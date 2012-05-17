@@ -161,8 +161,9 @@ function facetapi_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'end-count':
-          $offset = ($adapter->getPageNumber()) * $adapter->getPageLimit();
-          $replacements[$original] = $offset;
+          $page_max = $adapter->getPageNumber() * $adapter->getPageLimit();
+          $total_max = (int) $adapter->getResultCount();
+          $replacements[$original] = min($page_max, $total_max);
           break;
       }
     }
