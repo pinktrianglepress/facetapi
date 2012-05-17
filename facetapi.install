@@ -87,6 +87,10 @@ function facetapi_uninstall() {
   foreach ($result as $record) {
     variable_del($record->name);
   }
+  // Remove blocks.
+  if (db_table_exists('block')) {
+    db_delete('block')->condition('module', 'facetapi')->execute();
+  }
 }
 
 /**
