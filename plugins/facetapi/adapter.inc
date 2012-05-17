@@ -128,6 +128,12 @@ abstract class FacetapiAdapter {
       }
     }
 
+    // Ensure the URL processor classes are loaded.
+    // See http://drupal.org/node/1306198
+    $plugin_path = dirname(__FILE__);
+    require_once $plugin_path . '/url_processor.inc';
+    require_once $plugin_path . '/url_processor_standard.inc';
+
     // Instantiates URL processor plugin.
     $id = $searcher_info['url processor'];
     $class = ctools_plugin_load_class('facetapi', 'url_processors', $id, 'handler');
