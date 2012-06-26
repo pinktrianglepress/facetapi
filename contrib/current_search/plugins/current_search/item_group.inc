@@ -46,7 +46,7 @@ class CurrentSearchGroup extends CurrentSearchItem {
       // Builds list items.
       foreach ($group as $item) {
         $markup = $adapter->getMappedValue($item['facets'][0], $item['value']);
-        $text = ($markup['#html']) ? $markup['#markup'] : check_plain($markup['#markup']);
+        $text = empty($markup['#html']) ? check_plain($markup['#markup']) : $markup['#markup'];
         $variables = array(
           'text' => $text,
           'path' => $this->getFacetPath($item, $adapter),
