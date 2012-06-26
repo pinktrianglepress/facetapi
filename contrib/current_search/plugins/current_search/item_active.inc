@@ -20,8 +20,9 @@ class CurrentSearchItemActive extends CurrentSearchItem {
     $adapter->processFacets();
 
     // Adds the keywords if any were passed.
-    if ($this->settings['keys'] && $adapter->getSearchKeys()) {
-      $items[] = check_plain($adapter->getSearchKeys());
+    $keys = $adapter->getSearchKeys();
+    if ($this->settings['keys'] && $keys) {
+      $items[] = theme('current_search_keys', array('keys' => $keys, 'adapter' => $adapter));
     }
 
     // Initializes links attributes, adds rel="nofollow" if configured.

@@ -65,6 +65,10 @@ function current_search_theme() {
       'arguments' => array('text' => NULL, 'path' => NULL, 'options' => array()),
       'file' => 'current_search.theme.inc',
     ),
+    'current_search_keys' => array(
+      'arguments' => array('keys' => NULL, 'adapter' => NULL),
+      'file' => 'current_search.theme.inc',
+    ),
     'current_search_deactivate_widget' => array(
       'file' => 'current_search.theme.inc',
     ),
