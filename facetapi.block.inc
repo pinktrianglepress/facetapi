@@ -39,29 +39,13 @@ function facetapi_block_info() {
 }
 
 /**
- * Implements hook_block_list_alter().
- *
- * Parses delta information, checks whether to display block.
- */
-function facetapi_block_list_alter(&$blocks) {
-  foreach ($blocks as $bid => $block) {
-    if ('facetapi' == $block->module) {
-      if (!facetapi_check_block_visibility($block->delta)) {
-        unset($blocks[$bid]);
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_block_view().
  */
 function facetapi_block_view($delta = '') {
   $builds = &drupal_static(__FUNCTION__, array());
   $parsed = &drupal_static('facetapi_parsed_deltas', array());
 
-  // Test block visibility if not already tested. This is necessary when using
-  // modules such as Context that do not invoke hook_block_list_alter().
+  // Test block visibility if not already tested.
   if (!isset($parsed[$delta]) && !facetapi_check_block_visibility($delta)) {
     return;
   }
