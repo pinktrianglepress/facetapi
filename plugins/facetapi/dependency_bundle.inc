@@ -6,9 +6,9 @@
  */
 
 /**
- * Dependency plugin on bundle conditions.
+ * Dependency plugin adding bundle conditions.
  *
- * The bundle dependency plugin add conditions based on active bundle facets.
+ * The bundle dependency plugin adds conditions based on active bundle facets.
  * For example, the administrator can configure whether a facet is displayed
  * based on wheter certain bundles are active. If a facet stores field data,
  * then an option is exposed to only show the facet if a bundle the field is
