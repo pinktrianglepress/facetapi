@@ -7,6 +7,13 @@
 
 /**
  * Abstract class extended by dependency plugins.
+ *
+ * Dependencies are conditions that must be met for facets to be processed and
+ * displayed. The system allows site builders to implement the "progressive
+ * disclosure" pattern, where facets are exposed only after some action has
+ * been taken. For example, a common use case is to only expose taxonomy facets
+ * when the bundle they are attached to is selected by the user as an active
+ * facet.
  */
 abstract class FacetapiDependency {
 
@@ -18,7 +25,7 @@ abstract class FacetapiDependency {
   protected $adapter;
 
   /**
-   * The facet definition.
+   * The facet definition as re
    *
    * @var array
    */
