@@ -39,7 +39,10 @@ abstract class FacetapiDependency {
   protected $activeItems;
 
   /**
-   * An array of facet settings.
+   * An array of dependency settings.
+   *
+   * This is the "dependencies" key of the "settings" property of the facet's
+   * global settings returned by FacetapiAdapter::getFacetSettingsGlobal().
    *
    * @var array
    */
@@ -112,7 +115,7 @@ abstract class FacetapiDependency {
   abstract public function execute();
 
   /**
-   * Allows plugins to add settings to the dependency form.
+   * Allows the plugin to add settings to the dependency form.
    *
    * @see facetapi_facet_dependencies_form()
    */
