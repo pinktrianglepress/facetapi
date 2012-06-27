@@ -34,7 +34,7 @@ class FacetapiEmptyBehaviorText extends FacetapiEmptyBehavior {
   }
 
   /**
-   * Overrides FacetapiEmptyBehavior::execute().
+   * Implements FacetapiEmptyBehavior::execute().
    */
   public function execute() {
     $format_id = $this->settings['empty_text']['format'];

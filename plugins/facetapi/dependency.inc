@@ -18,6 +18,13 @@
 abstract class FacetapiDependency {
 
   /**
+   * The machine name of the plugin associated with this instance.
+   *
+   * @var string
+   */
+  protected $id;
+
+  /**
    * The adapter associated with facet whose dependencies are being checked.
    *
    * @var FacetapiAdapter
@@ -32,13 +39,6 @@ abstract class FacetapiDependency {
   protected $facet;
 
   /**
-   * The facet's active items as returned by FacetapiAdapter::getActiveItems().
-   *
-   * @var array
-   */
-  protected $activeItems;
-
-  /**
    * An array of dependency settings.
    *
    * This is the "dependencies" key of the "settings" property of the facet's
@@ -47,6 +47,13 @@ abstract class FacetapiDependency {
    * @var array
    */
   protected $settings;
+
+  /**
+   * The facet's active items as returned by FacetapiAdapter::getActiveItems().
+   *
+   * @var array
+   */
+  protected $activeItems;
 
   /**
    * Constructs a FacetapiDependency object.

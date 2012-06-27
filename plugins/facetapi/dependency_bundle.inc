@@ -19,7 +19,7 @@
 class FacetapiDependencyBundle extends FacetapiDependency {
 
   /**
-   * Overrides FacetapiDependency::execute().
+   * Implements FacetapiDependency::execute().
    */
   public function execute() {
     switch ($this->settings['bundle']) {

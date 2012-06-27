@@ -16,7 +16,7 @@
 class FacetapiDependencyRole extends FacetapiDependency {
 
   /**
-   * Overrides FacetapiDependency::execute().
+   * Implements FacetapiDependency::execute().
    */
   public function execute() {
     global $user;

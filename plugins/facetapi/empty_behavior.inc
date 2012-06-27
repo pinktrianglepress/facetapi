@@ -108,7 +108,7 @@ abstract class FacetapiEmptyBehavior {
 class FacetapiEmptyBehaviorNone extends FacetapiEmptyBehavior {
 
   /**
-   * Overrides FacetapiEmptyBehavior::execute().
+   * Implements FacetapiEmptyBehavior::execute().
    */
   public function execute() {
     return array();
