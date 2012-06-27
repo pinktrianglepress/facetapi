@@ -126,7 +126,7 @@ function facetapi_check_block_visibility($delta) {
 /**
  * Returns a cached delta map of hashes to names.
  *
- * Sometimes our deltas are longer than 32 chars and need to be passed to hash().
+ * Sometimes deltas are longer than 32 chars and need to be passed to hash().
  * Due to the block table's schema, deltas cannot be longer than 32 characters.
  * However, hashes are nasty as CSS IDs, so we can use the map to convert
  * the hashes back to a nicer value in facetapi_preprocess_block().

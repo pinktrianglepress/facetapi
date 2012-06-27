@@ -1149,8 +1149,8 @@ class FacetapiFacet implements ArrayAccess {
    * Returns realm specific or global settings for a facet.
    *
    * @param string|array $realm
-   *   The machine readable name of the realm or realm definition. Pass null to
-   *   get global settings.
+   *   The machine readable name of the realm or an array containing the realm
+   *   definition. Pass NULL to return the facet's global settings.
    *
    * @return
    *   An object containing the settings.
