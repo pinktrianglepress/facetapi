@@ -162,7 +162,7 @@ abstract class FacetapiWidget {
   }
 
   /**
-   * Executes the widget by altering FacetapiWidget::build.
+   * Executes the widget plugin by altering FacetapiWidget::build.
    *
    * Implementing plugins use this method to transform the initialized render
    * array into something that will product the desired UI component. See the

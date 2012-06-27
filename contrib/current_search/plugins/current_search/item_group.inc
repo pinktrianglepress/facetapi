@@ -2,11 +2,14 @@
 
 /**
  * @file
- * Displays field groups.
+ * The group current search item plugin class.
  */
 
 /**
- * Extension of CurrentSearchItem that displays field groups.
+ * Current search item plugin that displays the active facet items in a group.
+ *
+ * This plugins displays displays active items grouped by field in a horizontal
+ * list.
  */
 class CurrentSearchGroup extends CurrentSearchItem {
 
