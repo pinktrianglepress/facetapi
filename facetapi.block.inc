@@ -7,35 +7,81 @@
 
 /**
  * Implements hook_block_info().
+ *
+ * @see facetapi_get_block_info()
  */
 function facetapi_block_info() {
+  return facetapi_get_block_info(array('block'));
+}
+
+/**
+ * Helper function to get block info for all block-like realms.
+ *
+ * @param array $realm_names
+ *   An array of machine readable realm names blocks are being collected for.
+ *
+ * @return array
+ *   An array of block information.
+ *
+ * @see http://api.drupal.org/api/drupal/modules%21block%21block.api.php/function/hook_block_info/7
+ */
+function facetapi_get_block_info(array $realm_names) {
   $blocks = array();
+  foreach ($realm_names as $realm_name) {
 
-  // Gets delta map, iterates over all enabled facets.
-  $map = facetapi_get_delta_map();
-  foreach (facetapi_get_searcher_info() as $searcher => $info) {
+    // Gets delta map, iterates over all enabled facets.
+    $map = facetapi_get_delta_map();
+    foreach (facetapi_get_searcher_info() as $searcher => $info) {
 
-    // Gets cache settings for the searcher.
-    $cache = variable_get('facetapi:block_cache:' . $searcher, DRUPAL_NO_CACHE);
+      // Gets cache settings for the searcher.
+      $cache = facetapi_get_block_cache_setting($searcher, $realm_name);
 
-    // Adds blocks for facets that are enabled or whose delta mapping is forced.
-    foreach (facetapi_get_delta_map_queue($searcher, 'block') as $facet_name) {
-      if ($facet = facetapi_facet_load($facet_name, $searcher)) {
-        // Gets the delta from the delta map.
-        $string = facetapi_build_delta($searcher, 'block', $facet_name);
-        $delta = array_search($string, $map);
+      // Adds blocks for facets that are enabled or whose delta mapping is forced.
+      foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
+        if ($facet = facetapi_facet_load($facet_name, $searcher)) {
+          // Gets the delta from the delta map.
+          $string = facetapi_build_delta($searcher, $realm_name, $facet_name);
+          $delta = array_search($string, $map);
 
-        // Defines the block.
-        $blocks[$delta] = array(
-          'info' => 'Facet API: ' . $info['label'] . ' : ' . $facet['label'],
-          'cache' => $cache,
-        );
+          // Builds the info. For non-block realm, append the realm name.
+          $subject = 'Facet API: ' . $info['label'] . ' : ' . $facet['label'];
+          if ('block' != $realm_name && ($realm = facetapi_realm_load($realm_name))) {
+            $subject .= ' (' . $realm['label'] . ')';
+          }
+
+          // Defines the block.
+          $blocks[$delta] = array(
+            'info' => $subject,
+            'cache' => $cache,
+          );
+        }
       }
     }
   }
 
   // Returns available blocks.
   return $blocks;
+}
+
+/**
+ * Returns block cache settings.
+ *
+ * @param $searcher
+ *   The machine readable name of searcher.
+ * @param string $realm_name
+ *   The machine readable name of the realm.
+ *
+ * @return int
+ *   The constands defined in includes/common.inc, defaults to DRUPAL_NO_CACHE.
+ *
+ * @see includes/common.inc
+ */
+function facetapi_get_block_cache_setting($searcher, $realm_name) {
+  $name = 'facetapi:block_cache:' . $searcher;
+  if ('block' != $realm_name) {
+    $name .= ':' . $realm_name;
+  }
+  return variable_get($name, DRUPAL_NO_CACHE);
 }
 
 /**
@@ -141,13 +187,18 @@ function facetapi_get_delta_map() {
       $map = $data->data;
     }
     else {
-      $map = array();
 
-      // Maps facet deltas.
-      foreach (facetapi_get_searcher_info() as $searcher => $info) {
-        foreach (facetapi_get_delta_map_queue($searcher, 'block') as $facet_name) {
-          $delta = facetapi_build_delta($searcher, 'block', $facet_name);
-          $map[facetapi_hash_delta($delta)] = $delta;
+      // Maps deltas for all realms. This is a hack since not all realms display
+      // facets in blocks, but it doesn't hurt to store the extra data. The map
+      // is cached anyways, so it shouldn't cause too much additional resource
+      // consumption. It is also an edge-case to have non-block facets.
+      $searcher_info = facetapi_get_searcher_info();
+      foreach (facetapi_get_realm_info() as $realm_name => $realm_info) {
+        foreach ($searcher_info as $searcher => $info) {
+          foreach (facetapi_get_delta_map_queue($searcher, $realm_name) as $facet_name) {
+            $delta = facetapi_build_delta($searcher, $realm_name, $facet_name);
+            $map[facetapi_hash_delta($delta)] = $delta;
+          }
         }
       }
 

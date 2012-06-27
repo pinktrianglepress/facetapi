@@ -215,3 +215,10 @@ function facetapi_update_7102() {
     'serialize' => TRUE,
   ));
 }
+
+/**
+ * Clears cache item using old nomenclature.
+ */
+function facetapi_update_7103() {
+  cache_clear_all('facetapi:delta_map', 'cache');
+}
