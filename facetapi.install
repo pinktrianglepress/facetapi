@@ -217,7 +217,7 @@ function facetapi_update_7102() {
 }
 
 /**
- * Clears cache item using old nomenclature.
+ * Clears facetapi:delta_map cache item to ensure that new realms are mapped.
  */
 function facetapi_update_7103() {
   cache_clear_all('facetapi:delta_map', 'cache');
