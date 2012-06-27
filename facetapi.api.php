@@ -248,6 +248,9 @@ function hook_facetapi_facet_info_alter(array &$facet_info, array $searcher_info
 /**
  * Define all facets sorting algorithms provided by the module.
  *
+ * Sorts are applied in the FacetapiWidget::sortFacet() method which is called
+ * by FacetapiWidget::init().
+ *
  * @return array
  *   An associative array keyed by unique name of the sort. Each sort is an
  *   associative array containing:
@@ -256,6 +259,9 @@ function hook_facetapi_facet_info_alter(array &$facet_info, array $searcher_info
  *   - description: The description of the sort displayed in the admin UI.
  *   - weight: (optional) The default weight of the sort specifying its
  *     default processing order. Defaults to 0.
+ *
+ * @see FacetapiWidget::init()
+ * @see FacetapiWidget::sortFacet()
  */
 function hook_facetapi_sort_info() {
   $sorts = array();
