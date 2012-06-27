@@ -532,6 +532,9 @@ abstract class FacetapiAdapter {
   /**
    * Provides default values for the backend specific settings.
    *
+   * All settings added via FacetapiAdapter::settingsForm() should have
+   * corresponding defaults in this method.
+   *
    * @return array
    *   The defaults keyed by setting name to value.
    */
@@ -735,7 +738,7 @@ abstract class FacetapiAdapter {
   }
 
   /**
-   * Returns settings that are the same across all realms.
+   * Returns global settings for a facet.
    *
    * Global settings are usually things that are processed by the backend such
    * as the hard limit or query type. It isn't practical to execute separate

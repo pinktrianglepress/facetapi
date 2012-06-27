@@ -9,30 +9,30 @@
  * Abstract class extended by dependency plugins.
  *
  * Dependencies are conditions that must be met for facets to be processed and
- * displayed. The system allows site builders to implement the "progressive
- * disclosure" pattern, where facets are exposed only after some action has
- * been taken. For example, a common use case is to only expose taxonomy facets
- * when the bundle they are attached to is selected by the user as an active
- * facet.
+ * displayed. The dependency system allows site builders to implement the
+ * "progressive disclosure" pattern, where facets are exposed only after some
+ * action has been taken. For example, a common use case is to only expose
+ * taxonomy facets when the bundle they are attached to is selected by the user
+ * as an active facet.
  */
 abstract class FacetapiDependency {
 
   /**
-   * The adapter object.
+   * The adapter associated with facet whose dependencies are being checked.
    *
    * @var FacetapiAdapter
    */
   protected $adapter;
 
   /**
-   * The facet definition as re
+   * The facet definition as returned by facetapi_facet_load().
    *
    * @var array
    */
   protected $facet;
 
   /**
-   * An array of active items.
+   * The facet's active items as returned by FacetapiAdapter::getActiveItems().
    *
    * @var array
    */
@@ -46,20 +46,21 @@ abstract class FacetapiDependency {
   protected $settings;
 
   /**
+   * Constructs a FacetapiDependency object.
    *
-   *
-   * @param FacetapiAdapter $adapter
-   *
-   * @param array $facet
-   *
-   * @param array $active_items
-   *
-   * @param stdClass $settings
+   * Sets the necessary information in order to check a facet's dependencies.
    *
    * @param array $id
-   *
-   * @param array $label
-   *
+   *   The machine name of the dependency plugin being instantiated as defined
+   *   in hook_facetapi_dependencies() implementations.
+   * @param FacetapiAdapter $adapter
+   *   The adapter associated with facet whose dependencies are being checked.
+   * @param array $facet
+   *   The facet definition as returned by facetapi_facet_load().
+   * @param array $active_items
+   *   The facet's active items returned by FacetapiAdapter::getActiveItems().
+   * @param stdClass $settings
+   *   The facet's global settings.
    */
   public function __construct($id, FacetapiAdapter $adapter, array $facet, stdClass $settings, array $active_items = array()) {
     $this->id = $id;
@@ -67,7 +68,7 @@ abstract class FacetapiDependency {
     $this->facet = $facet;
     $this->activeItems = $active_items;
 
-    // Captures dependency settings only, makes sure defaults are set.
+    // Capture dependency settings only, ensure defaults are set.
     if (empty($settings->settings['dependencies'])) {
       $settings->settings['dependencies'] = array();
     }
@@ -76,17 +77,17 @@ abstract class FacetapiDependency {
   }
 
   /**
-   * Gets the id of the plugin.
+   * Gets the machine name of the plugin.
    *
    * @return string
-   *   The machine readable name of the plugin.
+   *   The machine name of the plugin.
    */
   public function getId() {
     return $this->id;
   }
 
   /**
-   * Gets the facet definition.
+   * Gets the facet definition as returned by facetapi_facet_load().
    *
    * @return array
    *   The facet definition.
@@ -98,6 +99,12 @@ abstract class FacetapiDependency {
   /**
    * Performs the dependency check.
    *
+   * The dependency system works similar to hook_node_access() in that returning
+   * FASLE explicitly fails the dependency, returning NULL does not actively
+   * pass or fail the dependency, and returning TRUE explicitly passes the
+   * dependency even if other plugins already returned FALSE. Plugins will
+   * usually return either NULL or FALSE in this method.
+   *
    * @return boolean|NULL
    *   Return NULL to pass through to other dependency plugins, or return a
    *   boolean to explicitly set the result.
@@ -105,14 +112,22 @@ abstract class FacetapiDependency {
   abstract public function execute();
 
   /**
+   * Allows plugins to add settings to the dependency form.
    *
+   * @see facetapi_facet_dependencies_form()
    */
   public function settingsForm(&$form, &$form_state) {
     // Nothing to do.
   }
 
   /**
+   * Provides default values for the plugin settings.
    *
+   * All settings added via FacetapiDependency::settingsForm() should have
+   * corresponding defaults in this method.
+   *
+   * @return array
+   *   The defaults keyed by setting name to value.
    */
   public function getDefaultSettings() {
     return array();
