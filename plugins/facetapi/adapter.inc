@@ -764,15 +764,21 @@ abstract class FacetapiAdapter {
       $this->settings[$name] = $this->initSettingsObject($name, $facet['name']);
       $is_new = empty($this->settings[$name]->settings);
 
+      // Ensure the default operator and query type are valid.
+      // @see http://drupal.org/node/1443340
+      $default_query_type = reset($facet['query types']);
+      reset($facet['allowed operators']);
+      $default_operator = key($facet['allowed operators']);
+
       // Apply defaults common across all configs.
       $this->settings[$name]->settings += array(
-        'operator' => FACETAPI_OPERATOR_AND,
+        'operator' => $default_operator,
         'hard_limit' => 50,
         'dependencies' => array(),
         'facet_mincount' => 1,
         'facet_missing' => 0,
         'flatten' => 0,
-        'query_type' => 'term',
+        'query_type' => $default_query_type,
       );
 
       // Apply the adapter's default settings.
