@@ -211,13 +211,6 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('enabled', t('Enabled facet'));
   }
-
-  public function testEnableFacetWithColon() {
-    // @todo Implement API to enable facets.
-    // @see http://drupal.org/node/1208326
-    $this->drupalLogin($this->adminUser);
-    $this->enableFacet('colon:test', t('Colon test'));
-  }
 }
 
 class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
@@ -270,15 +263,43 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
     );
   }
 
-  public function appendIssue(&$message, $link) {
-    $href = check_plain($link);
+  public function setDebugStartMessage($issue, $details = '') {
+    $message = t('Testing bug <a href="@href">@href</a>.', array('@href' => $issue));
+    if ($message) {
+      $message .= '<br />' . $details;
+    }
+    $this->pass($message, 'Debug');
+  }
+
+  public function setDebugEndMessage($issue) {
+    $message = t('End testing bug <a href="@href">@href</a>.', array('@href' => $issue));
+    $this->pass($message, 'Debug');
+  }
+
+  public function appendIssue($message, $issue) {
+    $href = check_plain($issue);
     $message .= '<br /><a href="' . $href . '">' . $href . '</a>';
+    return $message;
+  }
+
+  /**
+   * Tests bug fixed at http://drupal.org/node/1443340.
+   */
+  public function testEnableFacetWithColon() {
+    $issue = 'http://drupal.org/node/1443340';
+    $this->setDebugStartMessage($issue, t('Facet names with colons cannot be enabled and positioned via the UI.'));
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacet('colon:test', t('Colon test'));
+    $this->setDebugEndMessage($issue);
   }
 
   /**
    * Tests bug fixed at http://drupal.org/node/1443340.
    */
   public function testValidDefaults() {
+    $issue = 'http://drupal.org/node/1443340';
+    $this->setDebugStartMessage($issue, t('Default settings not hard coded to "term" and FACETAPI_OPERATOR_AND.'));
+
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('enabled', t('Enabled facet'));
 
@@ -291,8 +312,35 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
       $facet = facetapi_facet_load('defaults', 'facetapi_test');
       $settings = $adapter->getFacetSettingsGlobal($facet);
       $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
-      $this->appendIssue($message, 'http://drupal.org/node/1443340');
+      $message = $this->appendIssue($message, 'http://drupal.org/node/1443340');
       $this->assertEqual($settings->settings['query_type'], 'nonterm', $message);
     }
+
+    $this->setDebugEndMessage($issue);
+  }
+}
+
+
+class FacetapiApiFunctions extends FacetapiTestCase {
+  protected $authenticatedUser;
+  protected $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'API Function',
+      'description' => 'Tests low level API functions.',
+      'group' => 'Facet API',
+    );
+  }
+
+  /**
+   * Tests facetapi_save_facet_status() API functions.
+   *
+   * @see facetapi_save_facet_status()
+   * @see facetapi_save_facet_enabled()
+   * @see facetapi_save_facet_disabled()
+   */
+  public function testSaveFacetStatus() {
+
   }
 }
