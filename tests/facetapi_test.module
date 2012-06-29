@@ -173,8 +173,28 @@ function facetapi_test_facetapi_facet_info($searcher_info) {
         FACETAPI_OPERATOR_OR => TRUE
       ),
     );
+
+    $facets['hierarchical'] = array(
+      'label' => t('Colon test'),
+      'description' => t('Test facets names with colonss.'),
+      'dependency plugins' => array('role'),
+      'hierarchy callback' => 'facetapi_test_process_hierarchy',
+    );
   }
   return $facets;
+}
+
+/**
+ * Hierarchy processing callback.
+ *
+ * @param array $values
+ *   An array containing the term ids.
+ *
+ * @return
+ *   An associative array keyed by term ID to parent ID.
+ */
+function facetapi_test_process_hierarchy(array $values) {
+
 }
 
 /**

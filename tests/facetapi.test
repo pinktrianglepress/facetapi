@@ -397,4 +397,122 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     $translated = facetapi_translate_string('name', 'untranslated');
     $this->assertEqual($translated, 'translated', t('String translated by facetapi_translate_string().'), 'Facet API');
   }
+
+  /**
+   * Tests the facetapi_*_active_searcher() functions.
+   *
+   * @see facetapi_add_active_searcher().
+   * @see facetapi_is_active_searcher().
+   */
+  public function testActiveSearcher() {
+    // Searcher is not active by default, test that context is FALSE.
+    $active = facetapi_is_active_searcher('facetapi_test');
+    $this->assertFalse($active, t('Searcher correctly identified as inactive.'), 'Facet API');
+
+    // Sets active searcher, test that context is TRUE.
+    facetapi_add_active_searcher('facetapi_test');
+    $active = facetapi_is_active_searcher('facetapi_test');
+    $this->assertTrue($active, t('Searcher correctly identified as active.'), 'Facet API');
+  }
+
+  /**
+   * Tests the requirements system for property existence.
+   *
+   * @see facetapi_check_requirements()
+   * @see facetapi_requirement_property()
+   * @see facetapi_requirement_realm_property()
+   * @see facetapi_requirement_facet_property()
+   * @see facetapi_requirement_property_set()
+   * @see facetapi_requirement_realm_property_set()
+   * @see facetapi_requirement_facet_property_set()
+   *
+   * @see facetapi_check_requirements()
+   * @see facetapi_requirement_facet_property_set()
+   * @see facetapi_requirement_realm_property_set()
+   */
+  public function testPropertySetRequirements() {
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $realm = facetapi_realm_load('nodisaply');
+    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property_set' => array('label' => TRUE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when an existing facet property is required to be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property_set' => array('label' => FALSE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when an existing facet property is required to not be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property_set' => array('nonsense' => FALSE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when a non-existent facet property is required not to be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property_set' => array('nonsense' => TRUE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when a facet property that is not set is required.'), 'Facet API');
+
+
+    $requirements = array(
+      'facetapi_requirement_realm_property_set' => array('label' => TRUE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when an existing realm property is required to be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_realm_property_set' => array('label' => FALSE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when an existing realm property is required to not be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_realm_property_set' => array('nonsense' => FALSE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when a non-existent realm property is required not to be set.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_realm_property_set' => array('nonsense' => TRUE),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when a realm property that is not set is required.'), 'Facet API');
+  }
+
+  /**
+   * Tests the requirements system for hierarchies.
+   *
+   * @see facetapi_check_requirements()
+   * @see facetapi_requirement_facet_property_set()
+   * @see facetapi_requirement_facet_hierarchical()
+   */
+  public function testHierarchicalRequirements() {
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $realm = facetapi_realm_load('nodisaply');
+    $e_facet = facetapi_facet_load('enabled', 'facetapi_test');
+    $h_facet = facetapi_facet_load('hierarchical', 'facetapi_test');
+
+    // Tests facetapi_requirement_facet_hierarchical(). Builds the requirements
+    // array for the TRUE and FALSE checks.
+    $requirements_t = array('facetapi_requirement_facet_hierarchical' => TRUE);
+    $requirements_f = array('facetapi_requirement_facet_hierarchical' => FALSE);
+
+    $passed = facetapi_check_requirements($requirements_t, $realm, $h_facet);
+    $this->assertTrue($passed, t('Requirements pass when checking if a hierarchical facet is hierarchical.'), 'Facet API');
+
+    $passed = facetapi_check_requirements($requirements_f, $realm, $h_facet);
+    $this->assertFalse($passed, t('Requirements fail when checking if a hierarchical facet is not hierarchical.'), 'Facet API');
+
+    $passed = facetapi_check_requirements($requirements_f, $realm, $e_facet);
+    $this->assertTrue($passed, t('Requirements pass when checking if a non-hierarchical facet is not hierarchical.'), 'Facet API');
+
+    $passed = facetapi_check_requirements($requirements_t, $realm, $e_facet);
+    $this->assertFalse($passed, t('Requirements fail when checking if a non-hierarchical facet is hierarchical.'), 'Facet API');
+  }
 }
