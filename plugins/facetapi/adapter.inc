@@ -767,8 +767,8 @@ abstract class FacetapiAdapter {
       // Ensure the default operator and query type are valid.
       // @see http://drupal.org/node/1443340
       $default_query_type = reset($facet['query types']);
-      reset($facet['allowed operators']);
-      $default_operator = key($facet['allowed operators']);
+      $allowed_operators = array_filter($facet['allowed operators']);
+      $default_operator = key($allowed_operators);
 
       // Apply defaults common across all configs.
       $this->settings[$name]->settings += array(
