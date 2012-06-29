@@ -311,7 +311,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
 
   public static function getInfo() {
     return array(
-      'name' => 'API Function',
+      'name' => 'API Functions',
       'description' => 'Tests low level API functions.',
       'group' => 'Facet API',
     );
@@ -320,9 +320,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
   /**
    * Tests the facetapi_facet_enabled() function.
    *
-   * @see facetapi_save_facet_status()
-   * @see facetapi_save_facet_enabled()
-   * @see facetapi_save_facet_disabled()
+   * @see facetapi_facet_enabled()
    */
   public function testFacetEnabled() {
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
@@ -356,5 +354,31 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     facetapi_save_facet_disabled($adapter, $realm, $facet);
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
     $this->assertFalse($enabled, t('Facet disabled by facetapi_save_facet_disabled().'), 'Facet API');
+  }
+
+  /**
+   * Tests facetapi_set_facet_status() API functions.
+   *
+   * @see facetapi_set_facet_status()
+   * @see facetapi_set_facet_enabled()
+   * @see facetapi_set_facet_disabled()
+   */
+  public function testSetFacetStatus() {
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $realm = facetapi_realm_load('nodisaply');
+    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+
+    // Facet disabled by default, tests temporarily overriding status. Although
+    // the setting is disabled, status should be TRUE.
+    facetapi_set_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertTrue($enabled, t('Facet temporarily enabled by facetapi_set_facet_disabled().'), 'Facet API');
+
+    // Saves facet as enabled, tests temporarily overriding status. Although the
+    // setting is enabled, status should be FALSE.
+    facetapi_save_facet_enabled($adapter, $realm, $facet);
+    facetapi_set_facet_disabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertFalse($enabled, t('Facet temporarily disabled by facetapi_set_facet_disabled().'), 'Facet API');
   }
 }
