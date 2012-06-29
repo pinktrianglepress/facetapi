@@ -381,4 +381,20 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
     $this->assertFalse($enabled, t('Facet temporarily disabled by facetapi_set_facet_disabled().'), 'Facet API');
   }
+
+  /**
+   * Tests the facetapi_translate_string() functionality.
+   *
+   * The Facet API Test module is not set as the translator module, so we do it
+   * by setting the variable in this function. This prevetns it from interfering
+   * with other tests.
+   *
+   * @see facetapi_translate_string().
+   */
+  public function testTranslateString() {
+    // Sets Facet API Test as the translator module.
+    variable_set('facetapi:translator_module', 'facetapi_test');
+    $translated = facetapi_translate_string('name', 'untranslated');
+    $this->assertEqual($translated, 'translated', t('String translated by facetapi_translate_string().'), 'Facet API');
+  }
 }

@@ -123,6 +123,13 @@ function facetapi_test_facetapi_searcher_info() {
 }
 
 /**
+ * Implements hook_facetapi_translate_string().
+ */
+function facetapi_test_facetapi_translate_string($name, $string, $langcode = NULL) {
+  return 'translated';
+}
+
+/**
  * Placeholder for the admin settings form.
  */
 function facetapi_test_admin_settings($form, &$form_state) {
