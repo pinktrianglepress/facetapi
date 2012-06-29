@@ -65,6 +65,27 @@ function facetapi_test_facetapi_query_types() {
         'adapter' => 'facetapi_test',
       ),
     ),
+    'facetapi_test_nonterm' => array(
+      'handler' => array(
+        'class' => 'FacetapiTestNonterm',
+        'adapter' => 'facetapi_test',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_facetapi_widgets().
+ */
+function facetapi_test_facetapi_widgets() {
+  return array(
+    'facetapi_nonterm' => array(
+      'handler' => array(
+        'label' => t('Nonterm Widget'),
+        'class' => 'FacetapiTestWidgetNonterm',
+        'query types' => array('nonterm'),
+      ),
+    ),
   );
 }
 
@@ -116,6 +137,18 @@ function facetapi_test_facetapi_facet_info($searcher_info) {
       'label' => t('Colon test'),
       'description' => t('Test facets names with colonss.'),
       'dependency plugins' => array('role'),
+    );
+
+    $facets['defaults'] = array(
+      'label' => t('Default test'),
+      'description' => t('Tests query type and operator defaults stored in settings.'),
+      'dependency plugins' => array('role'),
+      'query types' => array('nonterm'),
+      'default widget' => 'nonterm',
+      'allowed operators' => array(
+        FACETAPI_OPERATOR_AND => FALSE,
+        FACETAPI_OPERATOR_OR => TRUE
+      ),
     );
   }
   return $facets;

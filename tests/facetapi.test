@@ -49,6 +49,21 @@ class FacetapiTestCase extends DrupalWebTestCase {
   }
 
   /**
+   * Overrides DrupalWebTestCase::drupalPost()
+   *
+   * Clears static variables on settings submission. This is OK because the
+   * script execution persists when the form is submitted by the test unlike a
+   * real form post where the page has to reload.
+   */
+  public function drupalPost($path, $edit, $submit, array $options = array(), array $headers = array(), $form_html_id = NULL, $extra_post = NULL) {
+    parent::drupalPost($path, $edit, $submit, $options, $headers, $form_html_id, $extra_post);
+    if (t('Save configuration') == $submit) {
+      drupal_static('facetapi_get_searcher_settings', array(), TRUE);
+      drupal_static('facetapi_get_enabled_facets', array(), TRUE);
+    }
+  }
+
+  /**
    * Enables a facet in the block realm, adds it to the "sidebar_first" region.
    *
    * The following tests are executed:
@@ -80,12 +95,6 @@ class FacetapiTestCase extends DrupalWebTestCase {
     $this->drupalGet($path);
     $this->drupalPost($path, $values, t('Save configuration'));
     $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'));
-
-    // We have to clear the static cache otherwise this test won't work. This is
-    // OK because the script execution persists when the form is submitted by
-    // the test unlike a real form post where the page has to reload.
-    drupal_static('facetapi_get_searcher_settings', array(), TRUE);
-    drupal_static('facetapi_get_enabled_facets', array(), TRUE);
 
     // Tests the status of the enabled facet.
     $value = facetapi_facet_enabled('facetapi_test', $realm_name, $facet_name);
@@ -247,4 +256,43 @@ class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
     $this->assertUrl($path, array('query' => array('keys' => 'testkeys')));
   }
 
+}
+
+class FacetapiBugFixTestCase extends FacetapiTestCase {
+  protected $authenticatedUser;
+  protected $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Bug Fixes',
+      'description' => 'Tests fixed bugs to prevent regressions.',
+      'group' => 'Facet API',
+    );
+  }
+
+  public function appendIssue(&$message, $link) {
+    $href = check_plain($link);
+    $message .= '<br /><a href="' . $href . '">' . $href . '</a>';
+  }
+
+  /**
+   * Tests bug fixed at http://drupal.org/node/1443340.
+   */
+  public function testValidDefaults() {
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacet('enabled', t('Enabled facet'));
+
+    $path = 'admin/config/search/facetapi/facetapi_test/block/defaults/edit';
+    $values = array('widget' => 'facetapi_nonterm');
+    $this->drupalGet($path);
+    $this->drupalPost($path, $values, t('Save configuration'));
+
+    if ($adapter = $this->loadAdapter('facetapi_test')) {
+      $facet = facetapi_facet_load('defaults', 'facetapi_test');
+      $settings = $adapter->getFacetSettingsGlobal($facet);
+      $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
+      $this->appendIssue($message, 'http://drupal.org/node/1443340');
+      $this->assertEqual($settings->settings['query_type'], 'nonterm', $message);
+    }
+  }
 }
