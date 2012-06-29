@@ -44,7 +44,7 @@ class FacetapiTestCase extends DrupalWebTestCase {
   public function loadAdapter($searcher) {
     $adapter = facetapi_adapter_load('facetapi_test');
     $value = ($adapter instanceof FacetapiAdapter);
-    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'));
+    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
     return $adapter;
   }
 
@@ -94,11 +94,11 @@ class FacetapiTestCase extends DrupalWebTestCase {
     $values = array('enabled_facets[' . $facet_name . ']' => $facet_name);
     $this->drupalGet($path);
     $this->drupalPost($path, $values, t('Save configuration'));
-    $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'));
+    $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'), 'Facet API');
 
     // Tests the status of the enabled facet.
     $value = facetapi_facet_enabled('facetapi_test', $realm_name, $facet_name);
-    $this->assertTrue($value, t('Facet enabled via the interface.'));
+    $this->assertTrue($value, t('Facet enabled via the interface.'), 'Facet API');
 
     // Adds realm to block if we are testing the block realm.
     if ('block' == $realm_name) {
@@ -115,7 +115,7 @@ class FacetapiTestCase extends DrupalWebTestCase {
       // Visits search page, raw value mimics return from default theme function.
       $this->drupalGet('facetapi_test/search');
       $raw = t('Filter by @title:', array('@title' => drupal_strtolower($label)));
-      $this->assertRaw($raw, t('Facet block displayed on search page.'));
+      $this->assertRaw($raw, t('Facet block displayed on search page.'), 'Facet API');
     }
   }
 }
@@ -137,12 +137,12 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
     $adapter1->semaphore = 'test';
     $adapter2 = $this->loadAdapter('facetapi_test');
     $value = (isset($adapter2->semaphore) && 'test' == $adapter2->semaphore);
-    $this->assertTrue($value, t('Singleton pattern implemented by facetapi_adapter_load().'));
+    $this->assertTrue($value, t('Singleton pattern implemented by facetapi_adapter_load().'), 'Facet API');
   }
 
   public function testInvalidAdapter() {
     $adapter = facetapi_adapter_load('bad_adapter');
-    $this->assertFalse($adapter, t('Loading an invalid adapter returns FALSE.'));
+    $this->assertFalse($adapter, t('Loading an invalid adapter returns FALSE.'), 'Facet API');
   }
 
   public function testSetParams() {
@@ -153,12 +153,12 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
 
     // Ensures that the "q" and "page" variables are stripped.
     $params = $adapter->getUrlProcessor()->getParams();
-    $this->assertTrue(!isset($params['q']), t('The "q" variable is stripped by FacetapiAdapter::setParams().'));
-    $this->assertTrue(!isset($params['page']), t('The "page" variable is stripped by FacetapiAdapter::setParams().'));
+    $this->assertTrue(!isset($params['q']), t('The "q" variable is stripped by FacetapiAdapter::setParams().'), 'Facet API');
+    $this->assertTrue(!isset($params['page']), t('The "page" variable is stripped by FacetapiAdapter::setParams().'), 'Facet API');
 
     // Tests that the "bundle:page" variable is set.
     $value = (isset($params['f'][0]) && 'bundle:page' == $params['f'][0]);
-    $this->assertTrue($value, t('Facet value captured via FacetapiAdapter::setParams().'));
+    $this->assertTrue($value, t('Facet value captured via FacetapiAdapter::setParams().'), 'Facet API');
   }
 }
 
@@ -178,17 +178,17 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
     $this->drupalLogin($this->authenticatedUser);
 
     $this->drupalGet('admin/config/search/facetapi_test/facet');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'));
+    $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'), 'Facet API');
 
     // @todo Randomize facet / realm combination?
     $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/edit');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet settings form.'));
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet settings form.'), 'Facet API');
 
     $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/dependencies');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet dependencies form.'));
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet dependencies form.'), 'Facet API');
 
     $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/export');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet export form.'));
+    $this->assertResponse(403, t('The "administer search" permission is required to access the facet export form.'), 'Facet API');
   }
 
   public function testRealmSettingsForms() {
@@ -196,7 +196,7 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
 
     // Looks for placeholder text in main settings form.
     $this->drupalGet('admin/config/search/facetapi_test');
-    $this->assertRaw(FACETAPI_TEST_FORM_TEXT, t('Facet API test setting form exists.'));
+    $this->assertRaw(FACETAPI_TEST_FORM_TEXT, t('Facet API test setting form exists.'), 'Facet API');
 
     // Searches for "block" link in description.
     $description = t(
@@ -204,7 +204,7 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
       array('@block-page' => url('admin/structure/block', array('query' => array('destination' => 'admin/config/search/facetapi_test/facets/block'))))
     );
     $this->drupalGet('admin/config/search/facetapi_test/facets/block');
-    $this->assertRaw($description, t('Facet API test facet form exists.'));
+    $this->assertRaw($description, t('Facet API test facet form exists.'), 'Facet API');
   }
 
   public function testEnableFacet() {
@@ -226,8 +226,6 @@ class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
   }
 
   public function testFormAccess() {
-    // @todo Implement API to enable facets.
-    // @see http://drupal.org/node/1208326
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('enabled', t('Enabled facet'));
     $this->drupalLogin($this->authenticatedUser);
@@ -263,43 +261,31 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
     );
   }
 
-  public function setDebugStartMessage($issue, $details = '') {
-    $message = t('Testing bug <a href="@href">@href</a>.', array('@href' => $issue));
-    if ($message) {
-      $message .= '<br />' . $details;
-    }
-    $this->pass($message, 'Debug');
-  }
-
-  public function setDebugEndMessage($issue) {
-    $message = t('End testing bug <a href="@href">@href</a>.', array('@href' => $issue));
-    $this->pass($message, 'Debug');
-  }
-
-  public function appendIssue($message, $issue) {
+  /**
+   * Sets debug message flagging which issue was just tested.
+   *
+   * @param string $issue
+   *   The URL to the issue on Drupal.org.
+   */
+  public function setIssueMessage($issue) {
     $href = check_plain($issue);
-    $message .= '<br /><a href="' . $href . '">' . $href . '</a>';
-    return $message;
+    $link = '<a href="' . $href . '">' . $href . '</a>';
+    $this->pass(t('Tested issue !link', array('!link' => $link)), 'Debug');
   }
 
   /**
-   * Tests bug fixed at http://drupal.org/node/1443340.
+   * Tests bug fixed at http://drupal.org/node/1209490.
    */
   public function testEnableFacetWithColon() {
-    $issue = 'http://drupal.org/node/1443340';
-    $this->setDebugStartMessage($issue, t('Facet names with colons cannot be enabled and positioned via the UI.'));
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('colon:test', t('Colon test'));
-    $this->setDebugEndMessage($issue);
+    $this->setIssueMessage('http://drupal.org/node/1209490');
   }
 
   /**
    * Tests bug fixed at http://drupal.org/node/1443340.
    */
   public function testValidDefaults() {
-    $issue = 'http://drupal.org/node/1443340';
-    $this->setDebugStartMessage($issue, t('Default settings not hard coded to "term" and FACETAPI_OPERATOR_AND.'));
-
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('enabled', t('Enabled facet'));
 
@@ -312,14 +298,12 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
       $facet = facetapi_facet_load('defaults', 'facetapi_test');
       $settings = $adapter->getFacetSettingsGlobal($facet);
       $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
-      $message = $this->appendIssue($message, 'http://drupal.org/node/1443340');
-      $this->assertEqual($settings->settings['query_type'], 'nonterm', $message);
+      $this->assertEqual($settings->settings['query_type'], 'nonterm', $message, 'Facet API');
     }
 
-    $this->setDebugEndMessage($issue);
+    $this->setIssueMessage('http://drupal.org/node/1443340');
   }
 }
-
 
 class FacetapiApiFunctions extends FacetapiTestCase {
   protected $authenticatedUser;
@@ -334,6 +318,26 @@ class FacetapiApiFunctions extends FacetapiTestCase {
   }
 
   /**
+   * Tests the facetapi_facet_enabled() function.
+   *
+   * @see facetapi_save_facet_status()
+   * @see facetapi_save_facet_enabled()
+   * @see facetapi_save_facet_disabled()
+   */
+  public function testFacetEnabled() {
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertFalse($enabled, t('Facet flagged as disabled by facetapi_facet_enabled().'), 'Facet API');
+
+    // Enables the facet via the GUI.
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacet('enabled', t('Enabled facet'), 'nodisaply');
+    $this->drupalLogin($this->authenticatedUser);
+
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertTrue($enabled, t('Facet flagged as enabled by facetapi_facet_enabled().'), 'Facet API');
+  }
+
+  /**
    * Tests facetapi_save_facet_status() API functions.
    *
    * @see facetapi_save_facet_status()
@@ -341,6 +345,16 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_save_facet_disabled()
    */
   public function testSaveFacetStatus() {
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $realm = facetapi_realm_load('nodisaply');
+    $facet = facetapi_facet_load('enabled', 'facetapi_test');
 
+    facetapi_save_facet_enabled($adapter, $realm, $facet);
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertTrue($enabled, t('Facet enabled by facetapi_save_facet_enabled().'), 'Facet API');
+
+    facetapi_save_facet_disabled($adapter, $realm, $facet);
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $this->assertFalse($enabled, t('Facet disabled by facetapi_save_facet_disabled().'), 'Facet API');
   }
 }

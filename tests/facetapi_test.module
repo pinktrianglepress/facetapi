@@ -42,6 +42,22 @@ function facetapi_test_menu() {
 }
 
 /**
+ * Implements hook_facetapi_realm_info().
+ */
+function facetapi_test_facetapi_realm_info() {
+  return array(
+    'nodisaply' => array(
+      'label' => t('No display'),
+      'weight' => -10,
+      'sortable' => FALSE,
+      'default widget' => 'facetapi_links',
+      'element type' => 'links',
+      'description' => t('Dummy realm that never displays facets.'),
+    ),
+  );
+}
+
+/**
  * Implements hook_facetapi_adapters().
  */
 function facetapi_test_facetapi_adapters() {
