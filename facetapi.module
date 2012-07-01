@@ -628,7 +628,7 @@ function facetapi_get_facet_info($searcher) {
         }
 
         // Iterates over facet definitions, merges defaults.
-        foreach($facets as $facet_name => $info) {
+        foreach ($facets as $facet_name => $info) {
 
           // @see http://drupal.org/node/1161434
           // Converts "query type" to an array and stores in "query types".
