@@ -547,4 +547,27 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     $passed = facetapi_check_requirements($requirements_t, $realm, $e_facet);
     $this->assertFalse($passed, t('Requirements fail when checking if a non-hierarchical facet is hierarchical.'), 'Facet API');
   }
+
+  /**
+   * Tests the facetapi_access_callback() access callback.
+   *
+   * @see facetapi_access_callback().
+   */
+  public function testAccessCallback() {
+    // The $this->adminUser has the "administer search" permission.
+    $this->drupalLogin($this->adminUser);
+    $access = facetapi_access_callback($this->loggedInUser);
+    $this->assertTrue($access, t('The facetapi_access_callback() function returns TRUE for users with the "administer search" permission.'), 'Facet API');
+
+    // Create another user with the "administer facets" permission.
+    $facet_admin_user = $this->drupalCreateUser(array('administer facets'));
+    $this->drupalLogin($facet_admin_user);
+    $access = facetapi_access_callback($this->loggedInUser);
+    $this->assertTrue($access, t('The facetapi_access_callback() function returns TRUE for users with the "administer facets" permission.'), 'Facet API');
+
+    // Users without either permission should be denied access.
+    $this->drupalLogin($this->authenticatedUser);
+    $access = facetapi_access_callback($this->loggedInUser);
+    $this->assertFalse($access, t('The facetapi_access_callback() function returns FALSE for users with neither the "administer search" nor "administer facets" permissions.'), 'Facet API');
+  }
 }
