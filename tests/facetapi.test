@@ -64,11 +64,8 @@ class FacetapiTestCase extends DrupalWebTestCase {
 
   /**
    * Enables a facet via the UI.
-   *
-   * Use facetapi_save_facet_enabled() unless testing of the UI is explicitly
-   * required.
    */
-  public function enableFacetUI($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
+  public function enableFacet($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
     // Capture current user, switch to admin user if necessary.
     $account = $this->loggedInUser;
     if ($account != $this->adminUser) {
@@ -264,7 +261,7 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
 
     // Enable the "enabled" facet and block via UI.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacetUI();
+    $this->enableFacet();
     $this->enableFacetBlock();
 
     // Test that block is positioned on the search page.
@@ -275,7 +272,20 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
   }
 
   /**
-   * That that the user can selet a valid widget.
+   * Tests display form redirects.
+   */
+  public function testDisplayFormRedirect() {
+    list($facet, $realm, $adapter, $base_path) = $this->loadObjects();
+    $path = "$base_path/edit";
+
+    $button_text = t('Save and go back to realm settings');
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPost($path, array(), $button_text);
+    $this->assertRaw($realm['label'], t('Form is redirected to realm settings form when the "@button-text" button is submitted.', array('@button-text' => $button_text)));
+  }
+
+  /**
+   * Tests that an admin can selet a valid widget.
    *
    * In addition to checking that a valid widget can be selected, it also tests
    * that an invalid widget cannot be selected by choosing one that does not
@@ -320,7 +330,7 @@ class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
 
     // Enable facet and position block.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacetUI();
+    $this->enableFacet();
     $this->enableFacetBlock();
 
     // Logs in as a normal user.
@@ -371,7 +381,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
    * Tests bug fixed at http://drupal.org/node/1209490.
    */
   public function testEnableFacetWithColon() {
-    $this->enableFacetUI('colon:test');
+    $this->enableFacet('colon:test');
     $this->setIssueMessage('http://drupal.org/node/1209490');
   }
 
