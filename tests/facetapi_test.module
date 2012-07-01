@@ -46,9 +46,9 @@ function facetapi_test_menu() {
  */
 function facetapi_test_facetapi_realm_info() {
   return array(
-    'nodisaply' => array(
+    'nodisplay' => array(
       'label' => t('No display'),
-      'weight' => -10,
+      'weight' => -5,
       'sortable' => FALSE,
       'default widget' => 'facetapi_links',
       'element type' => 'links',

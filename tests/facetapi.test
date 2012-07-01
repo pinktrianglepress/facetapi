@@ -11,7 +11,7 @@
 class FacetapiTestCase extends DrupalWebTestCase {
 
   /**
-   * Overrides DrupalWebTestCase::fetchAssoc().
+   * Overrides DrupalWebTestCase::setUp().
    *
    * Enables the "block" and "facetapi_test" modules, creates an administrative
    * user with permissions to configure the Faceted Search interface.
@@ -39,6 +39,27 @@ class FacetapiTestCase extends DrupalWebTestCase {
       drupal_static('facetapi_get_searcher_settings', array(), TRUE);
       drupal_static('facetapi_get_enabled_facets', array(), TRUE);
     }
+  }
+
+  /**
+   * Returns adapter, realm, and facet objects and base admin path.
+   *
+   * Useful with the list() function.
+   *
+   * @return array
+   *   An array containing:
+   *   - The facet definition as retrned by facetapi_facet_load().
+   *   - The realm definition as retrned by facetapi_realm_load().
+   *   - The FacetapiAdapter object as returned by facetapi_adapter_load().
+   *   - The base admin path for facet settings forms.
+   */
+  public function loadObjects($facet_name = 'enabled', $realm_name = 'nodisplay', $searcher = 'facetapi_test') {
+    return array(
+      facetapi_facet_load($facet_name, $searcher),
+      facetapi_realm_load($realm_name),
+      facetapi_adapter_load($searcher),
+      "admin/config/search/facetapi/$searcher/$realm_name/$facet_name",
+    );
   }
 
   /**
@@ -239,6 +260,35 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
     $this->drupalLogin($this->adminUser);
     $this->enableFacet('enabled', t('Enabled facet'));
   }
+
+  /**
+   * That that the user can selet a valid widget.
+   *
+   * In addition to checking that a valid widget can be selected, it also tests
+   * that an invalid widget cannot be selected by choosing one that does not
+   * support the "term" query type.
+   */
+  public function testWidgetSelect() {
+    $this->drupalLogin($this->adminUser);
+    list($facet, $realm, $adapter, $base_path) = $this->loadObjects();
+    $path = "$base_path/edit";
+
+    // Ensure that a valid widget can be selected.
+    $this->drupalGet($path);
+    $values = array('widget' => 'facetapi_checkbox_links');
+    $this->drupalPost($path, $values, t('Save configuration'));
+    $settings = $adapter->getFacetSettings($facet, $realm);
+    $this->assertEqual($settings->settings['widget'], 'facetapi_checkbox_links', t('The facetapi_checkbox_links widget was successfully selected.'), 'Facet API');
+
+    // Ensure that an invalid widget cannot be selected.
+    $this->drupalGet($path);
+    $values = array('widget' => 'facetapi_nonterm');
+    $this->drupalPost($path, $values, t('Save configuration'));
+    $validation_message = t('The widget does not support the %type query type', array('%type' => 'term'));
+    $this->assertRaw($validation_message, t('An invalid widget cannot be selected.'), 'Facet API');
+    $settings = $adapter->getFacetSettings($facet, $realm);
+    $this->assertNotEqual($settings->settings['widget'], 'facetapi_nonterm', t('An invalid widget does not get saved.'), 'Facet API');
+  }
 }
 
 class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
@@ -351,15 +401,15 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_facet_enabled()
    */
   public function testFacetEnabled() {
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertFalse($enabled, t('Facet flagged as disabled by facetapi_facet_enabled().'), 'Facet API');
 
     // Enables the facet via the GUI.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet('enabled', t('Enabled facet'), 'nodisaply');
+    $this->enableFacet('enabled', t('Enabled facet'), 'nodisplay');
     $this->drupalLogin($this->authenticatedUser);
 
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertTrue($enabled, t('Facet flagged as enabled by facetapi_facet_enabled().'), 'Facet API');
   }
 
@@ -371,16 +421,14 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_save_facet_disabled()
    */
   public function testSaveFacetStatus() {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $realm = facetapi_realm_load('nodisaply');
-    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+    list($facet, $realm, $adapter) = $this->loadObjects();
 
     facetapi_save_facet_enabled($adapter, $realm, $facet);
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertTrue($enabled, t('Facet enabled by facetapi_save_facet_enabled().'), 'Facet API');
 
     facetapi_save_facet_disabled($adapter, $realm, $facet);
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertFalse($enabled, t('Facet disabled by facetapi_save_facet_disabled().'), 'Facet API');
   }
 
@@ -392,21 +440,19 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_set_facet_disabled()
    */
   public function testSetFacetStatus() {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $realm = facetapi_realm_load('nodisaply');
-    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+    list($facet, $realm, $adapter) = $this->loadObjects();
 
     // Facet disabled by default, tests temporarily overriding status. Although
     // the setting is disabled, status should be TRUE.
-    facetapi_set_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    facetapi_set_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertTrue($enabled, t('Facet temporarily enabled by facetapi_set_facet_disabled().'), 'Facet API');
 
     // Saves facet as enabled, tests temporarily overriding status. Although the
     // setting is enabled, status should be FALSE.
     facetapi_save_facet_enabled($adapter, $realm, $facet);
-    facetapi_set_facet_disabled('facetapi_test', 'nodisaply', 'enabled');
-    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisaply', 'enabled');
+    facetapi_set_facet_disabled('facetapi_test', 'nodisplay', 'enabled');
+    $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertFalse($enabled, t('Facet temporarily disabled by facetapi_set_facet_disabled().'), 'Facet API');
   }
 
@@ -452,9 +498,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_property_set()
    */
   public function testPropertySetRequirements() {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $realm = facetapi_realm_load('nodisaply');
-    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+    list($facet, $realm, $adapter) = $this->loadObjects();
 
     $requirements = array(
       'facetapi_requirement_facet_property_set' => array('label' => TRUE),
@@ -515,9 +559,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_property()
    */
   public function testPropertyRequirements() {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $realm = facetapi_realm_load('nodisaply');
-    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+    list($facet, $realm, $adapter) = $this->loadObjects();
 
     $requirements = array(
       'facetapi_requirement_facet_property' => array('label' => t('Enabled facet')),
@@ -553,9 +595,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_hierarchical()
    */
   public function testHierarchicalRequirements() {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $realm = facetapi_realm_load('nodisaply');
-    $e_facet = facetapi_facet_load('enabled', 'facetapi_test');
+    list($e_facet, $realm, $adapter) = $this->loadObjects();
     $h_facet = facetapi_facet_load('hierarchical', 'facetapi_test');
 
     // Tests facetapi_requirement_facet_hierarchical(). Builds the requirements
