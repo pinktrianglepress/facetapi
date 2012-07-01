@@ -419,16 +419,9 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * Tests the requirements system for property existence.
    *
    * @see facetapi_check_requirements()
-   * @see facetapi_requirement_property()
-   * @see facetapi_requirement_realm_property()
-   * @see facetapi_requirement_facet_property()
    * @see facetapi_requirement_property_set()
    * @see facetapi_requirement_realm_property_set()
    * @see facetapi_requirement_facet_property_set()
-   *
-   * @see facetapi_check_requirements()
-   * @see facetapi_requirement_facet_property_set()
-   * @see facetapi_requirement_realm_property_set()
    */
   public function testPropertySetRequirements() {
     $adapter = facetapi_adapter_load('facetapi_test');
@@ -483,6 +476,45 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     );
     $passed = facetapi_check_requirements($requirements, $realm, $facet);
     $this->assertFalse($passed, t('Requirements fail when a realm property that is not set is required.'), 'Facet API');
+  }
+
+  /**
+   * Tests the requirements system for property equality.
+   *
+   * @see facetapi_check_requirements()
+   * @see facetapi_requirement_property()
+   * @see facetapi_requirement_realm_property()
+   * @see facetapi_requirement_facet_property()
+   */
+  public function testPropertyRequirements() {
+    $adapter = facetapi_adapter_load('facetapi_test');
+    $realm = facetapi_realm_load('nodisaply');
+    $facet = facetapi_facet_load('enabled', 'facetapi_test');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property' => array('label' => t('Enabled facet')),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when a testing whether a facet property equals the same value.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_facet_property' => array('label' => 'Does not match'),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when a testing whether a facet property equals a different value.'), 'Facet API');
+
+
+    $requirements = array(
+      'facetapi_requirement_realm_property' => array('label' => t('No display')),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertTrue($passed, t('Requirements pass when a testing whether a realm property equals the same value.'), 'Facet API');
+
+    $requirements = array(
+      'facetapi_requirement_realm_property' => array('label' => 'Does not match'),
+    );
+    $passed = facetapi_check_requirements($requirements, $realm, $facet);
+    $this->assertFalse($passed, t('Requirements fail when a testing whether a realm property equals a different value.'), 'Facet API');
   }
 
   /**
