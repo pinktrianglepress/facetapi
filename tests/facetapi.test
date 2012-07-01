@@ -27,28 +27,6 @@ class FacetapiTestCase extends DrupalWebTestCase {
   }
 
   /**
-   * Instantiates the adapter plugin associated with the searcher.
-   *
-   * The following tests are executed:
-   *   - DrupalTestCase::assertTrue(): Asserts that FALSE is not returned by
-   *     facetapi_adapter_load().
-   *
-   * @param string $searcher
-   *   The machine readable name of the searcher.
-   *
-   * @return FacetapiAdapter
-   *   The adapter object, FALSE if the object can't be loaded.
-   *
-   * @see facetapi_adapter_load().
-   */
-  public function loadAdapter($searcher) {
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $value = ($adapter instanceof FacetapiAdapter);
-    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
-    return $adapter;
-  }
-
-  /**
    * Overrides DrupalWebTestCase::drupalPost()
    *
    * Clears static variables on settings submission. This is OK because the
@@ -130,6 +108,28 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
     );
   }
 
+  /**
+   * Instantiates the adapter plugin associated with the searcher.
+   *
+   * The following tests are executed:
+   *   - DrupalTestCase::assertTrue(): Asserts that FALSE is not returned by
+   *     facetapi_adapter_load().
+   *
+   * @param string $searcher
+   *   The machine readable name of the searcher.
+   *
+   * @return FacetapiAdapter
+   *   The adapter object, FALSE if the object can't be loaded.
+   *
+   * @see facetapi_adapter_load().
+   */
+  public function loadAdapter($searcher) {
+    $adapter = facetapi_adapter_load($searcher);
+    $value = ($adapter instanceof FacetapiAdapter);
+    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
+    return $adapter;
+  }
+
   public function testValidAdapter() {
     // Tests loading of a valid adapter plugin, sets a semaphore to see if
     // singleton pattern is implemented.
@@ -174,21 +174,49 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
     );
   }
 
+  /**
+   * Tests access to callbacks.
+   *
+   * @todo Test invalid adapters, realms, facets. Test multiple realms.
+   */
   public function testFormAccess() {
+    $paths = array(
+      'admin/config/search/facetapi_test/facets' => t('realm settings'),
+      'admin/config/search/facetapi/facetapi_test/block/enabled/edit' => t('display settings'),
+      'admin/config/search/facetapi/facetapi_test/block/enabled/dependencies' => t('dependency settings'),
+      'admin/config/search/facetapi/facetapi_test/block/enabled/filters' => t('filter settings'),
+      'admin/config/search/facetapi/facetapi_test/block/enabled/export' => t('export settings'),
+      'admin/config/search/facetapi/facetapi_test/block/enabled/revert' => t('revert settings')
+    );
+
+    // Test wheter unprivileged user is denied access to forms.
     $this->drupalLogin($this->authenticatedUser);
+    foreach ($paths as $path => $form_name) {
+      $this->drupalGet($path);
+      $this->assertResponse(403, t('Unprivileged user does not have access to the @form-name form.', array('@form-name' => $form_name)), 'Facet API');
+    }
 
-    $this->drupalGet('admin/config/search/facetapi_test/facet');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the realm settings form.'), 'Facet API');
+    // Common message for privileged access checks.
+    $privileged_message = t('Privileged user with "@permission" permission is granted access to the @form-name form.');
 
-    // @todo Randomize facet / realm combination?
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/edit');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet settings form.'), 'Facet API');
+    // Test whether privileged user is granted access for forms.
+    // NOTE: $this->adminUser has "administer search" permission.
+    $this->drupalLogin($this->adminUser);
+    foreach ($paths as $path => $form_name) {
+      $this->drupalGet($path);
+      $args = array('@permission' => 'administer search', '@form-name' => $form_name);
+      $this->assertResponse(200, t($privileged_message, $args));
+    }
 
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/dependencies');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet dependencies form.'), 'Facet API');
-
-    $this->drupalGet('admin/config/search/facetapi/facetapi_test/block/enabled/export');
-    $this->assertResponse(403, t('The "administer search" permission is required to access the facet export form.'), 'Facet API');
+    // Tests whether privileged user is granted access for forms.
+    // Create another user with the "administer facets" permission, test whether
+    $facet_admin_user = $this->drupalCreateUser(array('administer facets'));
+    $this->drupalLogin($facet_admin_user);
+    foreach ($paths as $path => $form_name) {
+      $this->drupalGet($path);
+      $args = array('@permission' => 'administer facets', '@form-name' => $form_name);
+      $this->assertResponse(200, t($privileged_message, $args));
+    }
   }
 
   public function testRealmSettingsForms() {
@@ -294,7 +322,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
     $this->drupalGet($path);
     $this->drupalPost($path, $values, t('Save configuration'));
 
-    if ($adapter = $this->loadAdapter('facetapi_test')) {
+    if ($adapter = facetapi_adapter_load('facetapi_test')) {
       $facet = facetapi_facet_load('defaults', 'facetapi_test');
       $settings = $adapter->getFacetSettingsGlobal($facet);
       $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
