@@ -63,62 +63,75 @@ class FacetapiTestCase extends DrupalWebTestCase {
   }
 
   /**
-   * Enables a facet in the block realm, adds it to the "sidebar_first" region.
+   * Enables a facet via the UI.
    *
-   * The following tests are executed:
-   *   - DrupalTestCase::getPath(): Retrieves path to the administrative
-   *     settings page for the block realm.
-   *   - DrupalTestCase::getPost(): Enables the facet in the block realm.
-   *   - DrupalTestCase::assertRaw(): Ensures the configuration options were
-   *     successful by testing for the confirmation message.
-   *   - DrupalTestCase::assertTrue(): Double checks that the facet is enabled
-   *     via the facetapi_facet_enabled() API function.
-   *   - DrupalTestCase::getPost(): Activates the facet block in the
-   *     "sidebar_first" region.
-   *   - DrupalTestCase::getPath(): Retrieves path to the search page.
-   *   - DrupalTestCase::assertRaw(): Tests if the block is displayed by
-   *     looking for it's title.
-   *
-   * @param string $facet_name
-   *   The machine readable name of the facet.
-   * @param string $label
-   *   The title of the block whose existence is being tested.
-   * @param string $realm_name
-   *   The machine readable name of the realm.
+   * Use facetapi_save_facet_enabled() unless testing of the UI is explicitly
+   * required.
    */
-  public function enableFacet($facet_name, $label, $realm_name = 'block') {
-    $path = 'admin/config/search/facetapi_test/facets/' . $realm_name;
+  public function enableFacetUI($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
+    // Capture current user, switch to admin user if necessary.
+    $account = $this->loggedInUser;
+    if ($account != $this->adminUser) {
+      $this->drupalLogin($this->adminUser);
+    }
 
     // Posts the form, ensures it was successfully submitted.
+    $path = 'admin/config/search/facetapi_test/facets/' . $realm_name;
     $values = array('enabled_facets[' . $facet_name . ']' => $facet_name);
-    $this->drupalGet($path);
     $this->drupalPost($path, $values, t('Save configuration'));
     $this->assertRaw(t('The configuration options have been saved.'), t('Facet form successfully submitted.'), 'Facet API');
 
-    // Tests the status of the enabled facet.
-    $value = facetapi_facet_enabled('facetapi_test', $realm_name, $facet_name);
+    // Test that the facet was successfully enabled.
+    $value = facetapi_facet_enabled($searcher, $realm_name, $facet_name);
     $this->assertTrue($value, t('Facet enabled via the interface.'), 'Facet API');
 
-    // Adds realm to block if we are testing the block realm.
-    if ('block' == $realm_name) {
+    // Log back in as original user if necessary.
+    if ($account != $this->adminUser) {
+      if ($account) {
+        $this->drupalLogin($account);
+      }
+      else {
+        $this->drupalLogout();
+      }
+    }
+  }
 
-      // Generates the "key" by generating and hashing the delta.
-      module_load_include('inc', 'facetapi', 'facetapi.block');
-      $detla = facetapi_build_delta('facetapi_test', $realm_name, $facet_name);
-      $key = 'facetapi_' . facetapi_hash_delta($detla);
+  /**
+   * Enables a facet block via the UI.
+   */
+  public function enableFacetBlock($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
+    // Capture current user, switch to admin user if necessary.
+    $account = $this->loggedInUser;
+    if ($account != $this->adminUser) {
+      $this->drupalLogin($this->adminUser);
+    }
 
-      // Enables the facet in the "sidebar_first" region.
-      $edit = array('blocks[' . $key . '][region]' => 'sidebar_first');
-      $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+    // Generates the "key" via the facetapi_hash_delta() function.
+    module_load_include('inc', 'facetapi', 'facetapi.block');
+    $detla = facetapi_build_delta($searcher, $realm_name, $facet_name);
+    $key = 'facetapi_' . facetapi_hash_delta($detla);
 
-      // Visits search page, raw value mimics return from default theme function.
-      $this->drupalGet('facetapi_test/search');
-      $raw = t('Filter by @title:', array('@title' => drupal_strtolower($label)));
-      $this->assertRaw($raw, t('Facet block displayed on search page.'), 'Facet API');
+    // Enables the facet in the "sidebar_first" region.
+    $edit = array('blocks[' . $key . '][region]' => 'sidebar_first');
+    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+
+    // Log back in as original user if necessary.
+    if ($account != $this->adminUser) {
+      if ($account) {
+        $this->drupalLogin($account);
+      }
+      else {
+        $this->drupalLogout();
+      }
     }
   }
 }
 
+/**
+ * Tests the adapter functionality.
+ *
+ * @todo Move to FacetapiApiFunctions.
+ */
 class FacetapiAdapterTestCase extends FacetapiTestCase {
 
   public static function getInfo() {
@@ -183,6 +196,9 @@ class FacetapiAdapterTestCase extends FacetapiTestCase {
   }
 }
 
+/**
+ * Test cases for operations taken through the admin UI.
+ */
 class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
   protected $authenticatedUser;
   protected $adminUser;
@@ -240,25 +256,22 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
     }
   }
 
-  public function testRealmSettingsForms() {
-    $this->drupalLogin($this->adminUser);
-
-    // Looks for placeholder text in main settings form.
-    $this->drupalGet('admin/config/search/facetapi_test');
-    $this->assertRaw(FACETAPI_TEST_FORM_TEXT, t('Facet API test setting form exists.'), 'Facet API');
-
-    // Searches for "block" link in description.
-    $description = t(
-      'The <em>Blocks</em> realm displays each facet in a separate <a href="@block-page">block</a>. Users are able to refine their searches in a drill-down fashion.',
-      array('@block-page' => url('admin/structure/block', array('query' => array('destination' => 'admin/config/search/facetapi_test/facets/block'))))
-    );
-    $this->drupalGet('admin/config/search/facetapi_test/facets/block');
-    $this->assertRaw($description, t('Facet API test facet form exists.'), 'Facet API');
-  }
-
+  /**
+   * Tests enabling a facet via the UI.
+   */
   public function testEnableFacet() {
+    list($facet) = $this->loadObjects();
+
+    // Enable the "enabled" facet and block via UI.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet('enabled', t('Enabled facet'));
+    $this->enableFacetUI();
+    $this->enableFacetBlock();
+
+    // Test that block is positioned on the search page.
+    $this->drupalLogin($this->authenticatedUser);
+    $this->drupalGet('facetapi_test/search');
+    $raw = t('Filter by @title:', array('@title' => drupal_strtolower($facet['label'])));
+    $this->assertRaw($raw, t('Facet block displayed on search page.'), 'Facet API');
   }
 
   /**
@@ -304,11 +317,14 @@ class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
   }
 
   public function testFormAccess() {
-    $this->drupalLogin($this->adminUser);
-    $this->enableFacet('enabled', t('Enabled facet'));
-    $this->drupalLogin($this->authenticatedUser);
 
-    // @todo Randomize keys.
+    // Enable facet and position block.
+    $this->drupalLogin($this->adminUser);
+    $this->enableFacetUI();
+    $this->enableFacetBlock();
+
+    // Logs in as a normal user.
+    $this->drupalLogin($this->authenticatedUser);
 
     // Tests breadcrumb trail when search keys are in the path.
     $path = 'facetapi_test/search/testkeys';
@@ -355,8 +371,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
    * Tests bug fixed at http://drupal.org/node/1209490.
    */
   public function testEnableFacetWithColon() {
-    $this->drupalLogin($this->adminUser);
-    $this->enableFacet('colon:test', t('Colon test'));
+    $this->enableFacetUI('colon:test');
     $this->setIssueMessage('http://drupal.org/node/1209490');
   }
 
@@ -364,25 +379,25 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
    * Tests bug fixed at http://drupal.org/node/1443340.
    */
   public function testValidDefaults() {
+    list($facet, $realm, $adapter, $base_path) = $this->loadObjects('defaults');
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet('enabled', t('Enabled facet'));
 
-    $path = 'admin/config/search/facetapi/facetapi_test/block/defaults/edit';
+    $path = "$base_path/edit";
     $values = array('widget' => 'facetapi_nonterm');
     $this->drupalGet($path);
     $this->drupalPost($path, $values, t('Save configuration'));
 
-    if ($adapter = facetapi_adapter_load('facetapi_test')) {
-      $facet = facetapi_facet_load('defaults', 'facetapi_test');
-      $settings = $adapter->getFacetSettingsGlobal($facet);
-      $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
-      $this->assertEqual($settings->settings['query_type'], 'nonterm', $message, 'Facet API');
-    }
+    $settings = $adapter->getFacetSettingsGlobal($facet);
+    $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
+    $this->assertEqual($settings->settings['query_type'], 'nonterm', $message, 'Facet API');
 
     $this->setIssueMessage('http://drupal.org/node/1443340');
   }
 }
 
+/**
+ * Test cases for low level API functions.
+ */
 class FacetapiApiFunctions extends FacetapiTestCase {
   protected $authenticatedUser;
   protected $adminUser;
@@ -401,14 +416,14 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_facet_enabled()
    */
   public function testFacetEnabled() {
+    list($facet, $realm, $adapter) = $this->loadObjects();
+
+    // Ensure the facet is disabled, which it is by default.
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertFalse($enabled, t('Facet flagged as disabled by facetapi_facet_enabled().'), 'Facet API');
 
-    // Enables the facet via the GUI.
-    $this->drupalLogin($this->adminUser);
-    $this->enableFacet('enabled', t('Enabled facet'), 'nodisplay');
-    $this->drupalLogin($this->authenticatedUser);
-
+    // Enable the facet, ensure the API function flags it as enabled.
+    facetapi_save_facet_enabled($adapter, $realm, $facet);
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
     $this->assertTrue($enabled, t('Facet flagged as enabled by facetapi_facet_enabled().'), 'Facet API');
   }
