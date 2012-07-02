@@ -53,7 +53,7 @@ class FacetapiTestCase extends DrupalWebTestCase {
    *   - The FacetapiAdapter object as returned by facetapi_adapter_load().
    *   - The base admin path for facet settings forms.
    */
-  public function loadObjects($facet_name = 'enabled', $realm_name = 'nodisplay', $searcher = 'facetapi_test') {
+  public function facetapiLoadObjects($facet_name = 'enabled', $realm_name = 'nodisplay', $searcher = 'facetapi_test') {
     return array(
       facetapi_facet_load($facet_name, $searcher),
       facetapi_realm_load($realm_name),
@@ -65,7 +65,7 @@ class FacetapiTestCase extends DrupalWebTestCase {
   /**
    * Enables a facet via the UI.
    */
-  public function enableFacet($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
+  public function facetapiEnableFacet($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
     // Capture current user, switch to admin user if necessary.
     $account = $this->loggedInUser;
     if ($account != $this->adminUser) {
@@ -96,7 +96,7 @@ class FacetapiTestCase extends DrupalWebTestCase {
   /**
    * Enables a facet block via the UI.
    */
-  public function enableFacetBlock($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
+  public function facetapiEnableFacetBlock($facet_name = 'enabled', $realm_name = 'block', $searcher = 'facetapi_test') {
     // Capture current user, switch to admin user if necessary.
     $account = $this->loggedInUser;
     if ($account != $this->adminUser) {
@@ -121,75 +121,6 @@ class FacetapiTestCase extends DrupalWebTestCase {
         $this->drupalLogout();
       }
     }
-  }
-}
-
-/**
- * Tests the adapter functionality.
- *
- * @todo Move to FacetapiApiFunctions.
- */
-class FacetapiAdapterTestCase extends FacetapiTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Adapter functionality',
-      'description' => 'Tests the adapter system.',
-      'group' => 'Facet API',
-    );
-  }
-
-  /**
-   * Instantiates the adapter plugin associated with the searcher.
-   *
-   * The following tests are executed:
-   *   - DrupalTestCase::assertTrue(): Asserts that FALSE is not returned by
-   *     facetapi_adapter_load().
-   *
-   * @param string $searcher
-   *   The machine readable name of the searcher.
-   *
-   * @return FacetapiAdapter
-   *   The adapter object, FALSE if the object can't be loaded.
-   *
-   * @see facetapi_adapter_load().
-   */
-  public function loadAdapter($searcher) {
-    $adapter = facetapi_adapter_load($searcher);
-    $value = ($adapter instanceof FacetapiAdapter);
-    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
-    return $adapter;
-  }
-
-  public function testValidAdapter() {
-    // Tests loading of a valid adapter plugin, sets a semaphore to see if
-    // singleton pattern is implemented.
-    $adapter1 = $this->loadAdapter('facetapi_test');
-    $adapter1->semaphore = 'test';
-    $adapter2 = $this->loadAdapter('facetapi_test');
-    $value = (isset($adapter2->semaphore) && 'test' == $adapter2->semaphore);
-    $this->assertTrue($value, t('Singleton pattern implemented by facetapi_adapter_load().'), 'Facet API');
-  }
-
-  public function testInvalidAdapter() {
-    $adapter = facetapi_adapter_load('bad_adapter');
-    $this->assertFalse($adapter, t('Loading an invalid adapter returns FALSE.'), 'Facet API');
-  }
-
-  public function testSetParams() {
-    // Sets dummy parameters.
-    $adapter = facetapi_adapter_load('facetapi_test');
-    $url = drupal_parse_url('http://example.com/index.php?q=test&page=1&f[0]=bundle:page');
-    $adapter->setParams($url['query']);
-
-    // Ensures that the "q" and "page" variables are stripped.
-    $params = $adapter->getUrlProcessor()->getParams();
-    $this->assertTrue(!isset($params['q']), t('The "q" variable is stripped by FacetapiAdapter::setParams().'), 'Facet API');
-    $this->assertTrue(!isset($params['page']), t('The "page" variable is stripped by FacetapiAdapter::setParams().'), 'Facet API');
-
-    // Tests that the "bundle:page" variable is set.
-    $value = (isset($params['f'][0]) && 'bundle:page' == $params['f'][0]);
-    $this->assertTrue($value, t('Facet value captured via FacetapiAdapter::setParams().'), 'Facet API');
   }
 }
 
@@ -257,12 +188,12 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
    * Tests enabling a facet via the UI.
    */
   public function testEnableFacet() {
-    list($facet) = $this->loadObjects();
+    list($facet) = $this->facetapiLoadObjects();
 
     // Enable the "enabled" facet and block via UI.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet();
-    $this->enableFacetBlock();
+    $this->facetapiEnableFacet();
+    $this->facetapiEnableFacetBlock();
 
     // Test that block is positioned on the search page.
     $this->drupalLogin($this->authenticatedUser);
@@ -275,7 +206,7 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
    * Tests display form redirects.
    */
   public function testDisplayFormRedirect() {
-    list($facet, $realm, $adapter, $base_path) = $this->loadObjects();
+    list($facet, $realm, $adapter, $base_path) = $this->facetapiLoadObjects();
     $path = "$base_path/edit";
 
     $button_text = t('Save and go back to realm settings');
@@ -293,7 +224,7 @@ class FacetapiAdminInterfaceTestCase extends FacetapiTestCase {
    */
   public function testWidgetSelect() {
     $this->drupalLogin($this->adminUser);
-    list($facet, $realm, $adapter, $base_path) = $this->loadObjects();
+    list($facet, $realm, $adapter, $base_path) = $this->facetapiLoadObjects();
     $path = "$base_path/edit";
 
     // Ensure that a valid widget can be selected.
@@ -330,8 +261,8 @@ class FacetapiSearchPageInterfaceTestCase extends FacetapiTestCase {
 
     // Enable facet and position block.
     $this->drupalLogin($this->adminUser);
-    $this->enableFacet();
-    $this->enableFacetBlock();
+    $this->facetapiEnableFacet();
+    $this->facetapiEnableFacetBlock();
 
     // Logs in as a normal user.
     $this->drupalLogin($this->authenticatedUser);
@@ -381,7 +312,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
    * Tests bug fixed at http://drupal.org/node/1209490.
    */
   public function testEnableFacetWithColon() {
-    $this->enableFacet('colon:test');
+    $this->facetapiEnableFacet('colon:test');
     $this->setIssueMessage('http://drupal.org/node/1209490');
   }
 
@@ -389,7 +320,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
    * Tests bug fixed at http://drupal.org/node/1443340.
    */
   public function testValidDefaults() {
-    list($facet, $realm, $adapter, $base_path) = $this->loadObjects('defaults');
+    list($facet, $realm, $adapter, $base_path) = $this->facetapiLoadObjects('defaults');
     $this->drupalLogin($this->adminUser);
 
     $path = "$base_path/edit";
@@ -426,7 +357,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_facet_enabled()
    */
   public function testFacetEnabled() {
-    list($facet, $realm, $adapter) = $this->loadObjects();
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
 
     // Ensure the facet is disabled, which it is by default.
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
@@ -446,7 +377,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_save_facet_disabled()
    */
   public function testSaveFacetStatus() {
-    list($facet, $realm, $adapter) = $this->loadObjects();
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
 
     facetapi_save_facet_enabled($adapter, $realm, $facet);
     $enabled = facetapi_facet_enabled('facetapi_test', 'nodisplay', 'enabled');
@@ -465,7 +396,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_set_facet_disabled()
    */
   public function testSetFacetStatus() {
-    list($facet, $realm, $adapter) = $this->loadObjects();
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
 
     // Facet disabled by default, tests temporarily overriding status. Although
     // the setting is disabled, status should be TRUE.
@@ -523,7 +454,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_property_set()
    */
   public function testPropertySetRequirements() {
-    list($facet, $realm, $adapter) = $this->loadObjects();
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
 
     $requirements = array(
       'facetapi_requirement_facet_property_set' => array('label' => TRUE),
@@ -584,7 +515,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_property()
    */
   public function testPropertyRequirements() {
-    list($facet, $realm, $adapter) = $this->loadObjects();
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
 
     $requirements = array(
       'facetapi_requirement_facet_property' => array('label' => t('Enabled facet')),
@@ -620,7 +551,7 @@ class FacetapiApiFunctions extends FacetapiTestCase {
    * @see facetapi_requirement_facet_hierarchical()
    */
   public function testHierarchicalRequirements() {
-    list($e_facet, $realm, $adapter) = $this->loadObjects();
+    list($e_facet, $realm, $adapter) = $this->facetapiLoadObjects();
     $h_facet = facetapi_facet_load('hierarchical', 'facetapi_test');
 
     // Tests facetapi_requirement_facet_hierarchical(). Builds the requirements
@@ -662,5 +593,92 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     $this->drupalLogin($this->authenticatedUser);
     $access = facetapi_access_callback($this->loggedInUser);
     $this->assertFalse($access, t('The facetapi_access_callback() function returns FALSE for users with neither the "administer search" nor "administer facets" permissions.'), 'Facet API');
+  }
+
+  /**
+   * Tests the loading of the adapter.
+   *
+   * Performs three tests:
+   * - A valid adapter can be loaded.
+   * - An invalid adapter returns FALSE.
+   * - Only one instance per searcher is loaded.
+   */
+  public function testAdapterLoad() {
+    // Loads a valid adapter.
+    $adapter1 = facetapi_adapter_load('facetapi_test');
+    $value = ($adapter1 instanceof FacetapiAdapter);
+    $this->assertTrue($value, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
+
+    // Loads an invalid adapter.
+    $adapter_bad = facetapi_adapter_load('nonsense');
+    $this->assertFalse($adapter_bad, t('FacetapiAdapter object loaded via facetapi_adapter_load().'), 'Facet API');
+
+    // Sets a semaphore to see if singleton pattern is implemented.\
+    $adapter1->semaphore = 'test';
+    $adapter2 = facetapi_adapter_load('facetapi_test');
+    $value = (isset($adapter2->semaphore) && 'test' == $adapter2->semaphore);
+    $this->assertTrue($value, t('Singleton pattern implemented by facetapi_adapter_load().'), 'Facet API');
+  }
+
+  /**
+   * Test URL processor functionality and active item processing.
+   *
+   * @see FacetapiUrlProcessorStandard
+   * @see FacetapiUrlProcessorStandard::fetchParams()
+   * @see FacetapiUrlProcessorStandard::normalizeParams()
+   * @see FacetapiUrlProcessorStandard::setParams()
+   * @see FacetapiUrlProcessorStandard::getParams()
+   * @see FacetapiAdapter::processActiveItems()
+   * @see FacetapiAdapter::getAllActiveItems()
+   */
+  public function testUrlProcessor() {
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
+    facetapi_save_facet_enabled($adapter, $realm, $facet);
+
+    // Capture real $_GET.
+    $get = $_GET;
+
+    // Fake the query string.
+    $_GET = array(
+      'q' => array(),
+      'page' => 1,
+      'f' => array('enabled:testone', 'disabled:testfour', 'enabled:testthree'),
+    );
+
+    // Ensure that the adapter loads the URL processor plugin.
+    $url_processor = $adapter->getUrlProcessor();
+    $passed = ($url_processor instanceof FacetapiUrlProcessorStandard);
+    $this->assertTrue($passed, t('An instance of FacetapiUrlProcessorStandard is returned by the adapter.'), 'Facet API');
+
+    // Test fetching params.
+    $fetched = $url_processor->fetchParams();
+    $this->assertEqual($fetched, $_GET, t('Parameters fetched from $_GET by FacetapiUrlProcessorStandard::fetchParams().'), 'Facet API');
+
+    // Test normalizing fetched params.
+    $normalized = $url_processor->normalizeParams($fetched);
+    $this->assertTrue(!isset($normalized['q']), t('The "q" variable is stripped by FacetapiUrlProcessorStandard::normalizeParams().'), 'Facet API');
+    $this->assertTrue(!isset($normalized['page']), t('The "page" variable is stripped by FacetapiUrlProcessorStandard::normalizeParams().'), 'Facet API');
+
+    // Test setting and getting params.
+    $url_processor->setParams($normalized);
+    $params = $url_processor->getParams();
+    $this->assertEqual($normalized, $params, t('Parameters are able to be set and retrieved by getter and setter methods of FacetapiUrlProcessorStandard.'), 'Facet API');
+
+    // Test processing of active items.
+    // @todo We need to refactor the adapter to test this.
+    /*
+    $adapter->processActiveItems();
+    $active_items = $adapter->getAllActiveItems();
+    $true = isset($active_items['enabled:testone']);
+    $this->assertTrue($true, t('Value for enabled facet extracted as an active item.'), 'Facet API');
+    $false = isset($active_items['disabled:testfour']);
+    $this->assertFalse($false, t('Value for disabled facet not extracted as an active item.'), 'Facet API');
+    */
+
+    // Test building query string.
+    //$qstring = $url_processor->getQueryString($facet, $values, $active);
+
+    // Reset real $_GET.
+    $_GET = $get;
   }
 }
