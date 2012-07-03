@@ -621,17 +621,19 @@ class FacetapiApiFunctions extends FacetapiTestCase {
   }
 
   /**
-   * Test URL processor functionality and active item processing.
+   * Test active item processing via the url processor plugin.
    *
    * @see FacetapiUrlProcessorStandard
    * @see FacetapiUrlProcessorStandard::fetchParams()
    * @see FacetapiUrlProcessorStandard::normalizeParams()
    * @see FacetapiUrlProcessorStandard::setParams()
    * @see FacetapiUrlProcessorStandard::getParams()
+   * @see FacetapiAdapter::initUrlProcessor()
+   * @see FacetapiAdapter::setParams()
    * @see FacetapiAdapter::processActiveItems()
    * @see FacetapiAdapter::getAllActiveItems()
    */
-  public function testUrlProcessor() {
+  public function testUrlProcessorDataProcessing() {
     list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
     facetapi_save_facet_enabled($adapter, $realm, $facet);
 
@@ -665,20 +667,49 @@ class FacetapiApiFunctions extends FacetapiTestCase {
     $this->assertEqual($normalized, $params, t('Parameters are able to be set and retrieved by getter and setter methods of FacetapiUrlProcessorStandard.'), 'Facet API');
 
     // Test processing of active items.
-    // @todo We need to refactor the adapter to test this.
-    /*
-    $adapter->processActiveItems();
+    $adapter->initUrlProcessor();
     $active_items = $adapter->getAllActiveItems();
     $true = isset($active_items['enabled:testone']);
     $this->assertTrue($true, t('Value for enabled facet extracted as an active item.'), 'Facet API');
     $false = isset($active_items['disabled:testfour']);
     $this->assertFalse($false, t('Value for disabled facet not extracted as an active item.'), 'Facet API');
-    */
 
-    // Test building query string.
-    //$qstring = $url_processor->getQueryString($facet, $values, $active);
+    // Test re-processing of active items.
+    $facet_d = facetapi_facet_load('disabled', 'facetapi_test');
+    facetapi_save_facet_enabled($adapter, $realm, $facet_d);
+    $adapter->initUrlProcessor();
+    $active_items = $adapter->getAllActiveItems();
+    $true = isset($active_items['disabled:testfour']);
+    $this->assertTrue($true, t('Reprocessed value for enabled facet extracted as an active item.'), 'Facet API');
 
     // Reset real $_GET.
     $_GET = $get;
+  }
+
+  /**
+   * Test query string building via the url processor plugin.
+   *
+   * @see FacetapiUrlProcessor::getQueryString()
+   */
+  public function testUrlProcessorQueryString() {
+    list($facet, $realm, $adapter) = $this->facetapiLoadObjects();
+    facetapi_save_facet_enabled($adapter, $realm, $facet);
+
+    // Send params with facet data.
+    $params = array(
+      'f' => array('enabled:testone', 'enabled:testthree'),
+    );
+    $adapter->setParams($params);
+    $url_processor = $adapter->getUrlProcessor();
+
+    // Tests activating an additional facet item.
+    $qstring = $url_processor->getQueryString($facet, array('testtwo'), 0);
+    $expected = array('f' => array('enabled:testone', 'enabled:testthree', 'enabled:testtwo'));
+    $this->assertEqual($qstring, $expected, t('Facet item is appended to the query string when activated.'), 'Facet API');
+
+    // Tests deactivating an additional facet item.
+    $qstring = $url_processor->getQueryString($facet, array('testone'), 1);
+    $expected = array('f' => array('enabled:testthree'));
+    $this->assertEqual($qstring, $expected, t('Facet item is removed from the query string when deactivated.'), 'Facet API');
   }
 }
