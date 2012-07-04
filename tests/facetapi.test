@@ -17,7 +17,10 @@ class FacetapiTestCase extends DrupalWebTestCase {
    * user with permissions to configure the Faceted Search interface.
    */
   public function setUp() {
-    parent::setUp('block', 'facetapi_test');
+    $modules = func_get_args();
+    $modules[] = 'block';
+    $modules[] = 'facetapi_test';
+    forward_static_call_array('parent::setUp', $modules);
     $this->authenticatedUser = $this->drupalCreateUser();
     $this->adminUser = $this->drupalCreateUser(array(
       'administer blocks',
@@ -121,6 +124,18 @@ class FacetapiTestCase extends DrupalWebTestCase {
         $this->drupalLogout();
       }
     }
+  }
+
+  /**
+   * Sets debug message flagging which issue was just tested.
+   *
+   * @param string $issue
+   *   The URL to the issue on Drupal.org.
+   */
+  public function facetapiIssueMessage($issue) {
+    $href = check_plain($issue);
+    $link = '<a href="' . $href . '">' . $href . '</a>';
+    $this->pass(t('Tested issue !link', array('!link' => $link)), 'Debug');
   }
 }
 
@@ -297,23 +312,11 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
   }
 
   /**
-   * Sets debug message flagging which issue was just tested.
-   *
-   * @param string $issue
-   *   The URL to the issue on Drupal.org.
-   */
-  public function setIssueMessage($issue) {
-    $href = check_plain($issue);
-    $link = '<a href="' . $href . '">' . $href . '</a>';
-    $this->pass(t('Tested issue !link', array('!link' => $link)), 'Debug');
-  }
-
-  /**
    * Tests bug fixed at http://drupal.org/node/1209490.
    */
   public function testEnableFacetWithColon() {
     $this->facetapiEnableFacet('colon:test');
-    $this->setIssueMessage('http://drupal.org/node/1209490');
+    $this->facetapiIssueMessage('http://drupal.org/node/1209490');
   }
 
   /**
@@ -332,7 +335,7 @@ class FacetapiBugFixTestCase extends FacetapiTestCase {
     $message = t('Defaults settings not hard coded to "term" and FACETAPI_OPERATOR_AND.');
     $this->assertEqual($settings->settings['query_type'], 'nonterm', $message, 'Facet API');
 
-    $this->setIssueMessage('http://drupal.org/node/1443340');
+    $this->facetapiIssueMessage('http://drupal.org/node/1443340');
   }
 }
 
