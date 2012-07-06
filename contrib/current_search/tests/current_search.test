@@ -113,3 +113,38 @@ class CurrentSearchInterfaceTestCase extends CurrentSearchTestCase {
     $this->assertRaw($raw, t('Current search block displayed on search page.'), 'Current Search Blocks');
   }
 }
+
+/**
+ * Test cases for operations taken through the admin UI.
+ */
+class CurrentSearchBugFixTestCase extends CurrentSearchTestCase {
+  protected $authenticatedUser;
+  protected $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Bug Fixes',
+      'description' => 'Tests fixed bugs to prevent regressions.',
+      'group' => 'Current Search Blocks',
+    );
+  }
+
+  /**
+   * Tests bug fixed at http://drupal.org/node/1668980.
+   *
+   * @see http://drupal.org/node/1668980
+   */
+  public function testMultipleBlocks() {
+    // Enable the standard current search block via the UI.
+    $this->drupalLogin($this->adminUser);
+    $this->currentSearchEnableBlock('standard');
+    $this->currentSearchEnableBlock('second');
+
+    // Test that block is positioned on the search page.
+    $this->drupalLogin($this->authenticatedUser);
+    $this->drupalGet('facetapi_test/search', array('query' => array('keys' => 'test')));
+    $this->assertRaw('Second current search block', t('Second current search block displayed on search page.'), 'Current Search Blocks');
+
+    $this->facetapiIssueMessage('http://drupal.org/node/1668980');
+  }
+}
