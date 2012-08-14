@@ -147,4 +147,28 @@ class CurrentSearchBugFixTestCase extends CurrentSearchTestCase {
 
     $this->facetapiIssueMessage('http://drupal.org/node/1668980');
   }
+
+  /**
+   * Tests bug fixed at http://drupal.org/node/1728496.
+   *
+   * @see http://drupal.org/node/1728496
+   */
+  public function testPluralTranslation() {
+    variable_set('facetapi:translator_module', 'facetapi_test');
+
+    // Enable the standard current search block via the UI.
+    $this->drupalLogin($this->adminUser);
+    $this->currentSearchEnableBlock('standard');
+    $this->drupalLogin($this->authenticatedUser);
+
+    // Set the result count to 1 to test singular translation.
+    $this->drupalGet('facetapi_test/search', array('query' => array('keys' => 'test', 'count' => 1)));
+    $raw = check_plain('s:36:"current_search:standard:results:text";');
+    $this->assertRaw($raw, t('Singular text in current search block is translated.'));
+
+    // Set the result count to 10 to test plural translation.
+    $this->drupalGet('facetapi_test/search', array('query' => array('keys' => 'test', 'count' => 10)));
+    $raw = check_plain('s:43:"current_search:standard:results:text_plural";');
+    $this->assertRaw($raw, t('Plural text in current search block is translated.'));
+  }
 }
