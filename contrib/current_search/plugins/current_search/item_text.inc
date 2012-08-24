@@ -42,7 +42,7 @@ class CurrentSearchItemText extends CurrentSearchItem {
     // Translates text, returns themed output.
     $translated_text = $this->translate($translation_key, $raw_text);
     $variables = array(
-      'text' => filter_xss(token_replace($translated_text, $data)),
+      'text' => filter_xss_admin(token_replace($translated_text, $data)),
       'wrapper' => $this->settings['wrapper'],
       'element' => $this->settings['element'],
       'css' => $this->settings['css'],
