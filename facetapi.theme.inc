@@ -146,5 +146,9 @@ function theme_facetapi_deactivate_widget($variables) {
 function theme_facetapi_accessible_markup($variables) {
   $vars = array('@text' => $variables['text']);
   $text = ($variables['active']) ? t('Remove @text filter', $vars) : t('Apply @text filter', $vars);
-  return '<span class="element-invisible">' . $text . '</span>';
+  // Add spaces before and after the text, since other content may be displayed
+  // inline with this and we don't want the words to run together. However, the
+  // spaces must be inside the <span> so as not to disrupt the layout for
+  // sighted users.
+  return '<span class="element-invisible"> ' . $text . ' </span>';
 }
