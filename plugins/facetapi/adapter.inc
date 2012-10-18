@@ -1064,7 +1064,7 @@ abstract class FacetapiAdapter {
     // Iterate over the realm's enabled facets and build their render arrays.
     foreach ($this->getEnabledFacets($realm['name']) as $facet) {
       // Continue to the next facet if this one failed its dependencies.
-      if (!$this->dependenciesPassed[$facet['name']]) {
+      if (empty($this->dependenciesPassed[$facet['name']])) {
         continue;
       }
 
