@@ -33,7 +33,7 @@ function theme_facetapi_title($variables) {
 }
 
 /**
- * Returns HTML for an active facet item.
+ * Returns HTML for an inactive facet item.
  *
  * @param $variables
  *   An associative array containing the keys 'text', 'path', 'options', and
@@ -68,7 +68,7 @@ function theme_facetapi_link_inactive($variables) {
 }
 
 /**
- * Returns HTML for the inactive facet item's count.
+ * Returns HTML for the active facet item's count.
  *
  * @param $variables
  *   An associative array containing:
