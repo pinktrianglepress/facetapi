@@ -1055,7 +1055,6 @@ abstract class FacetapiAdapter {
     $this->processFacets();
 
     // Add JavaScript, initializes the realm specific render array.
-    drupal_add_js(drupal_get_path('module', 'facetapi') . '/facetapi.js');
     $build = array(
       '#adapter' => $this,
       '#realm' => $realm,
