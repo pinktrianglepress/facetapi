@@ -728,6 +728,7 @@ function theme_facetapi_sort_settings_table($variables) {
  * Form validation handler for facetapi_facet_display_form().
  */
 function facetapi_facet_display_form_validate($form, &$form_state) {
+  ctools_include('plugins');
   // Gets the selected query type and widget.
   $query_type = $form_state['values']['global']['query_type'];
   $widget_name = $form_state['values']['widget'];
