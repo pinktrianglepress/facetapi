@@ -971,11 +971,11 @@ function facetapi_build_realm($searcher, $realm_name) {
  * @return
  *   A boolean flagging whether all requirements were passed.
  */
-function facetapi_check_requirements(array $requirements, array $realm, array $facet) {
+function facetapi_check_requirements(array $requirements, array $realm, array $facet, $operator = 'AND') {
   $return = TRUE;
   module_load_include('inc', 'facetapi', 'facetapi.requirements');
   foreach ($requirements as $callback => $options) {
-    if (!call_user_func($callback, $realm, $facet, $options)) {
+    if (!call_user_func($callback, $realm, $facet, $options, $operator)) {
       $return = FALSE;
       break;
     }

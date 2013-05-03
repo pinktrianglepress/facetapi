@@ -330,10 +330,11 @@ function facetapi_get_widgets(array $realm, array $facet) {
       'requirements' => array(
         'facetapi_requirement_realm_property' => array('element type' => 'links')
       ),
+      'requirements operator' => 'AND',
     );
 
     // Checks requirements, only saves widgets that pass all requirements.
-    if (facetapi_check_requirements($plugin['handler']['requirements'], $realm, $facet)) {
+    if (facetapi_check_requirements($plugin['handler']['requirements'], $realm, $facet, $plugin['handler']['requirements operator'])) {
       $plugins[$id] = $plugin;
     }
   }
