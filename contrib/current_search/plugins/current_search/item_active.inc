@@ -45,8 +45,10 @@ class CurrentSearchItemActive extends CurrentSearchItem {
 
       // Builds variables to pass to theme function.
       $data = array('facetapi_active_item' => $item);
+      $text = token_replace($pattern, $data);
+      $text = ucwords(str_replace('_', ' ', $text));
       $variables = array(
-        'text' => token_replace($pattern, $data),
+        'text' => $text,
         'path' => $this->getFacetPath($item, $adapter),
         'options' => array(
           'attributes' => $attributes,
