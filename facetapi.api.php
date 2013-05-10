@@ -447,14 +447,9 @@ function hook_facetapi_url_processors() {
  *   associative array keyed by "handler" containing:
  *   - label: The human readable name of the plugin displayed in the admin UI.
  *   - class: The name of the plugin class.
- *   - query types: An array of query-types that this widget is compatible with.
- *   - requirements: An array of requirements that must pass in order for this
- *     widget to be displayed. Requirements are associative arrays keyed by
- *     function to requirement options. The value defaults to a requirement that
- *     the "element type" realm property is equal to "links".
+ *   - query types: An array of query-types that this widget is compatible with
  *
  * @see FacetapiWidget
- * @see facetapi_get_widgets()
  */
 function hook_facetapi_widgets() {
   return array(
@@ -463,9 +458,6 @@ function hook_facetapi_widgets() {
         'label' => t('Links'),
         'class' => 'FacetapiWidgetLinks',
         'query types' => array('term', 'date'),
-        'requirements' => array(
-          'facetapi_requirement_realm_property' => array('element type' => 'links')
-        ),
       ),
     ),
   );

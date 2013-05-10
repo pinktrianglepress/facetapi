@@ -34,13 +34,6 @@ class FacetapiTestAdapter extends FacetapiAdapter {
   }
 
   /**
-   * Overrides FacetapiAdapter::getSearchPath().
-   */
-  public function getSearchPath() {
-    return 'facetapi_test/search';
-  }
-
-  /**
    * Sets the result count.
    *
    * The test searcher does not use the core pager APIs, so we use this method
